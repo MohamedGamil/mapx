@@ -14,7 +14,7 @@ export class LLMExporter {
   }
 
   export(options: ExportOptions): string {
-    const budget = options.tokenBudget || 4096;
+    const budget = options.tokenBudget || 8192;
     const parts: string[] = [];
 
     const files = this.store.getAllFiles(options.repo);

@@ -42,8 +42,8 @@ codegraph update [/path]
 codegraph status [/path]
 
 # Export compact graph summary (token-efficient)
-codegraph export [--dir /path]              # default: LLM format, 4096 token budget
-codegraph export --tokens=8192              # larger budget
+codegraph export [--dir /path]              # default: LLM format, 8192 token budget
+codegraph export --tokens=16384             # larger budget
 codegraph export --format=json              # full graph as JSON
 codegraph export --format=dot               # GraphViz DOT for visualization
 

@@ -122,7 +122,7 @@ export async function startMcpServer(dir?: string): Promise<void> {
           type: 'object',
           properties: {
             format: { type: 'string', enum: ['llm', 'json'], description: 'Output format', default: 'llm' },
-            tokens: { type: 'number', description: 'Token budget for LLM format', default: 4096 },
+            tokens: { type: 'number', description: 'Token budget for LLM format', default: 8192 },
             repo: { type: 'string', description: 'Filter by repo name' },
             ...dirProperty,
           },
@@ -213,7 +213,7 @@ export async function startMcpServer(dir?: string): Promise<void> {
         if ('error' in ctx) return { content: [{ type: 'text', text: ctx.error }] };
 
         const format = (args as any)?.format || 'llm';
-        const tokens = (args as any)?.tokens || 4096;
+        const tokens = (args as any)?.tokens || 8192;
         const repo = (args as any)?.repo;
 
         if (format === 'json') {

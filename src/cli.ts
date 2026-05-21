@@ -243,14 +243,14 @@ export function buildCLI(): Command {
     .description('Export code graph for LLM consumption')
     .option('-d, --dir <path>', 'Target directory')
     .option('--format <format>', 'Output format: llm, json, dot', 'llm')
-    .option('--tokens <budget>', 'Token budget for LLM export', '4096')
+    .option('--tokens <budget>', 'Token budget for LLM export', '8192')
     .option('--repo <name>', 'Filter by repo name')
     .action(async (opts: Record<string, unknown>) => {
       const dir = resolveDir(opts, program.opts());
       const { store, graph } = await loadContext(dir);
 
       const format = opts.format as string;
-      const tokenBudget = parseInt(opts.tokens as string, 10) || 4096;
+      const tokenBudget = parseInt(opts.tokens as string, 10) || 8192;
 
       switch (format) {
         case 'json': {

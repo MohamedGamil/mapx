@@ -10,7 +10,7 @@ const DEFAULT_CONFIG: CodeGraphConfig = {
   repos: [],
   languages: {},
   settings: {
-    maxTokenBudget: 4096,
+    maxTokenBudget: 16384,
     excludePatterns: [
       'node_modules/**',
       'vendor/**',

@@ -42,17 +42,11 @@ update: ## Incremental scan (only changed files) (make update DIR=/path)
 status: ## Show changed files since last scan (make status DIR=/path)
 	$(CLI) status $(DIR)
 
-export: ## Export LLM-friendly summary, 4096 tokens (make export DIR=/path)
+export: ## Export LLM-friendly summary, 8K tokens (make export DIR=/path)
 	$(CLI) export --dir=$(DIR)
 
-export-json: ## Export full graph as JSON
-	$(CLI) export --format=json --dir=$(DIR)
-
-export-dot: ## Export graph as GraphViz DOT
-	$(CLI) export --format=dot --dir=$(DIR)
-
-export-wide: ## Export with larger token budget (8K)
-	$(CLI) export --tokens=8192 --dir=$(DIR)
+export-wide: ## Export with larger token budget (16K)
+	$(CLI) export --tokens=16384 --dir=$(DIR)
 
 query: ## Search symbols: make query q=ClassName DIR=/path
 	@test -n "$(q)" || (echo "Usage: make query q=SearchTerm [DIR=/path]" && exit 1)
