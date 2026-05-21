@@ -11,12 +11,76 @@ import { GraphExporter } from './exporters/graph-exporter.js';
 import { DotExporter } from './exporters/dot-exporter.js';
 import { getChangedFiles, isGitRepo } from './core/git-tracker.js';
 import { getBuiltinLanguages } from './languages/registry.js';
+import type { ScanProgress, ProgressCallback } from './types.js';
 
 const dynamicRequire = createRequire(import.meta.url);
 
 function resolveDir(cmdOpts: Record<string, unknown>, programOpts: Record<string, unknown>): string {
   const raw = (cmdOpts.dir as string) || (programOpts.dir as string) || process.cwd();
   return resolve(raw);
+}
+
+const PHASE_LABELS: Record<ScanProgress['phase'], { active: string; done: string }> = {
+  discover: { active: 'Discovering files', done: 'Discovered files' },
+  index: { active: 'Indexing files', done: 'Indexed files' },
+  parse: { active: 'Parsing files', done: 'Parsed files' },
+  resolve: { active: 'Resolving references', done: 'Resolved references' },
+  detect: { active: 'Detecting changes', done: 'Detected changes' },
+};
+
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⸦', '⢼', '⣴', '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽', '⣾'];
+let spinnerIdx = 0;
+
+function createProgressRenderer(): ProgressCallback {
+  let lastPhase: ScanProgress['phase'] | null = null;
+  let lastLineLen = 0;
+
+  const writeLine = (line: string) => {
+    const clear = lastLineLen > 0 ? '\r' + ' '.repeat(lastLineLen) + '\r' : '\r';
+    process.stderr.write(clear + line);
+    lastLineLen = line.length;
+  };
+
+  const renderBar = (current: number, total: number, width: number = 20): string => {
+    if (total === 0) {
+      const frame = SPINNER_FRAMES[spinnerIdx++ % SPINNER_FRAMES.length];
+      return `${frame} `;
+    }
+    const filled = Math.round((current / total) * width);
+    const empty = width - filled;
+    const bar = '█'.repeat(filled) + '░'.repeat(empty);
+    const pct = Math.round((current / total) * 100);
+    return `${bar} ${pct}%`;
+  };
+
+  return (progress: ScanProgress) => {
+    const { phase, current, total, file } = progress;
+    const label = PHASE_LABELS[phase];
+    const isNewPhase = phase !== lastPhase;
+
+    if (isNewPhase && lastPhase !== null) {
+      const prevLabel = PHASE_LABELS[lastPhase];
+      writeLine(`  ✔ ${prevLabel.done}\n`);
+    }
+
+    lastPhase = phase;
+
+    const bar = renderBar(current, total);
+    const counter = total > 0 ? `${current}/${total}` : `${current}`;
+    let line = `  ${label.active} ${bar} ${counter}`;
+
+    if (file) {
+      const maxFileLen = Math.max(0, 60 - line.length);
+      const displayFile = file.length > maxFileLen && maxFileLen > 3
+        ? '…' + file.slice(-(maxFileLen - 1))
+        : file.length <= maxFileLen ? file : '';
+      if (displayFile) {
+        line += ` ${displayFile}`;
+      }
+    }
+
+    writeLine(line);
+  };
 }
 
 export function buildCLI(): Command {
@@ -48,9 +112,11 @@ export function buildCLI(): Command {
       const dir = path ? resolve(path) : resolveDir({}, program.opts());
       const { config, store, graph } = await loadContext(dir);
 
-      const scanner = new Scanner(store, config, graph);
+      const onProgress = createProgressRenderer();
+      const scanner = new Scanner(store, config, graph, onProgress);
       const result = await scanner.scanFull();
 
+      process.stderr.write('\r' + ' '.repeat(80) + '\r');
       console.log(`Scanned ${result.filesScanned} files in ${result.durationMs}ms`);
       console.log(`Languages: ${Object.entries(result.languageBreakdown).map(([l, c]) => `${l}: ${c}`).join(', ')}`);
       console.log(`Found ${result.symbolsFound} symbols, ${result.edgesFound} edges`);
@@ -63,12 +129,14 @@ export function buildCLI(): Command {
     .action(async (path: string | undefined) => {
       const dir = path ? resolve(path) : resolveDir({}, program.opts());
       const { config, store, graph } = await loadContext(dir);
+      const onProgress = createProgressRenderer();
 
       const repoRoot = resolve(dir, config.repo.path);
       if (!isGitRepo(repoRoot)) {
         console.log('Not a git repo, falling back to full scan');
-        const scanner = new Scanner(store, config, graph);
+        const scanner = new Scanner(store, config, graph, onProgress);
         const result = await scanner.scanFull();
+        process.stderr.write('\r' + ' '.repeat(80) + '\r');
         console.log(`Scanned ${result.filesScanned} files, ${result.symbolsFound} symbols, ${result.edgesFound} edges in ${result.durationMs}ms`);
         return;
       }
@@ -79,9 +147,10 @@ export function buildCLI(): Command {
         return;
       }
 
-      const scanner = new Scanner(store, config, graph);
+      const scanner = new Scanner(store, config, graph, onProgress);
       const result = await scanner.scanIncremental();
 
+      process.stderr.write('\r' + ' '.repeat(80) + '\r');
       console.log(`Updated ${result.filesScanned} files in ${result.durationMs}ms`);
       console.log(`${result.symbolsFound} symbols updated, ${result.edgesFound} edges updated`);
     });

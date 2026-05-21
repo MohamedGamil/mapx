@@ -47,7 +47,7 @@ export function getChangedFiles(repoRoot: string, since?: string): GitFileStatus
   try {
     let command: string;
     if (since) {
-      command = `git diff --name-status ${since} HEAD`;
+      command = `git diff --name-status ${since}`;
     } else {
       command = 'git diff --name-status HEAD';
     }
@@ -77,22 +77,26 @@ export function getChangedFiles(repoRoot: string, since?: string): GitFileStatus
     // no previous commit or not a git repo
   }
 
-  const stagedOutput = execSync('git diff --name-status --cached', {
-    cwd: repoRoot,
-    encoding: 'utf-8',
-  }).trim();
+  try {
+    const stagedOutput = execSync('git diff --name-status --cached', {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+    }).trim();
 
-  for (const line of stagedOutput.split('\n').filter(Boolean)) {
-    const parts = line.split('\t');
-    const status = parts[0].charAt(0);
-    const filePath = parts[parts.length - 1];
+    for (const line of stagedOutput.split('\n').filter(Boolean)) {
+      const parts = line.split('\t');
+      const status = parts[0].charAt(0);
+      const filePath = parts[parts.length - 1];
 
-    if (!changes.find(c => c.path === filePath)) {
-      const statusMap: Record<string, GitFileStatus['status']> = {
-        'A': 'added', 'M': 'modified', 'D': 'removed', 'R': 'renamed',
-      };
-      changes.push({ path: filePath, status: statusMap[status] || 'modified' });
+      if (!changes.find(c => c.path === filePath)) {
+        const statusMap: Record<string, GitFileStatus['status']> = {
+          'A': 'added', 'M': 'modified', 'D': 'removed', 'R': 'renamed',
+        };
+        changes.push({ path: filePath, status: statusMap[status] || 'modified' });
+      }
     }
+  } catch {
+    // no staged changes
   }
 
   return changes;

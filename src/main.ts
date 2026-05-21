@@ -12,3 +12,4 @@ if (isImplicitMcp) {
   const program = buildCLI();
   program.parse(process.argv);
 }
+// test comment

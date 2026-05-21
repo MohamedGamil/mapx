@@ -6,7 +6,7 @@ import { Config } from './config.js';
 import { getParserForFile } from '../parsers/parser-registry.js';
 import { getLanguageForFile } from '../languages/registry.js';
 import { getGitBlobHashes, getChangedFiles, getCurrentCommitSha, isGitRepo } from './git-tracker.js';
-import type { ScanResult, GraphEdge, ParseResult, ExtractedReference, ExtractedSymbol } from '../types.js';
+import type { ScanResult, GraphEdge, ParseResult, ExtractedReference, ExtractedSymbol, ProgressCallback } from '../types.js';
 
 const DEFAULT_IGNORE = new Set([
   'node_modules', 'vendor', '.git', 'dist', '.codegraph', '__pycache__',
@@ -18,11 +18,13 @@ export class Scanner {
   private store: Store;
   private config: Config;
   private graph: CodeGraph;
+  private onProgress?: ProgressCallback;
 
-  constructor(store: Store, config: Config, graph: CodeGraph) {
+  constructor(store: Store, config: Config, graph: CodeGraph, onProgress?: ProgressCallback) {
     this.store = store;
     this.config = config;
     this.graph = graph;
+    this.onProgress = onProgress;
   }
 
   async scanFull(): Promise<ScanResult> {
@@ -36,10 +38,13 @@ export class Scanner {
     let totalSymbols = 0;
     let totalEdges = 0;
 
+    this.onProgress?.({ phase: 'index', current: 0, total: files.length });
+
     const gitHashes = isGitRepo(repoRoot) ? getGitBlobHashes(repoRoot) : new Map<string, string>();
 
     this.store.inTransaction(() => {
-      for (const fileInfo of files) {
+      for (let i = 0; i < files.length; i++) {
+        const fileInfo = files[i];
         const relativePath = relative(workspaceRoot, fileInfo.absolutePath).replace(/\\/g, '/');
         const blobHash = gitHashes.get(relativePath) || null;
 
@@ -56,15 +61,20 @@ export class Scanner {
         this.graph.addFileNode(relativePath, fileInfo.language, fileInfo.sizeBytes, fileInfo.lines);
 
         langBreakdown[fileInfo.language] = (langBreakdown[fileInfo.language] || 0) + 1;
+
+        this.onProgress?.({ phase: 'index', current: i + 1, total: files.length, file: relativePath });
       }
     });
 
-    for (const fileInfo of files) {
+    for (let i = 0; i < files.length; i++) {
+      const fileInfo = files[i];
       const relativePath = relative(workspaceRoot, fileInfo.absolutePath).replace(/\\/g, '/');
       const result = await this.parseAndIndex(relativePath, fileInfo.absolutePath, repo.name);
 
       totalSymbols += result.symbols.length;
       totalEdges += result.references.length;
+
+      this.onProgress?.({ phase: 'parse', current: i + 1, total: files.length, file: relativePath });
     }
 
     const commitSha = isGitRepo(repoRoot) ? getCurrentCommitSha(repoRoot) : null;
@@ -95,6 +105,7 @@ export class Scanner {
     }
 
     const lastCommit = this.store.getMeta('last_scan_commit');
+    this.onProgress?.({ phase: 'detect', current: 0, total: 0 });
     const changes = getChangedFiles(repoRoot, lastCommit || undefined);
 
     if (changes.length === 0) {
@@ -111,19 +122,24 @@ export class Scanner {
     let totalEdges = 0;
     const langBreakdown: Record<string, number> = {};
 
-    for (const change of changes) {
+    for (let i = 0; i < changes.length; i++) {
+      const change = changes[i];
       const relativePath = change.path.replace(/\\/g, '/');
 
       if (change.status === 'removed') {
         this.store.inTransaction(() => {
           this.store.deleteFile(relativePath);
         });
+        this.onProgress?.({ phase: 'parse', current: i + 1, total: changes.length, file: relativePath });
         continue;
       }
 
       const absolutePath = resolve(workspaceRoot, relativePath);
       const fileInfo = await this.getFileInfo(absolutePath, relativePath);
-      if (!fileInfo) continue;
+      if (!fileInfo) {
+        this.onProgress?.({ phase: 'parse', current: i + 1, total: changes.length, file: relativePath });
+        continue;
+      }
 
       this.store.inTransaction(() => {
         this.store.deleteSymbolsForFile(relativePath);
@@ -143,6 +159,8 @@ export class Scanner {
       totalSymbols += result.symbols.length;
       totalEdges += result.references.length;
       langBreakdown[fileInfo.language] = (langBreakdown[fileInfo.language] || 0) + 1;
+
+      this.onProgress?.({ phase: 'parse', current: i + 1, total: changes.length, file: relativePath });
     }
 
     const commitSha = getCurrentCommitSha(repoRoot);
@@ -289,6 +307,8 @@ export class Scanner {
     const workspaceRoot = this.config.getWorkspaceRoot();
     const excludePatterns = this.config.settings.excludePatterns;
 
+    this.onProgress?.({ phase: 'discover', current: 0, total: 0 });
+
     const walk = async (currentDir: string) => {
       const entries = await readdir(currentDir, { withFileTypes: true });
 
@@ -318,6 +338,8 @@ export class Scanner {
               sizeBytes: stats.size,
               lines,
             });
+
+            this.onProgress?.({ phase: 'discover', current: files.length, total: 0, file: relativePath });
           } catch {
             // skip unreadable files
           }

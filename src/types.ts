@@ -68,6 +68,17 @@ export interface GraphEdge {
   weight: number;
 }
 
+export type ScanPhase = 'discover' | 'index' | 'parse' | 'resolve' | 'detect';
+
+export interface ScanProgress {
+  phase: ScanPhase;
+  current: number;
+  total: number;
+  file?: string;
+}
+
+export type ProgressCallback = (progress: ScanProgress) => void;
+
 export interface ScanResult {
   filesScanned: number;
   symbolsFound: number;
