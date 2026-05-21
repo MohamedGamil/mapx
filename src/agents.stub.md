@@ -1,4 +1,3 @@
-<!-- codegraph -->
 # CodeGraph - LLM Integration Guide
 
 This project uses **CodeGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.
@@ -92,5 +91,3 @@ When running as an MCP server, CodeGraph exposes these tools:
 - **PHP** (built-in): classes, methods, functions, interfaces, traits, enums, constants
 - **JavaScript** (built-in): classes, methods, functions, arrow functions
 - **TypeScript** (built-in): classes, methods, functions, interfaces, enums, type aliases, properties
-
-<!-- /codegraph -->

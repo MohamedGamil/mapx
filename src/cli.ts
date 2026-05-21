@@ -1,7 +1,9 @@
 import { Command } from 'commander';
-import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import * as readline from 'node:readline';
 import { Store } from './core/store.js';
 import { CodeGraph } from './core/graph.js';
 import { Scanner } from './core/scanner.js';
@@ -83,6 +85,139 @@ function createProgressRenderer(): ProgressCallback {
   };
 }
 
+const CODEGRAPH_MARKER_START = '<!-- codegraph -->';
+const CODEGRAPH_MARKER_END = '<!-- /codegraph -->';
+
+function readStubContent(): string {
+  try {
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const stubPath = resolve(thisDir, 'agents.stub.md');
+    return readFileSync(stubPath, 'utf-8');
+  } catch {
+    return [
+      '# CodeGraph - LLM Integration Guide',
+      '',
+      'This project uses **CodeGraph** — a local code graph memory system for LLMs.',
+      '',
+      '## Commands',
+      '',
+      '```bash',
+      'codegraph init [/path]         # First-time setup',
+      'codegraph scan [/path]         # Full scan',
+      'codegraph update [/path]       # Incremental update',
+      'codegraph export [--dir /path] # Export graph summary (8K tokens)',
+      'codegraph query <term>         # Search symbols',
+      'codegraph deps <file>          # File dependencies',
+      'codegraph summary [/path]      # Project summary',
+      'codegraph serve --dir /path    # Start MCP server',
+      '```',
+      '',
+      '## MCP Tools',
+      '',
+      '- `codegraph_scan` — Scan/update the code graph',
+      '- `codegraph_query` — Search symbols by name',
+      '- `codegraph_dependencies` — Get deps for a file',
+      '- `codegraph_export` — Export compact graph summary',
+      '- `codegraph_status` — Check scan status',
+      '',
+      '## When to Use',
+      '',
+      '1. Start of session: `codegraph export`',
+      '2. Find something: `codegraph query <term>`',
+      '3. Understand a file: `codegraph deps <file>`',
+      '4. Files changed: `codegraph update`',
+      '5. Major changes: `codegraph scan`',
+      '',
+      '## Supported Languages',
+      '',
+      '- **PHP**: classes, methods, functions, interfaces, traits, enums, constants',
+      '- **JavaScript**: classes, methods, functions, arrow functions',
+      '- **TypeScript**: classes, methods, functions, interfaces, enums, type aliases, properties',
+    ].join('\n');
+  }
+}
+
+function generateAgentsBlock(): string {
+  const content = readStubContent();
+  return `${CODEGRAPH_MARKER_START}\n${content}\n${CODEGRAPH_MARKER_END}`;
+}
+
+function hasMarkers(content: string): boolean {
+  return content.includes(CODEGRAPH_MARKER_START) && content.includes(CODEGRAPH_MARKER_END);
+}
+
+function replaceBetweenMarkers(existing: string, block: string): string {
+  const startIdx = existing.indexOf(CODEGRAPH_MARKER_START);
+  const endIdx = existing.indexOf(CODEGRAPH_MARKER_END);
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+    return existing;
+  }
+  return existing.slice(0, startIdx) + block + existing.slice(endIdx + CODEGRAPH_MARKER_END.length);
+}
+
+function prompt(question: string, options: string[]): Promise<number> {
+  return new Promise((res) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    const labels = options.map((o, i) => `  ${i + 1}) ${o}`);
+    process.stderr.write(question + '\n' + labels.join('\n') + '\n> ');
+    rl.question('', (answer) => {
+      rl.close();
+      const num = parseInt(answer.trim(), 10);
+      res(num >= 1 && num <= options.length ? num - 1 : options.length - 1);
+    });
+  });
+}
+
+async function writeAgentsMd(dir: string): Promise<void> {
+  const agentsPath = join(dir, 'AGENTS.md');
+  const block = generateAgentsBlock();
+
+  if (!existsSync(agentsPath)) {
+    writeFileSync(agentsPath, block + '\n', 'utf-8');
+    console.log('Created AGENTS.md with CodeGraph documentation');
+    return;
+  }
+
+  const existing = readFileSync(agentsPath, 'utf-8');
+
+  if (hasMarkers(existing)) {
+    const updated = replaceBetweenMarkers(existing, block);
+    if (updated !== existing) {
+      writeFileSync(agentsPath, updated, 'utf-8');
+      console.log('Updated CodeGraph docs in AGENTS.md');
+    }
+    return;
+  }
+
+  if (existing.includes(CODEGRAPH_MARKER_START)) {
+    writeFileSync(agentsPath, existing.replace(CODEGRAPH_MARKER_START, block), 'utf-8');
+    console.log('Updated CodeGraph docs in AGENTS.md');
+    return;
+  }
+
+  if (!process.stdin.isTTY) {
+    console.log('AGENTS.md exists without CodeGraph docs. Re-run `init` in a terminal to add them.');
+    return;
+  }
+
+  console.log(`\nAGENTS.md already exists in ${dir}`);
+  const choice = await prompt('How would you like to handle AGENTS.md?', [
+    'Insert CodeGraph docs at the end',
+    'Insert CodeGraph docs at the beginning',
+    'Skip (keep current file)',
+  ]);
+
+  if (choice === 0) {
+    writeFileSync(agentsPath, existing.trimEnd() + '\n\n' + block + '\n', 'utf-8');
+    console.log('Inserted CodeGraph documentation into AGENTS.md');
+  } else if (choice === 1) {
+    writeFileSync(agentsPath, block + '\n\n' + existing.trimStart(), 'utf-8');
+    console.log('Inserted CodeGraph documentation into AGENTS.md');
+  } else {
+    console.log('Skipped AGENTS.md (kept existing file)');
+  }
+}
+
 export function buildCLI(): Command {
   const program = new Command();
 
@@ -97,9 +232,13 @@ export function buildCLI(): Command {
     .description('Initialize codegraph for a project')
     .argument('[path]', 'Target directory')
     .option('--name <name>', 'Repository name')
+    .option('--no-agents', 'Skip AGENTS.md creation')
     .action(async (path: string | undefined, opts: Record<string, unknown>) => {
       const dir = path ? resolve(path) : resolveDir(opts, program.opts());
       const config = await Config.init(dir, opts.name as string | undefined);
+      if (opts.agents !== false) {
+        await writeAgentsMd(dir);
+      }
       console.log(`Initialized codegraph in ${dir}/.codegraph/`);
       console.log(`Repo: ${config.repo.name}`);
     });
