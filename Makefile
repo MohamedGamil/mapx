@@ -10,7 +10,7 @@
 .DEFAULT_GOAL := help
 
 CLI := npx tsx src/main.ts
-CWD ?= $(CURDIR)
+DIR ?= $(CURDIR)
 
 # ── Help ──────────────────────────────────────────────────────
 
@@ -30,43 +30,43 @@ setup: ## Install dependencies and prepare WASM grammars
 
 # ── Daily Usage ───────────────────────────────────────────────
 
-init: ## Initialize codegraph in current directory
-	$(CLI) init --cwd $(CWD)
+init: ## Initialize codegraph in a project (make init DIR=/path)
+	$(CLI) init $(DIR)
 
-scan: ## Full scan of all source files
-	$(CLI) scan --cwd $(CWD)
+scan: ## Full scan of all source files (make scan DIR=/path)
+	$(CLI) scan $(DIR)
 
-update: ## Incremental scan (only changed files)
-	$(CLI) update --cwd $(CWD)
+update: ## Incremental scan (only changed files) (make update DIR=/path)
+	$(CLI) update $(DIR)
 
-status: ## Show changed files since last scan
-	$(CLI) status --cwd $(CWD)
+status: ## Show changed files since last scan (make status DIR=/path)
+	$(CLI) status $(DIR)
 
-export: ## Export LLM-friendly summary (default: 4096 tokens)
-	$(CLI) export --cwd $(CWD)
+export: ## Export LLM-friendly summary, 4096 tokens (make export DIR=/path)
+	$(CLI) export --dir=$(DIR)
 
 export-json: ## Export full graph as JSON
-	$(CLI) export --format=json --cwd $(CWD)
+	$(CLI) export --format=json --dir=$(DIR)
 
 export-dot: ## Export graph as GraphViz DOT
-	$(CLI) export --format=dot --cwd $(CWD)
+	$(CLI) export --format=dot --dir=$(DIR)
 
 export-wide: ## Export with larger token budget (8K)
-	$(CLI) export --tokens=8192 --cwd $(CWD)
+	$(CLI) export --tokens=8192 --dir=$(DIR)
 
-query: ## Search symbols: make query q=ClassName
-	@test -n "$(q)" || (echo "Usage: make query q=SearchTerm" && exit 1)
-	$(CLI) query "$(q)" --cwd $(CWD)
+query: ## Search symbols: make query q=ClassName DIR=/path
+	@test -n "$(q)" || (echo "Usage: make query q=SearchTerm [DIR=/path]" && exit 1)
+	$(CLI) query "$(q)" --dir=$(DIR)
 
-deps: ## Show file dependencies: make deps f=path/to/file
-	@test -n "$(f)" || (echo "Usage: make deps f=path/to/file" && exit 1)
-	$(CLI) deps "$(f)" --cwd $(CWD)
+deps: ## Show file dependencies: make deps f=path/to/file DIR=/path
+	@test -n "$(f)" || (echo "Usage: make deps f=path/to/file [DIR=/path]" && exit 1)
+	$(CLI) deps "$(f)" --dir=$(DIR)
 
-summary: ## Show project summary
-	$(CLI) summary --cwd $(CWD)
+summary: ## Show project summary (make summary DIR=/path)
+	$(CLI) summary $(DIR)
 
-serve: ## Start MCP server (stdio transport)
-	$(CLI) serve
+serve: ## Start MCP server for a project (make serve DIR=/path)
+	$(CLI) serve --dir=$(DIR)
 
 lang-list: ## List supported languages
 	$(CLI) lang list
@@ -74,45 +74,45 @@ lang-list: ## List supported languages
 # ── Testing ───────────────────────────────────────────────────
 
 test: ## Quick test: init + scan + export
-	rm -rf $(CWD)/.codegraph
-	$(CLI) init --cwd $(CWD)
-	$(CLI) scan --cwd $(CWD)
-	$(CLI) export --cwd $(CWD)
+	rm -rf $(DIR)/.codegraph
+	$(CLI) init $(DIR)
+	$(CLI) scan $(DIR)
+	$(CLI) export --dir=$(DIR)
 
 test-full: ## Full test: init + scan + all exports + query + deps
-	rm -rf $(CWD)/.codegraph
-	$(CLI) init --cwd $(CWD)
+	rm -rf $(DIR)/.codegraph
+	$(CLI) init $(DIR)
 	@echo ""
 	@echo "=== SCAN ==="
-	$(CLI) scan --cwd $(CWD)
+	$(CLI) scan $(DIR)
 	@echo ""
 	@echo "=== SUMMARY ==="
-	$(CLI) summary --cwd $(CWD)
+	$(CLI) summary $(DIR)
 	@echo ""
 	@echo "=== EXPORT (LLM) ==="
-	$(CLI) export --cwd $(CWD)
+	$(CLI) export --dir=$(DIR)
 	@echo ""
 	@echo "=== EXPORT (JSON, first 40 lines) ==="
-	$(CLI) export --format=json --cwd $(CWD) | head -40
+	$(CLI) export --format=json --dir=$(DIR) | head -40
 	@echo ""
 	@echo "=== EXPORT (DOT, first 20 lines) ==="
-	$(CLI) export --format=dot --cwd $(CWD) | head -20
+	$(CLI) export --format=dot --dir=$(DIR) | head -20
 	@echo ""
 	@echo "=== QUERY: Stub ==="
-	$(CLI) query "Stub" --cwd $(CWD)
+	$(CLI) query "Stub" --dir=$(DIR)
 	@echo ""
 	@echo "=== DEPS: index.php ==="
-	$(CLI) deps "index.php" --cwd $(CWD)
+	$(CLI) deps "index.php" --dir=$(DIR)
 	@echo ""
 	@echo "=== STATUS ==="
-	$(CLI) status --cwd $(CWD)
+	$(CLI) status $(DIR)
 	@echo ""
 	@echo "=== LANG LIST ==="
 	$(CLI) lang list
 
 test-clean: ## Clean test: remove .codegraph and re-test
-	rm -rf $(CWD)/.codegraph
-	$(MAKE) test CWD=$(CWD)
+	rm -rf $(DIR)/.codegraph
+	$(MAKE) test DIR=$(DIR)
 
 # ── Lint & Typecheck ──────────────────────────────────────────
 

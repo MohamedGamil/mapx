@@ -14,6 +14,11 @@ import { getBuiltinLanguages } from './languages/registry.js';
 
 const dynamicRequire = createRequire(import.meta.url);
 
+function resolveDir(cmdOpts: Record<string, unknown>, programOpts: Record<string, unknown>): string {
+  const raw = (cmdOpts.dir as string) || (programOpts.dir as string) || process.cwd();
+  return resolve(raw);
+}
+
 export function buildCLI(): Command {
   const program = new Command();
 
@@ -21,25 +26,27 @@ export function buildCLI(): Command {
     .name('codegraph')
     .description('Multi-language code graph memory system for LLMs')
     .version('0.1.0')
-    .option('--cwd <path>', 'Working directory', process.cwd());
+    .option('-d, --dir <path>', 'Target project directory (default: current directory)');
 
   program
     .command('init')
-    .description('Initialize codegraph for the current project')
+    .description('Initialize codegraph for a project')
+    .argument('[path]', 'Target directory')
     .option('--name <name>', 'Repository name')
-    .action(async (opts) => {
-      const cwd = program.opts().cwd || process.cwd();
-      const config = await Config.init(cwd, opts.name);
-      console.log(`Initialized codegraph in ${cwd}/.codegraph/`);
+    .action(async (path: string | undefined, opts: Record<string, unknown>) => {
+      const dir = path ? resolve(path) : resolveDir(opts, program.opts());
+      const config = await Config.init(dir, opts.name as string | undefined);
+      console.log(`Initialized codegraph in ${dir}/.codegraph/`);
       console.log(`Repo: ${config.repo.name}`);
     });
 
   program
     .command('scan')
     .description('Full scan: parse all files, build graph')
-    .action(async () => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { config, store, graph } = await loadContext(cwd);
+    .argument('[path]', 'Target directory')
+    .action(async (path: string | undefined) => {
+      const dir = path ? resolve(path) : resolveDir({}, program.opts());
+      const { config, store, graph } = await loadContext(dir);
 
       const scanner = new Scanner(store, config, graph);
       const result = await scanner.scanFull();
@@ -52,11 +59,12 @@ export function buildCLI(): Command {
   program
     .command('update')
     .description('Incremental scan: re-scan only changed files')
-    .action(async () => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { config, store, graph } = await loadContext(cwd);
+    .argument('[path]', 'Target directory')
+    .action(async (path: string | undefined) => {
+      const dir = path ? resolve(path) : resolveDir({}, program.opts());
+      const { config, store, graph } = await loadContext(dir);
 
-      const repoRoot = resolve(cwd, config.repo.path);
+      const repoRoot = resolve(dir, config.repo.path);
       if (!isGitRepo(repoRoot)) {
         console.log('Not a git repo, falling back to full scan');
         const scanner = new Scanner(store, config, graph);
@@ -81,11 +89,12 @@ export function buildCLI(): Command {
   program
     .command('status')
     .description('Show changed files since last scan')
-    .action(async () => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { config, store } = await loadContext(cwd);
+    .argument('[path]', 'Target directory')
+    .action(async (path: string | undefined) => {
+      const dir = path ? resolve(path) : resolveDir({}, program.opts());
+      const { config, store } = await loadContext(dir);
 
-      const repoRoot = resolve(cwd, config.repo.path);
+      const repoRoot = resolve(dir, config.repo.path);
       if (!isGitRepo(repoRoot)) {
         console.log('Not a git repo');
         return;
@@ -111,9 +120,10 @@ export function buildCLI(): Command {
   program
     .command('query <term>')
     .description('Search for symbols by name')
-    .action(async (term: string) => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { store } = await loadContext(cwd);
+    .option('-d, --dir <path>', 'Target directory')
+    .action(async (term: string, opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { store } = await loadContext(dir);
 
       const results = store.searchSymbols(term);
       if (results.length === 0) {
@@ -134,9 +144,10 @@ export function buildCLI(): Command {
   program
     .command('deps <file>')
     .description('Show dependencies for a file')
-    .action(async (file: string) => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { store, graph } = await loadContext(cwd);
+    .option('-d, --dir <path>', 'Target directory')
+    .action(async (file: string, opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { store, graph } = await loadContext(dir);
 
       const deps = graph.getDependencies(file);
       const rdeps = graph.getReverseDependencies(file);
@@ -161,12 +172,13 @@ export function buildCLI(): Command {
   program
     .command('export')
     .description('Export code graph for LLM consumption')
+    .option('-d, --dir <path>', 'Target directory')
     .option('--format <format>', 'Output format: llm, json, dot', 'llm')
     .option('--tokens <budget>', 'Token budget for LLM export', '4096')
     .option('--repo <name>', 'Filter by repo name')
-    .action(async (opts) => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { store, graph } = await loadContext(cwd);
+    .action(async (opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { store, graph } = await loadContext(dir);
 
       const format = opts.format as string;
       const tokenBudget = parseInt(opts.tokens as string, 10) || 4096;
@@ -174,12 +186,12 @@ export function buildCLI(): Command {
       switch (format) {
         case 'json': {
           const exporter = new GraphExporter(store, graph);
-          console.log(exporter.exportAsJSONString(opts.repo));
+          console.log(exporter.exportAsJSONString(opts.repo as string | undefined));
           break;
         }
         case 'dot': {
           const exporter = new DotExporter(store, graph);
-          console.log(exporter.export(opts.repo));
+          console.log(exporter.export(opts.repo as string | undefined));
           break;
         }
         case 'llm':
@@ -188,7 +200,7 @@ export function buildCLI(): Command {
           console.log(exporter.export({
             format: 'llm',
             tokenBudget,
-            repo: opts.repo,
+            repo: opts.repo as string | undefined,
           }));
           break;
         }
@@ -198,16 +210,17 @@ export function buildCLI(): Command {
   program
     .command('summary')
     .description('Show project summary')
-    .action(async () => {
-      const cwd = program.opts().cwd || process.cwd();
-      const { store, graph, config } = await loadContext(cwd);
+    .argument('[path]', 'Target directory')
+    .action(async (path: string | undefined) => {
+      const dir = path ? resolve(path) : resolveDir({}, program.opts());
+      const { store, graph, config } = await loadContext(dir);
 
       const fileCount = store.getFileCount();
       const symbolCount = store.getSymbolCount();
       const edgeCount = store.getEdgeCount();
       const breakdown = store.getLanguageBreakdown();
 
-      console.log(`Project: ${config.repo.name}`);
+      console.log(`Project: ${config.repo.name} (${dir})`);
       console.log(`Files: ${fileCount}`);
       console.log(`Symbols: ${symbolCount}`);
       console.log(`Dependencies: ${edgeCount}`);
@@ -229,22 +242,32 @@ export function buildCLI(): Command {
         })
     );
 
+  program
+    .command('serve')
+    .description('Start MCP server (stdio transport)')
+    .option('-d, --dir <path>', 'Default target directory for MCP tools')
+    .action(async (opts: Record<string, unknown>) => {
+      const defaultDir = resolveDir(opts, program.opts());
+      const { startMcpServer } = await import('./mcp.js');
+      await startMcpServer(defaultDir);
+    });
+
   return program;
 }
 
-async function loadContext(cwd: string): Promise<{
+export async function loadContext(dir: string): Promise<{
   config: Config;
   store: Store;
   graph: CodeGraph;
 }> {
-  const configPath = resolve(cwd, '.codegraph', 'config.json');
+  const configPath = resolve(dir, '.codegraph', 'config.json');
   if (!existsSync(configPath)) {
-    console.error('CodeGraph not initialized. Run `codegraph init` first.');
+    console.error(`CodeGraph not initialized in ${dir}. Run \`codegraph init ${dir}\` first.`);
     process.exit(1);
   }
 
-  const config = await Config.load(cwd);
-  const dbPath = resolve(cwd, '.codegraph', 'codegraph.db');
+  const config = await Config.load(dir);
+  const dbPath = resolve(dir, '.codegraph', 'codegraph.db');
   const store = new Store(dbPath);
   const graph = new CodeGraph(config.repo.name);
 

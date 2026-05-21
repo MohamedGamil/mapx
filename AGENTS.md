@@ -10,39 +10,57 @@ This means you (the LLM) can quickly understand the codebase structure without r
 
 ## Commands
 
+All commands accept a target directory. Three ways to specify:
+
+```bash
+# 1. Positional path argument
+codegraph scan /path/to/project
+
+# 2. --dir / -d flag
+codegraph scan --dir /path/to/project
+codegraph query "MyClass" -d /path/to/project
+
+# 3. Global flag (works with any subcommand)
+codegraph -d /path/to/project scan
+
+# If no directory is specified, defaults to current working directory.
+```
+
+### Available Commands
+
 ```bash
 # First-time setup
-npx tsx src/main.ts init
+codegraph init [/path]            # accepts positional path
 
 # Full scan (run once, or after major changes)
-npx tsx src/main.ts scan
+codegraph scan [/path]
 
 # Incremental update (fast, only re-scans changed files)
-npx tsx src/main.ts update
+codegraph update [/path]
 
 # Check what changed since last scan
-npx tsx src/main.ts status
+codegraph status [/path]
 
 # Export compact graph summary (token-efficient)
-npx tsx src/main.ts export                        # default: LLM format, 4096 token budget
-npx tsx src/main.ts export --tokens=8192          # larger budget
-npx tsx src/main.ts export --format=json          # full graph as JSON
-npx tsx src/main.ts export --format=dot           # GraphViz DOT for visualization
+codegraph export [--dir /path]              # default: LLM format, 4096 token budget
+codegraph export --tokens=8192              # larger budget
+codegraph export --format=json              # full graph as JSON
+codegraph export --format=dot               # GraphViz DOT for visualization
 
 # Search for symbols
-npx tsx src/main.ts query <symbol-name>
+codegraph query <symbol-name> [--dir /path]
 
 # Show dependencies for a file
-npx tsx src/main.ts deps <file-path>
+codegraph deps <file-path> [--dir /path]
 
 # Project summary
-npx tsx src/main.ts summary
+codegraph summary [/path]
 
 # List supported languages
-npx tsx src/main.ts lang list
+codegraph lang list
 
 # Start MCP server (stdio transport)
-npx tsx src/main.ts serve
+codegraph serve --dir /path/to/project     # sets default dir for MCP tools
 ```
 
 ## MCP Tools
