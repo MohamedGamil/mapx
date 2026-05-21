@@ -1,0 +1,41 @@
+{
+  "name": "codegraph",
+  "version": "0.1.0",
+  "description": "Multi-language code graph memory system for LLMs",
+  "type": "module",
+  "bin": {
+    "codegraph": "./src/main.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build:wasm": "tsx scripts/build-wasm.ts",
+    "build:linux": "bun build --compile --minify --bytecode --target=bun-linux-x64 ./src/main.ts --outfile dist/codegraph-linux-x64",
+    "build:linux-arm": "bun build --compile --minify --bytecode --target=bun-linux-arm64 ./src/main.ts --outfile dist/codegraph-linux-arm64",
+    "build:mac-arm": "bun build --compile --minify --bytecode --target=bun-darwin-arm64 ./src/main.ts --outfile dist/codegraph-darwin-arm64",
+    "build:mac-x64": "bun build --compile --minify --bytecode --target=bun-darwin-x64 ./src/main.ts --outfile dist/codegraph-darwin-x64",
+    "build:win": "bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/codegraph-windows-x64.exe",
+    "build:all": "tsx scripts/build-all.ts",
+    "scan": "tsx src/main.ts scan",
+    "test": "tsx src/main.ts scan && tsx src/main.ts export"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "graphology": "^0.26.0",
+    "graphology-metrics": "^2.4.0",
+    "tree-sitter-javascript": "^0.25.0",
+    "tree-sitter-php": "^0.24.2",
+    "tree-sitter-typescript": "^0.23.2",
+    "web-tree-sitter": "^0.26.9",
+    "zod": "^3.25.0"
+  },
+  "optionalDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.10.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}
