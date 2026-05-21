@@ -17,32 +17,69 @@ npm install
 ```bash
 # 1. Initialize CodeGraph in your project
 cd /path/to/your/project
-npx tsx /path/to/mem-project/src/main.ts init
+codegraph init
 
 # 2. Scan the codebase
-npx tsx /path/to/mem-project/src/main.ts scan
+codegraph scan
 
 # 3. View the graph summary
-npx tsx /path/to/mem-project/src/main.ts export
+codegraph export
 
 # 4. Search for a symbol
-npx tsx /path/to/mem-project/src/main.ts query MyClass
+codegraph query MyClass
 
 # 5. Check dependencies
-npx tsx /path/to/mem-project/src/main.ts deps src/index.ts
+codegraph deps src/index.ts
+
+# 6. Export as SVG visualization
+codegraph export --format=svg -o graph.svg
+```
+
+All commands accept a target directory:
+
+```bash
+# Positional path
+codegraph scan /path/to/project
+
+# --dir / -d flag
+codegraph scan --dir /path/to/project
+codegraph query "MyClass" -d /path/to/project
+
+# Global flag (works with any subcommand)
+codegraph -d /path/to/project scan
+
+# If no directory is specified, defaults to current working directory.
 ```
 
 ## What Gets Created
 
-Running `init` creates a `.codegraph/` directory in your project:
+Running `init` creates a `.codegraph/` directory in your project and an `AGENTS.md` file:
 
 ```
 .codegraph/
 ├── config.json       # Project configuration
 └── codegraph.db      # SQLite database (after scan)
+
+AGENTS.md             # CodeGraph documentation for LLMs (auto-generated)
 ```
 
 Add `.codegraph/` to your `.gitignore` — it's a local development artifact.
+
+## AGENTS.md
+
+During `init`, CodeGraph creates or updates an `AGENTS.md` file in the project root. This file contains documentation that helps LLM tools discover and use CodeGraph's CLI and MCP tools.
+
+The content is wrapped in markers:
+```markdown
+<!-- codegraph -->
+...CodeGraph documentation...
+<!-- /codegraph -->
+```
+
+- **No existing AGENTS.md**: Creates one with CodeGraph docs
+- **Existing with markers**: Updates content between markers (preserves surrounding content)
+- **Existing without markers**: Prompts to insert at beginning/end, or skip
+- **`--no-agents` flag**: Skip AGENTS.md creation entirely
 
 ## Supported File Types
 
@@ -60,6 +97,18 @@ Add `.codegraph/` to your `.gitignore` — it's a local development artifact.
 - Class instantiation (`new`)
 - Function/method calls
 
+## Scan Resilience
+
+Scans survive interruptions (Ctrl+C). Progress is saved after each file, so re-running `scan` resumes from where it left off.
+
+```
+$ codegraph scan
+Scan interrupted after 15/32 files. Progress saved — run `scan` again to resume.
+
+$ codegraph scan
+Scanned 32 files in 523ms    # resumes from file 16
+```
+
 ## Building a Standalone Binary
 
 ```bash
@@ -67,7 +116,10 @@ Add `.codegraph/` to your `.gitignore` — it's a local development artifact.
 bun build --compile --minify --bytecode ./src/main.ts --outfile codegraph
 
 # Cross-compile for all platforms
-npm run build:all
+make build-all
+
+# Package with docs and installers
+bash scripts/package.sh all
 ```
 
 Binaries are output to `dist/` (~85-100MB each).

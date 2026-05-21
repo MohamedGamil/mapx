@@ -49,6 +49,11 @@ codegraph export --format=json              # full graph as JSON
 codegraph export --format=dot               # GraphViz DOT for visualization
 codegraph export --format=svg               # SVG visualization (uses GraphViz if installed, else built-in renderer)
 
+# Export to file (validates path before writing)
+codegraph export -o summary.txt             # LLM summary to file
+codegraph export --format=json -o graph.json
+codegraph export --format=svg -o graph.svg
+
 # Search for symbols
 codegraph query <symbol-name> [--dir /path]
 
@@ -72,7 +77,7 @@ When running as an MCP server, CodeGraph exposes these tools:
 - **`codegraph_scan`** — Scan/update the code graph
 - **`codegraph_query`** — Search symbols by name pattern
 - **`codegraph_dependencies`** — Get deps and reverse-deps for a file
-- **`codegraph_export`** — Export compact graph summary
+- **`codegraph_export`** — Export compact graph summary (supports llm, json, dot, svg formats)
 - **`codegraph_status`** — Check scan status and file counts
 
 ## When to Use
@@ -82,6 +87,7 @@ When running as an MCP server, CodeGraph exposes these tools:
 3. **Need to understand a file**: Run `codegraph deps <file>` to see relationships
 4. **Files changed**: Run `codegraph update` to incrementally update the graph
 5. **Major changes**: Run `codegraph scan` for a full re-scan
+6. **Need a visual overview**: Run `codegraph export --format=svg -o graph.svg`
 
 ## Storage
 
@@ -93,5 +99,4 @@ When running as an MCP server, CodeGraph exposes these tools:
 - **PHP** (built-in): classes, methods, functions, interfaces, traits, enums, constants
 - **JavaScript** (built-in): classes, methods, functions, arrow functions
 - **TypeScript** (built-in): classes, methods, functions, interfaces, enums, type aliases, properties
-
 <!-- /codegraph -->

@@ -15,7 +15,7 @@ CodeGraph stores its configuration in `.codegraph/config.json`.
   ],
   "languages": {},
   "settings": {
-    "maxTokenBudget": 4096,
+    "maxTokenBudget": 16384,
     "excludePatterns": [
       "node_modules/**",
       "vendor/**",
@@ -74,6 +74,6 @@ Add custom language support without modifying the tool:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `maxTokenBudget` | number | 4096 | Default token budget for LLM export |
+| `maxTokenBudget` | number | 16384 | Maximum token budget for LLM export |
 | `excludePatterns` | string[] | (see above) | Glob patterns for files to exclude |
 | `includePatterns` | string[] | [] | If set, only include matching files |
