@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CodeGraph Installer
-# Usage: ./install.sh [--prefix /path] [--uninstall]
+# Usage: ./install.sh [--local | --system | --prefix PATH] [--uninstall] [--force]
 set -euo pipefail
 
 VERSION="$(cat "$(dirname "$0")/VERSION" 2>/dev/null || echo "0.1.0")"
@@ -18,26 +18,41 @@ warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 PREFIX=""
+DATA_DIR=""
 UNINSTALL=false
 FORCE=false
 
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --prefix)   PREFIX="$2"; shift 2 ;;
+            --local)
+                PREFIX="$HOME/.local/bin"
+                DATA_DIR="$HOME/.local/share/codegraph"
+                shift ;;
+            --system)
+                PREFIX="/usr/local/bin"
+                DATA_DIR="/usr/local/share/codegraph"
+                shift ;;
+            --prefix)    PREFIX="$2"; shift 2 ;;
+            --data-dir)  DATA_DIR="$2"; shift 2 ;;
             --uninstall) UNINSTALL=true; shift ;;
-            --force)    FORCE=true; shift ;;
+            --force)     FORCE=true; shift ;;
             -h|--help)
-                echo "Usage: $0 [--prefix PATH] [--uninstall] [--force]"
+                echo "Usage: $0 [--local | --system | --prefix PATH] [--uninstall] [--force]"
                 echo ""
-                echo "Options:"
-                echo "  --prefix PATH    Installation directory (default: auto-detect)"
-                echo "  --uninstall      Remove codegraph"
-                echo "  --force          Skip confirmation prompt"
+                echo "Scope shortcuts:"
+                echo "  --local          User install: ~/.local/bin  (no sudo needed)"
+                echo "  --system         System install: /usr/local/bin  (may need sudo)"
                 echo ""
-                echo "Installation locations (checked in order):"
-                echo "  ~/.local/bin     User-local (no sudo needed)"
-                echo "  /usr/local/bin   System-wide (may need sudo)"
+                echo "Manual options:"
+                echo "  --prefix PATH    Custom binary install directory"
+                echo "  --data-dir PATH  Custom data directory (wasm + queries)"
+                echo "  --uninstall      Remove codegraph binary and data"
+                echo "  --force          Skip confirmation prompts"
+                echo ""
+                echo "Default (no flags): auto-detects first writable location from:"
+                echo "  ~/.local/bin  →  data in ~/.local/share/codegraph"
+                echo "  /usr/local/bin  →  data in /usr/local/share/codegraph"
                 exit 0
                 ;;
             *) die "Unknown option: $1" ;;
@@ -45,25 +60,39 @@ parse_args() {
     done
 }
 
+# Derive data dir from prefix when not explicitly set.
+# Follows XDG: /usr/local/bin → /usr/local/share/codegraph
+#               ~/.local/bin  → ~/.local/share/codegraph
+derive_data_dir() {
+    if [ -n "$DATA_DIR" ]; then return; fi
+    local parent
+    parent="$(dirname "$PREFIX")"
+    DATA_DIR="$parent/share/codegraph"
+}
+
 detect_prefix() {
     if [ -n "$PREFIX" ]; then
+        derive_data_dir
         return
     fi
 
     local candidates=(
-        "$HOME/.local/bin"
-        "/usr/local/bin"
-        "$HOME/bin"
+        "$HOME/.local/bin:$HOME/.local/share/codegraph"
+        "/usr/local/bin:/usr/local/share/codegraph"
+        "$HOME/bin:$HOME/share/codegraph"
     )
 
-    for dir in "${candidates[@]}"; do
+    for entry in "${candidates[@]}"; do
+        local dir="${entry%%:*}"
+        local data="${entry##*:}"
         if mkdir -p "$dir" 2>/dev/null && [ -w "$dir" ]; then
             PREFIX="$dir"
+            DATA_DIR="$data"
             return
         fi
     done
 
-    die "No writable installation directory found. Use --prefix to specify one."
+    die "No writable installation directory found. Use --local, --system, or --prefix."
 }
 
 check_existing() {
@@ -79,6 +108,61 @@ check_existing() {
     fi
 }
 
+install_data() {
+    local src_wasm="$SCRIPT_DIR/wasm"
+    local src_queries="$SCRIPT_DIR/queries"
+
+    if [ -d "$src_wasm" ]; then
+        mkdir -p "$DATA_DIR/wasm"
+        cp -r "$src_wasm/." "$DATA_DIR/wasm/"
+        ok "Data (wasm):    $DATA_DIR/wasm/"
+    else
+        warn "wasm/ directory not found in archive — skipping data install"
+    fi
+
+    if [ -d "$src_queries" ]; then
+        mkdir -p "$DATA_DIR/queries"
+        cp -r "$src_queries/." "$DATA_DIR/queries/"
+        ok "Data (queries): $DATA_DIR/queries/"
+    fi
+}
+
+add_to_path() {
+    if echo "$PATH" | tr ':' '\n' | grep -q "^${PREFIX}$"; then
+        return
+    fi
+
+    warn "$PREFIX is not in your PATH"
+    echo ""
+
+    local shell_rc=""
+    if [ -f "$HOME/.zshrc" ]; then
+        shell_rc="$HOME/.zshrc"
+    elif [ -f "$HOME/.bashrc" ]; then
+        shell_rc="$HOME/.bashrc"
+    elif [ -f "$HOME/.profile" ]; then
+        shell_rc="$HOME/.profile"
+    fi
+
+    if [ -n "$shell_rc" ]; then
+        if ! grep -q "$PREFIX" "$shell_rc" 2>/dev/null; then
+            if [ "$FORCE" = true ]; then
+                confirm="y"
+            else
+                read -rp "Add $PREFIX to PATH in $shell_rc? [y/N] " confirm
+            fi
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                printf '\n# Added by CodeGraph installer\nexport PATH="%s:$PATH"\n' "$PREFIX" >> "$shell_rc"
+                ok "Added to $shell_rc — run 'source $shell_rc' or open a new terminal"
+                return
+            fi
+        fi
+    fi
+
+    info "Add this to your shell config to use codegraph:"
+    echo "    export PATH=\"$PREFIX:\$PATH\""
+}
+
 do_install() {
     local binary="$SCRIPT_DIR/codegraph"
 
@@ -90,48 +174,21 @@ do_install() {
     check_existing
 
     info "Installing CodeGraph v${VERSION}..."
-    info "  Binary: $binary"
-    info "  Target: $PREFIX/codegraph"
+    info "  Binary: $PREFIX/codegraph"
+    info "  Data:   $DATA_DIR/"
     echo ""
 
     mkdir -p "$PREFIX"
-
     cp "$binary" "$PREFIX/codegraph"
     chmod +x "$PREFIX/codegraph"
+    ok "Binary: $PREFIX/codegraph"
 
-    if ! echo "$PATH" | tr ':' '\n' | grep -q "^${PREFIX}$"; then
-        warn "$PREFIX is not in your PATH"
-        echo ""
+    install_data
 
-        local shell_rc=""
-        if [ -n "${ZSH_VERSION:-}" ]; then
-            shell_rc="$HOME/.zshrc"
-        elif [ -n "${BASH_VERSION:-}" ]; then
-            shell_rc="$HOME/.bashrc"
-        fi
-
-        if [ -n "$shell_rc" ] && [ -f "$shell_rc" ]; then
-            if ! grep -q "$PREFIX" "$shell_rc" 2>/dev/null; then
-                if [ "$FORCE" = true ]; then
-                    confirm="y"
-                else
-                    read -rp "Add $PREFIX to PATH in $shell_rc? [y/N] " confirm
-                fi
-                if [[ "$confirm" =~ ^[Yy]$ ]]; then
-                    echo "" >> "$shell_rc"
-                    echo "# Added by CodeGraph installer" >> "$shell_rc"
-                    echo "export PATH=\"$PREFIX:\$PATH\"" >> "$shell_rc"
-                    ok "Added to $shell_rc (run 'source $shell_rc' or open a new terminal)"
-                fi
-            fi
-        else
-            info "Add this to your shell config:"
-            echo "    export PATH=\"$PREFIX:\$PATH\""
-        fi
-    fi
+    add_to_path
 
     echo ""
-    ok "CodeGraph v${VERSION} installed to $PREFIX/codegraph"
+    ok "CodeGraph v${VERSION} installed successfully"
     echo ""
     echo "Quick start:"
     echo "    cd /path/to/your/project"
@@ -146,23 +203,37 @@ do_uninstall() {
     detect_prefix
     local target="$PREFIX/codegraph"
 
+    # Search common locations if not found at detected prefix
     if [ ! -f "$target" ]; then
-        # Try common locations
         for dir in "$HOME/.local/bin" "/usr/local/bin" "$HOME/bin"; do
             if [ -f "$dir/codegraph" ]; then
                 target="$dir/codegraph"
+                PREFIX="$dir"
+                derive_data_dir
                 break
             fi
         done
     fi
 
     if [ ! -f "$target" ]; then
-        die "codegraph is not installed"
+        die "codegraph is not installed (searched $PREFIX and common locations)"
     fi
 
     info "Uninstalling from $target..."
     rm -f "$target"
-    ok "Uninstalled successfully"
+    ok "Removed binary: $target"
+
+    if [ -d "$DATA_DIR" ]; then
+        if [ "$FORCE" = true ]; then
+            confirm="y"
+        else
+            read -rp "Remove data directory $DATA_DIR? [y/N] " confirm
+        fi
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            rm -rf "$DATA_DIR"
+            ok "Removed data:   $DATA_DIR"
+        fi
+    fi
 }
 
 parse_args "$@"
@@ -172,3 +243,4 @@ if [ "$UNINSTALL" = true ]; then
 else
     do_install
 fi
+

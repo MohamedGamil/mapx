@@ -179,6 +179,7 @@ package-linux: build-linux ## Package linux-x64 binary as .tar.gz
 		-C dist codegraph \
 		-C $(CURDIR) AGENTS.md \
 		-C $(CURDIR) queries/ \
+		-C $(CURDIR) wasm/ \
 		-C $(CURDIR) docs/
 	rm dist/codegraph
 	@echo "Created: $(DIST_DIR)/codegraph-$(VERSION)-linux-x64.tar.gz"
@@ -191,6 +192,7 @@ package-linux-arm: build-linux-arm ## Package linux-arm64 binary as .tar.gz
 		-C dist codegraph \
 		-C $(CURDIR) AGENTS.md \
 		-C $(CURDIR) queries/ \
+		-C $(CURDIR) wasm/ \
 		-C $(CURDIR) docs/
 	rm dist/codegraph
 	@echo "Created: $(DIST_DIR)/codegraph-$(VERSION)-linux-arm64.tar.gz"
@@ -203,6 +205,7 @@ package-mac-arm: build-mac-arm ## Package macOS ARM binary as .tar.gz
 		-C dist codegraph \
 		-C $(CURDIR) AGENTS.md \
 		-C $(CURDIR) queries/ \
+		-C $(CURDIR) wasm/ \
 		-C $(CURDIR) docs/
 	rm dist/codegraph
 	@echo "Created: $(DIST_DIR)/codegraph-$(VERSION)-darwin-arm64.tar.gz"
@@ -215,6 +218,7 @@ package-mac-x64: build-mac-x64 ## Package macOS x64 binary as .tar.gz
 		-C dist codegraph \
 		-C $(CURDIR) AGENTS.md \
 		-C $(CURDIR) queries/ \
+		-C $(CURDIR) wasm/ \
 		-C $(CURDIR) docs/
 	rm dist/codegraph
 	@echo "Created: $(DIST_DIR)/codegraph-$(VERSION)-darwin-x64.tar.gz"
@@ -240,23 +244,69 @@ package-all: package-linux package-linux-arm package-mac-arm package-mac-x64 pac
 
 PREFIX ?= /usr/local/bin
 
-install-local: ## Install to user's ~/.local/bin
-	@mkdir -p ~/.local/bin
-	@test -f dist/codegraph-linux-x64 || (echo "Run 'make build-linux' first" && exit 1)
-	cp dist/codegraph-linux-x64 ~/.local/bin/codegraph
-	chmod +x ~/.local/bin/codegraph
-	@echo "Installed to ~/.local/bin/codegraph"
-	@echo "Ensure ~/.local/bin is in your PATH"
+install-local: build-linux ## Install to ~/.local/bin (user scope, no sudo needed)
+	@LOCAL_SHARE="$(HOME)/.local/share/codegraph"; \
+	  mkdir -p ~/.local/bin "$$LOCAL_SHARE/wasm" "$$LOCAL_SHARE/queries" && \
+	  cp dist/codegraph-linux-x64 ~/.local/bin/codegraph && \
+	  chmod +x ~/.local/bin/codegraph && \
+	  cp -r wasm/. "$$LOCAL_SHARE/wasm/" && \
+	  cp -r queries/. "$$LOCAL_SHARE/queries/" && \
+	  echo "Installed to ~/.local/bin/codegraph" && \
+	  echo "Data:    $$LOCAL_SHARE/" && \
+	  echo "" && \
+	  echo "Ensure ~/.local/bin is in your PATH"
 
-install: ## Install system-wide (requires sudo)
-	@test -f dist/codegraph-linux-x64 || (echo "Run 'make build-linux' first" && exit 1)
-	cp dist/codegraph-linux-x64 $(PREFIX)/codegraph
-	chmod +x $(PREFIX)/codegraph
-	@echo "Installed to $(PREFIX)/codegraph"
+install: build-linux ## Install system-wide to $(PREFIX) (may need sudo)
+	@SHARE_DIR="$(shell dirname $(PREFIX))/share/codegraph"; \
+	  mkdir -p $(PREFIX) "$$SHARE_DIR/wasm" "$$SHARE_DIR/queries" && \
+	  cp dist/codegraph-linux-x64 $(PREFIX)/codegraph && \
+	  chmod +x $(PREFIX)/codegraph && \
+	  cp -r wasm/. "$$SHARE_DIR/wasm/" && \
+	  cp -r queries/. "$$SHARE_DIR/queries/" && \
+	  echo "Installed to $(PREFIX)/codegraph" && \
+	  echo "Data:    $$SHARE_DIR/"
 
-install-uninstall: ## Remove installed binary
+install-uninstall: ## Remove installed binary and data files
 	rm -f $(PREFIX)/codegraph ~/.local/bin/codegraph
+	rm -rf $(shell dirname $(PREFIX))/share/codegraph ~/.local/share/codegraph
 	@echo "Uninstalled codegraph"
+
+# ── Self-Extracting Installers ────────────────────────────────
+
+installer-linux: package-linux ## Self-extracting installer for linux-x64
+	bash scripts/make-installer.sh sh \
+		$(DIST_DIR)/codegraph-$(VERSION)-linux-x64.tar.gz \
+		$(DIST_DIR)/codegraph-$(VERSION)-linux-x64-installer.sh \
+		$(VERSION) linux-x64
+
+installer-linux-arm: package-linux-arm ## Self-extracting installer for linux-arm64
+	bash scripts/make-installer.sh sh \
+		$(DIST_DIR)/codegraph-$(VERSION)-linux-arm64.tar.gz \
+		$(DIST_DIR)/codegraph-$(VERSION)-linux-arm64-installer.sh \
+		$(VERSION) linux-arm64
+
+installer-mac-arm: package-mac-arm ## Self-extracting installer for macOS ARM
+	bash scripts/make-installer.sh sh \
+		$(DIST_DIR)/codegraph-$(VERSION)-darwin-arm64.tar.gz \
+		$(DIST_DIR)/codegraph-$(VERSION)-darwin-arm64-installer.sh \
+		$(VERSION) darwin-arm64
+
+installer-mac-x64: package-mac-x64 ## Self-extracting installer for macOS x64
+	bash scripts/make-installer.sh sh \
+		$(DIST_DIR)/codegraph-$(VERSION)-darwin-x64.tar.gz \
+		$(DIST_DIR)/codegraph-$(VERSION)-darwin-x64-installer.sh \
+		$(VERSION) darwin-x64
+
+installer-win: package-win ## Self-extracting installer for Windows x64
+	bash scripts/make-installer.sh ps1 \
+		$(DIST_DIR)/codegraph-$(VERSION)-windows-x64.zip \
+		$(DIST_DIR)/codegraph-$(VERSION)-windows-x64-installer.ps1 \
+		$(VERSION)
+
+installer-all: installer-linux installer-linux-arm installer-mac-arm installer-mac-x64 installer-win ## Build all self-extracting installers
+	@echo ""
+	@echo "All installers created in $(DIST_DIR)/:"
+	@ls -lh $(DIST_DIR)/*-installer.sh $(DIST_DIR)/*-installer.ps1 2>/dev/null || true
 
 # ── Cleanup ───────────────────────────────────────────────────
 

@@ -79,9 +79,11 @@ package_tarball() {
     cp "$PROJECT_ROOT/LICENSE" "$staging/" 2>/dev/null || true
     cp -r "$PROJECT_ROOT/docs" "$staging/"
     cp -r "$PROJECT_ROOT/queries" "$staging/"
+    cp -r "$PROJECT_ROOT/wasm" "$staging/"
 
     cp "$PROJECT_ROOT/scripts/templates/install.sh" "$staging/install.sh"
     chmod +x "$staging/install.sh"
+    echo "$VERSION" > "$staging/VERSION"
 
     cp "$PROJECT_ROOT/scripts/templates/README.dist.md" "$staging/README.md"
 
@@ -112,8 +114,10 @@ package_zip() {
     cp "$PROJECT_ROOT/LICENSE" "$staging/" 2>/dev/null || true
     cp -r "$PROJECT_ROOT/docs" "$staging/"
     cp -r "$PROJECT_ROOT/queries" "$staging/"
+    cp -r "$PROJECT_ROOT/wasm" "$staging/"
 
     cp "$PROJECT_ROOT/scripts/templates/install.ps1" "$staging/"
+    echo "$VERSION" > "$staging/VERSION"
     cp "$PROJECT_ROOT/scripts/templates/README.dist.md" "$staging/README.md"
 
     cd "$tmpdir" && zip -r -q "$DIST_DIR/$archive_name.zip" "codegraph-$VERSION"
@@ -126,13 +130,37 @@ package_zip() {
 generate_checksums() {
     info "Generating checksums..."
     if command -v sha256sum &>/dev/null; then
-        (cd "$DIST_DIR" && sha256sum *.tar.gz *.zip 2>/dev/null > checksums-sha256.txt)
+        # ls handles missing patterns gracefully; xargs passes only existing files
+        (cd "$DIST_DIR" && ls *.tar.gz *.zip *.sh *.ps1 2>/dev/null | xargs sha256sum 2>/dev/null > checksums-sha256.txt) || true
         ok "Created checksums-sha256.txt"
     elif command -v shasum &>/dev/null; then
-        (cd "$DIST_DIR" && shasum -a 256 *.tar.gz *.zip 2>/dev/null > checksums-sha256.txt)
+        (cd "$DIST_DIR" && ls *.tar.gz *.zip *.sh *.ps1 2>/dev/null | xargs shasum -a 256 2>/dev/null > checksums-sha256.txt) || true
         ok "Created checksums-sha256.txt"
     else
         warn "sha256sum not found, skipping checksums"
+    fi
+}
+
+create_installer() {
+    local archive_path="$1"
+    local type="$2"       # sh | ps1
+    local platform="$3"
+    local archive_name="$4"
+
+    local make_ins="$PROJECT_ROOT/scripts/make-installer.sh"
+    if [ ! -f "$make_ins" ]; then
+        warn "scripts/make-installer.sh not found — skipping installer creation"
+        return
+    fi
+
+    if [ "$type" = "sh" ]; then
+        bash "$make_ins" sh "$archive_path" \
+            "$DIST_DIR/${archive_name}-installer.sh" \
+            "$VERSION" "$platform"
+    else
+        bash "$make_ins" ps1 "$archive_path" \
+            "$DIST_DIR/${archive_name}-installer.ps1" \
+            "$VERSION"
     fi
 }
 
@@ -193,11 +221,32 @@ main() {
                 echo ""
             fi
 
-            [ -f "$PROJECT_ROOT/dist/codegraph-linux-x64" ]       && package_tarball "codegraph-linux-x64"       "codegraph-${VERSION}-linux-x64"       || true
-            [ -f "$PROJECT_ROOT/dist/codegraph-linux-arm64" ]     && package_tarball "codegraph-linux-arm64"     "codegraph-${VERSION}-linux-arm64"     || true
-            [ -f "$PROJECT_ROOT/dist/codegraph-darwin-arm64" ]    && package_tarball "codegraph-darwin-arm64"    "codegraph-${VERSION}-darwin-arm64"    || true
-            [ -f "$PROJECT_ROOT/dist/codegraph-darwin-x64" ]      && package_tarball "codegraph-darwin-x64"      "codegraph-${VERSION}-darwin-x64"      || true
-            [ -f "$PROJECT_ROOT/dist/codegraph-windows-x64.exe" ] && package_zip    "codegraph-windows-x64.exe" "codegraph-${VERSION}-windows-x64"     || true
+            local _n
+            if [ -f "$PROJECT_ROOT/dist/codegraph-linux-x64" ]; then
+                _n="codegraph-${VERSION}-linux-x64"
+                package_tarball "codegraph-linux-x64" "$_n"
+                create_installer "$DIST_DIR/$_n.tar.gz" sh linux-x64 "$_n" || true
+            fi
+            if [ -f "$PROJECT_ROOT/dist/codegraph-linux-arm64" ]; then
+                _n="codegraph-${VERSION}-linux-arm64"
+                package_tarball "codegraph-linux-arm64" "$_n"
+                create_installer "$DIST_DIR/$_n.tar.gz" sh linux-arm64 "$_n" || true
+            fi
+            if [ -f "$PROJECT_ROOT/dist/codegraph-darwin-arm64" ]; then
+                _n="codegraph-${VERSION}-darwin-arm64"
+                package_tarball "codegraph-darwin-arm64" "$_n"
+                create_installer "$DIST_DIR/$_n.tar.gz" sh darwin-arm64 "$_n" || true
+            fi
+            if [ -f "$PROJECT_ROOT/dist/codegraph-darwin-x64" ]; then
+                _n="codegraph-${VERSION}-darwin-x64"
+                package_tarball "codegraph-darwin-x64" "$_n"
+                create_installer "$DIST_DIR/$_n.tar.gz" sh darwin-x64 "$_n" || true
+            fi
+            if [ -f "$PROJECT_ROOT/dist/codegraph-windows-x64.exe" ]; then
+                _n="codegraph-${VERSION}-windows-x64"
+                package_zip "codegraph-windows-x64.exe" "$_n"
+                create_installer "$DIST_DIR/$_n.zip" ps1 windows-x64 "$_n" || true
+            fi
             echo ""
             generate_checksums
             ;;
@@ -207,6 +256,7 @@ main() {
             check_wasm
             [ "$skip_build" = false ] && build_binary "bun-linux-x64" "codegraph-linux-x64"
             package_tarball "codegraph-linux-x64" "codegraph-${VERSION}-linux-x64"
+            create_installer "$DIST_DIR/codegraph-${VERSION}-linux-x64.tar.gz" sh linux-x64 "codegraph-${VERSION}-linux-x64" || true
             generate_checksums
             ;;
 
@@ -215,6 +265,7 @@ main() {
             check_wasm
             [ "$skip_build" = false ] && build_binary "bun-linux-arm64" "codegraph-linux-arm64"
             package_tarball "codegraph-linux-arm64" "codegraph-${VERSION}-linux-arm64"
+            create_installer "$DIST_DIR/codegraph-${VERSION}-linux-arm64.tar.gz" sh linux-arm64 "codegraph-${VERSION}-linux-arm64" || true
             generate_checksums
             ;;
 
@@ -223,6 +274,7 @@ main() {
             check_wasm
             [ "$skip_build" = false ] && build_binary "bun-darwin-arm64" "codegraph-darwin-arm64"
             package_tarball "codegraph-darwin-arm64" "codegraph-${VERSION}-darwin-arm64"
+            create_installer "$DIST_DIR/codegraph-${VERSION}-darwin-arm64.tar.gz" sh darwin-arm64 "codegraph-${VERSION}-darwin-arm64" || true
             generate_checksums
             ;;
 
@@ -231,6 +283,7 @@ main() {
             check_wasm
             [ "$skip_build" = false ] && build_binary "bun-darwin-x64" "codegraph-darwin-x64"
             package_tarball "codegraph-darwin-x64" "codegraph-${VERSION}-darwin-x64"
+            create_installer "$DIST_DIR/codegraph-${VERSION}-darwin-x64.tar.gz" sh darwin-x64 "codegraph-${VERSION}-darwin-x64" || true
             generate_checksums
             ;;
 
@@ -239,6 +292,7 @@ main() {
             check_wasm
             [ "$skip_build" = false ] && build_binary "bun-windows-x64" "codegraph-windows-x64.exe"
             package_zip "codegraph-windows-x64.exe" "codegraph-${VERSION}-windows-x64"
+            create_installer "$DIST_DIR/codegraph-${VERSION}-windows-x64.zip" ps1 windows-x64 "codegraph-${VERSION}-windows-x64" || true
             generate_checksums
             ;;
 
@@ -264,12 +318,15 @@ main() {
     if ls "$DIST_DIR"/*.tar.gz &>/dev/null 2>&1 || ls "$DIST_DIR"/*.zip &>/dev/null 2>&1; then
         echo ""
         info "Packages in $DIST_DIR/:"
-        ls -lh "$DIST_DIR"/*.tar.gz "$DIST_DIR"/*.zip "$DIST_DIR"/*.txt 2>/dev/null
+        ls -lh "$DIST_DIR"/*.tar.gz "$DIST_DIR"/*.zip "$DIST_DIR"/*.sh "$DIST_DIR"/*.ps1 "$DIST_DIR"/*.txt 2>/dev/null || true
         echo ""
-        info "Distribute to team members. They run:"
+        info "Self-extracting installers (recommended for end-users):"
+        echo "    Linux/macOS:  ./codegraph-${VERSION}-<platform>-installer.sh"
+        echo "    Windows:      .\\codegraph-${VERSION}-windows-x64-installer.ps1"
+        echo ""
+        info "Or from an extracted archive:"
         echo "    tar -xzf codegraph-${VERSION}-linux-x64.tar.gz"
-        echo "    cd codegraph-${VERSION}"
-        echo "    ./install.sh"
+        echo "    cd codegraph-${VERSION} && ./install.sh --local"
     fi
 }
 

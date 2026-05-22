@@ -1,11 +1,44 @@
 import { Parser, Language, Query, QueryCapture } from 'web-tree-sitter';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { LanguageDefinition } from '../languages/registry.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolve(__dirname, '..', '..');
+const __thisFile = fileURLToPath(import.meta.url);
+
+/**
+ * Find the root directory that contains wasm/ and queries/ subdirectories.
+ *
+ * - Source/dev mode (bun run, tsx): the source file exists at its real path,
+ *   so we navigate 2 dirs up (src/parsers/ → project root).
+ * - Compiled binary mode (bun build --compile): import.meta.url is a virtual
+ *   path baked in at compile time. We search standard locations relative to
+ *   the binary's own executable path so the binary is self-sufficient once
+ *   assets are installed alongside it.
+ */
+function findAssetRoot(): string {
+  if (existsSync(__thisFile)) {
+    // Source/dev: navigate up from src/parsers/wasm-parser.ts
+    return resolve(dirname(__thisFile), '..', '..');
+  }
+
+  // Compiled binary: search candidate directories for the wasm/ subdir
+  const binDir = dirname(process.execPath);
+  const candidates = [
+    binDir,                                              // assets next to binary
+    resolve(binDir, '..', 'share', 'codegraph'),         // XDG system: /usr/local/share/codegraph
+    join(process.env['HOME'] ?? '', '.local', 'share', 'codegraph'), // XDG user
+  ];
+
+  for (const dir of candidates) {
+    if (existsSync(join(dir, 'wasm'))) return dir;
+  }
+
+  return binDir; // fallback — will produce a clear "file not found" on first use
+}
+
+const PROJECT_ROOT = findAssetRoot();
 
 let parserInstance: Parser | null = null;
 let initialized = false;
