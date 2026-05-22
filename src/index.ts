@@ -1,7 +1,7 @@
 export { buildCLI } from './cli.js';
 export { startMcpServer } from './mcp.js';
 export { Store } from './core/store.js';
-export { CodeGraph } from './core/graph.js';
+export { MapxGraph } from './core/graph.js';
 export { Scanner } from './core/scanner.js';
 export { Config } from './core/config.js';
 export { LLMExporter } from './exporters/llm-exporter.js';

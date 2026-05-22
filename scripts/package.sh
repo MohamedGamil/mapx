@@ -68,12 +68,12 @@ package_tarball() {
 
     local tmpdir
     tmpdir="$(mktemp -d)"
-    local staging="$tmpdir/codegraph-$VERSION"
+    local staging="$tmpdir/mapx-$VERSION"
 
     mkdir -p "$staging"
 
-    cp "$PROJECT_ROOT/dist/$binary" "$staging/codegraph"
-    chmod +x "$staging/codegraph"
+    cp "$PROJECT_ROOT/dist/$binary" "$staging/mapx"
+    chmod +x "$staging/mapx"
 
     cp "$PROJECT_ROOT/AGENTS.md" "$staging/"
     cp "$PROJECT_ROOT/LICENSE" "$staging/" 2>/dev/null || true
@@ -87,7 +87,7 @@ package_tarball() {
 
     cp "$PROJECT_ROOT/scripts/templates/README.dist.md" "$staging/README.md"
 
-    tar -czf "$DIST_DIR/$archive_name.tar.gz" -C "$tmpdir" "codegraph-$VERSION"
+    tar -czf "$DIST_DIR/$archive_name.tar.gz" -C "$tmpdir" "mapx-$VERSION"
 
     rm -rf "$tmpdir"
 
@@ -104,11 +104,11 @@ package_zip() {
 
     local tmpdir
     tmpdir="$(mktemp -d)"
-    local staging="$tmpdir/codegraph-$VERSION"
+    local staging="$tmpdir/mapx-$VERSION"
 
     mkdir -p "$staging"
 
-    cp "$PROJECT_ROOT/dist/$binary" "$staging/codegraph.exe"
+    cp "$PROJECT_ROOT/dist/$binary" "$staging/mapx.exe"
 
     cp "$PROJECT_ROOT/AGENTS.md" "$staging/"
     cp "$PROJECT_ROOT/LICENSE" "$staging/" 2>/dev/null || true
@@ -120,7 +120,7 @@ package_zip() {
     echo "$VERSION" > "$staging/VERSION"
     cp "$PROJECT_ROOT/scripts/templates/README.dist.md" "$staging/README.md"
 
-    cd "$tmpdir" && zip -r -q "$DIST_DIR/$archive_name.zip" "codegraph-$VERSION"
+    cd "$tmpdir" && zip -r -q "$DIST_DIR/$archive_name.zip" "mapx-$VERSION"
 
     rm -rf "$tmpdir"
 
@@ -166,7 +166,7 @@ create_installer() {
 
 usage() {
     cat <<EOF
-CodeGraph v${VERSION} - Build & Package
+MapxGraph v${VERSION} - Build & Package
 
 Usage: $(basename "$0") <command> [options]
 
@@ -200,7 +200,7 @@ main() {
     fi
 
     echo ""
-    echo -e "${CYAN}CodeGraph v${VERSION} - Build & Package${NC}"
+    echo -e "${CYAN}MapxGraph v${VERSION} - Build & Package${NC}"
     echo ""
 
     mkdir -p "$PROJECT_ROOT/dist" "$DIST_DIR"
@@ -213,38 +213,38 @@ main() {
             echo ""
 
             if [ "$skip_build" = false ]; then
-                build_binary "bun-linux-x64"       "codegraph-linux-x64"       || true
-                build_binary "bun-linux-arm64"     "codegraph-linux-arm64"     || true
-                build_binary "bun-darwin-arm64"    "codegraph-darwin-arm64"    || true
-                build_binary "bun-darwin-x64"      "codegraph-darwin-x64"      || true
-                build_binary "bun-windows-x64"     "codegraph-windows-x64.exe" || true
+                build_binary "bun-linux-x64"       "mapx-linux-x64"       || true
+                build_binary "bun-linux-arm64"     "mapx-linux-arm64"     || true
+                build_binary "bun-darwin-arm64"    "mapx-darwin-arm64"    || true
+                build_binary "bun-darwin-x64"      "mapx-darwin-x64"      || true
+                build_binary "bun-windows-x64"     "mapx-windows-x64.exe" || true
                 echo ""
             fi
 
             local _n
-            if [ -f "$PROJECT_ROOT/dist/codegraph-linux-x64" ]; then
-                _n="codegraph-${VERSION}-linux-x64"
-                package_tarball "codegraph-linux-x64" "$_n"
+            if [ -f "$PROJECT_ROOT/dist/mapx-linux-x64" ]; then
+                _n="mapx-${VERSION}-linux-x64"
+                package_tarball "mapx-linux-x64" "$_n"
                 create_installer "$DIST_DIR/$_n.tar.gz" sh linux-x64 "$_n" || true
             fi
-            if [ -f "$PROJECT_ROOT/dist/codegraph-linux-arm64" ]; then
-                _n="codegraph-${VERSION}-linux-arm64"
-                package_tarball "codegraph-linux-arm64" "$_n"
+            if [ -f "$PROJECT_ROOT/dist/mapx-linux-arm64" ]; then
+                _n="mapx-${VERSION}-linux-arm64"
+                package_tarball "mapx-linux-arm64" "$_n"
                 create_installer "$DIST_DIR/$_n.tar.gz" sh linux-arm64 "$_n" || true
             fi
-            if [ -f "$PROJECT_ROOT/dist/codegraph-darwin-arm64" ]; then
-                _n="codegraph-${VERSION}-darwin-arm64"
-                package_tarball "codegraph-darwin-arm64" "$_n"
+            if [ -f "$PROJECT_ROOT/dist/mapx-darwin-arm64" ]; then
+                _n="mapx-${VERSION}-darwin-arm64"
+                package_tarball "mapx-darwin-arm64" "$_n"
                 create_installer "$DIST_DIR/$_n.tar.gz" sh darwin-arm64 "$_n" || true
             fi
-            if [ -f "$PROJECT_ROOT/dist/codegraph-darwin-x64" ]; then
-                _n="codegraph-${VERSION}-darwin-x64"
-                package_tarball "codegraph-darwin-x64" "$_n"
+            if [ -f "$PROJECT_ROOT/dist/mapx-darwin-x64" ]; then
+                _n="mapx-${VERSION}-darwin-x64"
+                package_tarball "mapx-darwin-x64" "$_n"
                 create_installer "$DIST_DIR/$_n.tar.gz" sh darwin-x64 "$_n" || true
             fi
-            if [ -f "$PROJECT_ROOT/dist/codegraph-windows-x64.exe" ]; then
-                _n="codegraph-${VERSION}-windows-x64"
-                package_zip "codegraph-windows-x64.exe" "$_n"
+            if [ -f "$PROJECT_ROOT/dist/mapx-windows-x64.exe" ]; then
+                _n="mapx-${VERSION}-windows-x64"
+                package_zip "mapx-windows-x64.exe" "$_n"
                 create_installer "$DIST_DIR/$_n.zip" ps1 windows-x64 "$_n" || true
             fi
             echo ""
@@ -254,45 +254,45 @@ main() {
         linux-x64)
             check_bun
             check_wasm
-            [ "$skip_build" = false ] && build_binary "bun-linux-x64" "codegraph-linux-x64"
-            package_tarball "codegraph-linux-x64" "codegraph-${VERSION}-linux-x64"
-            create_installer "$DIST_DIR/codegraph-${VERSION}-linux-x64.tar.gz" sh linux-x64 "codegraph-${VERSION}-linux-x64" || true
+            [ "$skip_build" = false ] && build_binary "bun-linux-x64" "mapx-linux-x64"
+            package_tarball "mapx-linux-x64" "mapx-${VERSION}-linux-x64"
+            create_installer "$DIST_DIR/mapx-${VERSION}-linux-x64.tar.gz" sh linux-x64 "mapx-${VERSION}-linux-x64" || true
             generate_checksums
             ;;
 
         linux-arm64)
             check_bun
             check_wasm
-            [ "$skip_build" = false ] && build_binary "bun-linux-arm64" "codegraph-linux-arm64"
-            package_tarball "codegraph-linux-arm64" "codegraph-${VERSION}-linux-arm64"
-            create_installer "$DIST_DIR/codegraph-${VERSION}-linux-arm64.tar.gz" sh linux-arm64 "codegraph-${VERSION}-linux-arm64" || true
+            [ "$skip_build" = false ] && build_binary "bun-linux-arm64" "mapx-linux-arm64"
+            package_tarball "mapx-linux-arm64" "mapx-${VERSION}-linux-arm64"
+            create_installer "$DIST_DIR/mapx-${VERSION}-linux-arm64.tar.gz" sh linux-arm64 "mapx-${VERSION}-linux-arm64" || true
             generate_checksums
             ;;
 
         darwin-arm64)
             check_bun
             check_wasm
-            [ "$skip_build" = false ] && build_binary "bun-darwin-arm64" "codegraph-darwin-arm64"
-            package_tarball "codegraph-darwin-arm64" "codegraph-${VERSION}-darwin-arm64"
-            create_installer "$DIST_DIR/codegraph-${VERSION}-darwin-arm64.tar.gz" sh darwin-arm64 "codegraph-${VERSION}-darwin-arm64" || true
+            [ "$skip_build" = false ] && build_binary "bun-darwin-arm64" "mapx-darwin-arm64"
+            package_tarball "mapx-darwin-arm64" "mapx-${VERSION}-darwin-arm64"
+            create_installer "$DIST_DIR/mapx-${VERSION}-darwin-arm64.tar.gz" sh darwin-arm64 "mapx-${VERSION}-darwin-arm64" || true
             generate_checksums
             ;;
 
         darwin-x64)
             check_bun
             check_wasm
-            [ "$skip_build" = false ] && build_binary "bun-darwin-x64" "codegraph-darwin-x64"
-            package_tarball "codegraph-darwin-x64" "codegraph-${VERSION}-darwin-x64"
-            create_installer "$DIST_DIR/codegraph-${VERSION}-darwin-x64.tar.gz" sh darwin-x64 "codegraph-${VERSION}-darwin-x64" || true
+            [ "$skip_build" = false ] && build_binary "bun-darwin-x64" "mapx-darwin-x64"
+            package_tarball "mapx-darwin-x64" "mapx-${VERSION}-darwin-x64"
+            create_installer "$DIST_DIR/mapx-${VERSION}-darwin-x64.tar.gz" sh darwin-x64 "mapx-${VERSION}-darwin-x64" || true
             generate_checksums
             ;;
 
         windows-x64)
             check_bun
             check_wasm
-            [ "$skip_build" = false ] && build_binary "bun-windows-x64" "codegraph-windows-x64.exe"
-            package_zip "codegraph-windows-x64.exe" "codegraph-${VERSION}-windows-x64"
-            create_installer "$DIST_DIR/codegraph-${VERSION}-windows-x64.zip" ps1 windows-x64 "codegraph-${VERSION}-windows-x64" || true
+            [ "$skip_build" = false ] && build_binary "bun-windows-x64" "mapx-windows-x64.exe"
+            package_zip "mapx-windows-x64.exe" "mapx-${VERSION}-windows-x64"
+            create_installer "$DIST_DIR/mapx-${VERSION}-windows-x64.zip" ps1 windows-x64 "mapx-${VERSION}-windows-x64" || true
             generate_checksums
             ;;
 
@@ -321,12 +321,12 @@ main() {
         ls -lh "$DIST_DIR"/*.tar.gz "$DIST_DIR"/*.zip "$DIST_DIR"/*.sh "$DIST_DIR"/*.ps1 "$DIST_DIR"/*.txt 2>/dev/null || true
         echo ""
         info "Self-extracting installers (recommended for end-users):"
-        echo "    Linux/macOS:  ./codegraph-${VERSION}-<platform>-installer.sh"
-        echo "    Windows:      .\\codegraph-${VERSION}-windows-x64-installer.ps1"
+        echo "    Linux/macOS:  ./mapx-${VERSION}-<platform>-installer.sh"
+        echo "    Windows:      .\\mapx-${VERSION}-windows-x64-installer.ps1"
         echo ""
         info "Or from an extracted archive:"
-        echo "    tar -xzf codegraph-${VERSION}-linux-x64.tar.gz"
-        echo "    cd codegraph-${VERSION} && ./install.sh --local"
+        echo "    tar -xzf mapx-${VERSION}-linux-x64.tar.gz"
+        echo "    cd mapx-${VERSION} && ./install.sh --local"
     fi
 }
 

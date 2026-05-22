@@ -1,13 +1,13 @@
 import { execSync } from 'node:child_process';
 import { Store } from '../core/store.js';
-import { CodeGraph } from '../core/graph.js';
+import { MapxGraph } from '../core/graph.js';
 import { DotExporter } from './dot-exporter.js';
 
 export class SvgExporter {
   private store: Store;
-  private graph: CodeGraph;
+  private graph: MapxGraph;
 
-  constructor(store: Store, graph: CodeGraph) {
+  constructor(store: Store, graph: MapxGraph) {
     this.store = store;
     this.graph = graph;
   }

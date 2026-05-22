@@ -1,21 +1,21 @@
 {
-  "name": "codegraph",
+  "name": "mapx",
   "version": "0.1.6",
   "license": "Apache-2.0",
   "description": "Multi-language code graph memory system for LLMs",
   "type": "module",
   "bin": {
-    "codegraph": "./src/main.ts"
+    "mapx": "./src/main.ts"
   },
   "scripts": {
     "version-sync": "tsx scripts/sync-version.ts",
     "dev": "tsx watch src/main.ts",
     "build:wasm": "tsx scripts/build-wasm.ts",
-    "build:linux": "bun build --compile --minify --bytecode --target=bun-linux-x64 ./src/main.ts --outfile dist/codegraph-linux-x64",
-    "build:linux-arm": "bun build --compile --minify --bytecode --target=bun-linux-arm64 ./src/main.ts --outfile dist/codegraph-linux-arm64",
-    "build:mac-arm": "bun build --compile --minify --bytecode --target=bun-darwin-arm64 ./src/main.ts --outfile dist/codegraph-darwin-arm64",
-    "build:mac-x64": "bun build --compile --minify --bytecode --target=bun-darwin-x64 ./src/main.ts --outfile dist/codegraph-darwin-x64",
-    "build:win": "bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/codegraph-windows-x64.exe",
+    "build:linux": "bun build --compile --minify --bytecode --target=bun-linux-x64 ./src/main.ts --outfile dist/mapx-linux-x64",
+    "build:linux-arm": "bun build --compile --minify --bytecode --target=bun-linux-arm64 ./src/main.ts --outfile dist/mapx-linux-arm64",
+    "build:mac-arm": "bun build --compile --minify --bytecode --target=bun-darwin-arm64 ./src/main.ts --outfile dist/mapx-darwin-arm64",
+    "build:mac-x64": "bun build --compile --minify --bytecode --target=bun-darwin-x64 ./src/main.ts --outfile dist/mapx-darwin-x64",
+    "build:win": "bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/mapx-windows-x64.exe",
     "build:all": "tsx scripts/build-all.ts",
     "scan": "tsx src/main.ts scan",
     "export": "tsx src/main.ts export",

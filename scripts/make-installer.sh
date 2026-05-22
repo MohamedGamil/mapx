@@ -45,7 +45,7 @@ create_sh_installer() {
     cat > "$output" << 'SH_EOF'
 #!/usr/bin/env sh
 # ================================================================
-# CodeGraph @@VERSION@@ — Self-Extracting Installer (@@PLATFORM@@)
+# MapxGraph @@VERSION@@ — Self-Extracting Installer (@@PLATFORM@@)
 # ================================================================
 # Interactive:      ./installer.sh
 # User install:     ./installer.sh --local          (no sudo)
@@ -65,7 +65,7 @@ _die()  { printf "${_R}[ERROR]${_N} %s\n" "$*" >&2; exit 1; }
 _V="@@VERSION@@"
 _P="@@PLATFORM@@"
 
-printf "\n${_B}${_C}  CodeGraph v%s — Installer${_N}\n" "$_V"
+printf "\n${_B}${_C}  MapxGraph v%s — Installer${_N}\n" "$_V"
 printf "  ${_C}Platform: %s${_N}\n" "$_P"
 printf "  ──────────────────────────────────────────\n\n"
 
@@ -81,7 +81,7 @@ _SCOPE_FLAG=""
 _SCOPE_VAL=""
 
 if [ "$_scoped" = false ]; then
-    printf "  Where would you like to install CodeGraph?\n\n"
+    printf "  Where would you like to install MapxGraph?\n\n"
     printf "    [1]  User install    ~/.local/bin        (no sudo needed)\n"
     printf "    [2]  System install  /usr/local/bin      (needs sudo)\n"
     printf "    [3]  Custom path\n"
@@ -124,7 +124,7 @@ fi
 tail -n +"$_PL" "$0" | $_B64D | tar xz -C "$_TMP" \
     || _die "Failed to extract archive — installer may be corrupted or truncated"
 
-_INST="$_TMP/codegraph-${_V}/install.sh"
+_INST="$_TMP/mapx-${_V}/install.sh"
 [ -f "$_INST" ] || _die "install.sh not found in archive (expected: $_INST)"
 chmod +x "$_INST"
 
@@ -165,7 +165,7 @@ create_ps1_installer() {
     # @@VERSION@@ is substituted by sed before base64 is appended.
     cat > "$output" << 'PS1_PART1'
 # ================================================================
-# CodeGraph @@VERSION@@ — Self-Extracting Installer (Windows x64)
+# MapxGraph @@VERSION@@ — Self-Extracting Installer (Windows x64)
 # ================================================================
 # Interactive:      .\installer.ps1
 # User install:     .\installer.ps1 -Local          (no admin)
@@ -187,17 +187,17 @@ $_V = "@@VERSION@@"
 
 function _Banner {
     Write-Host ""
-    Write-Host "  CodeGraph v$_V -- Self-Extracting Installer" -ForegroundColor Cyan
+    Write-Host "  MapxGraph v$_V -- Self-Extracting Installer" -ForegroundColor Cyan
     Write-Host "  Platform: Windows x64"                        -ForegroundColor Cyan
     Write-Host "  ──────────────────────────────────────────────"
     Write-Host ""
 }
 
 function _Menu {
-    Write-Host "  Where would you like to install CodeGraph?"
+    Write-Host "  Where would you like to install MapxGraph?"
     Write-Host ""
-    Write-Host "    [1]  User install    ~\AppData\Local\Programs\codegraph  (no admin)"
-    Write-Host "    [2]  System install  C:\Program Files\CodeGraph          (needs admin)"
+    Write-Host "    [1]  User install    ~\AppData\Local\Programs\mapx  (no admin)"
+    Write-Host "    [2]  System install  C:\Program Files\MapxGraph          (needs admin)"
     Write-Host "    [3]  Custom path"
     Write-Host "    [u]  Uninstall existing installation"
     Write-Host "    [q]  Quit"
@@ -245,7 +245,7 @@ try {
     [System.IO.File]::WriteAllBytes($_zipPath, [Convert]::FromBase64String($_PAYLOAD))
     Expand-Archive -Path $_zipPath -DestinationPath $_tmpDir -Force
 
-    $_installer = Join-Path $_tmpDir "codegraph-$_V" "install.ps1"
+    $_installer = Join-Path $_tmpDir "mapx-$_V" "install.ps1"
     if (-not (Test-Path $_installer)) {
         throw "install.ps1 not found in archive (expected: $_installer)"
     }
@@ -276,11 +276,11 @@ usage() {
     echo "  $(basename "$0") ps1 <archive.zip>    <output.ps1> <version>"
     echo ""
     echo "Examples:"
-    echo "  $(basename "$0") sh  dist/release/codegraph-0.1.3-linux-x64.tar.gz \\"
-    echo "      dist/release/codegraph-0.1.3-linux-x64-installer.sh 0.1.3 linux-x64"
+    echo "  $(basename "$0") sh  dist/release/mapx-0.1.3-linux-x64.tar.gz \\"
+    echo "      dist/release/mapx-0.1.3-linux-x64-installer.sh 0.1.3 linux-x64"
     echo ""
-    echo "  $(basename "$0") ps1 dist/release/codegraph-0.1.3-windows-x64.zip \\"
-    echo "      dist/release/codegraph-0.1.3-windows-x64-installer.ps1 0.1.3"
+    echo "  $(basename "$0") ps1 dist/release/mapx-0.1.3-windows-x64.zip \\"
+    echo "      dist/release/mapx-0.1.3-windows-x64-installer.ps1 0.1.3"
     exit 1
 }
 

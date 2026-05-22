@@ -1,11 +1,11 @@
 import { Store } from '../core/store.js';
-import { CodeGraph } from '../core/graph.js';
+import { MapxGraph } from '../core/graph.js';
 
 export class GraphExporter {
   private store: Store;
-  private graph: CodeGraph;
+  private graph: MapxGraph;
 
-  constructor(store: Store, graph: CodeGraph) {
+  constructor(store: Store, graph: MapxGraph) {
     this.store = store;
     this.graph = graph;
   }

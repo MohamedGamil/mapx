@@ -4,7 +4,7 @@ import { resolve, relative, extname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { cpus } from 'node:os';
 import { Store } from './store.js';
-import { CodeGraph } from './graph.js';
+import { MapxGraph } from './graph.js';
 import { Config } from './config.js';
 import { getParserForFile } from '../parsers/parser-registry.js';
 import { getLanguageForFile } from '../languages/registry.js';
@@ -15,7 +15,7 @@ import type { ScanResult, GraphEdge, ParseResult, ExtractedReference, ExtractedS
 const DEFAULT_CONCURRENCY = Math.min(cpus().length || 4, 8);
 
 const DEFAULT_IGNORE = new Set([
-  'node_modules', 'vendor', '.git', 'dist', '.codegraph', '__pycache__',
+  'node_modules', 'vendor', '.git', 'dist', '.mapx', '__pycache__',
   '.next', '.nuxt', 'coverage', '.cache', '.turbo', 'target', 'build',
   '.gradle', '.idea', '.vscode', '.vs',
 ]);
@@ -44,12 +44,12 @@ interface DiscoveredFile extends FileInfo {
 export class Scanner {
   private store: Store;
   private config: Config;
-  private graph: CodeGraph;
+  private graph: MapxGraph;
   private onProgress?: ProgressCallback;
   private concurrency: number;
   private aborted = false;
 
-  constructor(store: Store, config: Config, graph: CodeGraph, onProgress?: ProgressCallback) {
+  constructor(store: Store, config: Config, graph: MapxGraph, onProgress?: ProgressCallback) {
     this.store = store;
     this.config = config;
     this.graph = graph;
@@ -80,7 +80,7 @@ export class Scanner {
   }
 
   private getLockPath(): string {
-    return join(this.config.getWorkspaceRoot(), '.codegraph', 'scan.lock');
+    return join(this.config.getWorkspaceRoot(), '.mapx', 'scan.lock');
   }
 
   private async acquireScanLock(): Promise<boolean> {
@@ -418,7 +418,7 @@ export class Scanner {
       for (const entry of entries) {
         if (this.aborted) return;
         if (DEFAULT_IGNORE.has(entry.name)) continue;
-        if (entry.name.startsWith('.') && entry.name !== '.codegraph') continue;
+        if (entry.name.startsWith('.') && entry.name !== '.mapx') continue;
 
         const fullPath = join(currentDir, entry.name);
 

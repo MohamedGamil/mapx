@@ -27,8 +27,8 @@ function findAssetRoot(): string {
   const binDir = dirname(process.execPath);
   const candidates = [
     binDir,                                              // assets next to binary
-    resolve(binDir, '..', 'share', 'codegraph'),         // XDG system: /usr/local/share/codegraph
-    join(process.env['HOME'] ?? '', '.local', 'share', 'codegraph'), // XDG user
+    resolve(binDir, '..', 'share', 'mapx'),         // XDG system: /usr/local/share/mapx
+    join(process.env['HOME'] ?? '', '.local', 'share', 'mapx'), // XDG user
   ];
 
   for (const dir of candidates) {

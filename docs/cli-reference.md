@@ -6,24 +6,24 @@ All commands accept a target directory. Three ways to specify:
 
 ```bash
 # 1. Positional path argument
-codegraph scan /path/to/project
+mapx scan /path/to/project
 
 # 2. --dir / -d flag
-codegraph scan --dir /path/to/project
-codegraph query "MyClass" -d /path/to/project
+mapx scan --dir /path/to/project
+mapx query "MyClass" -d /path/to/project
 
 # 3. Global flag (works with any subcommand)
-codegraph -d /path/to/project scan
+mapx -d /path/to/project scan
 
 # If no directory is specified, defaults to current working directory.
 ```
 
-## `codegraph init`
+## `mapx init`
 
-Initialize CodeGraph in the current project. Creates `.codegraph/` directory and `AGENTS.md`.
+Initialize MapxGraph in the current project. Creates `.mapx/` directory and `AGENTS.md`.
 
 ```bash
-codegraph init [/path] [--name <repo-name>] [--no-agents]
+mapx init [/path] [--name <repo-name>] [--no-agents]
 ```
 
 Options:
@@ -31,7 +31,7 @@ Options:
 - `--name` — Custom repository name (defaults to directory name)
 - `--no-agents` — Skip AGENTS.md creation
 
-## `codegraph scan`
+## `mapx scan`
 
 Perform a full scan of all source files. Builds the graph from scratch.
 
@@ -40,23 +40,23 @@ Perform a full scan of all source files. Builds the graph from scratch.
 - Survives interruptions: progress is saved per-file, re-run to resume
 
 ```bash
-codegraph scan [/path]
+mapx scan [/path]
 ```
 
-## `codegraph update`
+## `mapx update`
 
 Incremental scan. Detects changed files via git and only re-scans those.
 
 ```bash
-codegraph update [/path]
+mapx update [/path]
 ```
 
-## `codegraph status`
+## `mapx status`
 
 Show scan metrics, collected data, graph statistics, and git changes since the last scan.
 
 ```bash
-codegraph status [/path]
+mapx status [/path]
 ```
 
 Outputs:
@@ -66,34 +66,34 @@ Outputs:
 - **Storage**: database path and size
 - **Git changes**: added/modified/removed/renamed files since last scan
 
-## `codegraph query <term>`
+## `mapx query <term>`
 
 Search for symbols by name pattern (supports partial matching).
 
 ```bash
-codegraph query <term> [--dir /path]
+mapx query <term> [--dir /path]
 ```
 
 Examples:
 ```bash
-codegraph query User
-codegraph query handleSave
+mapx query User
+mapx query handleSave
 ```
 
-## `codegraph deps <file>`
+## `mapx deps <file>`
 
 Show dependencies (what the file depends on) and reverse dependencies (what depends on it).
 
 ```bash
-codegraph deps <file> [--dir /path]
+mapx deps <file> [--dir /path]
 ```
 
-## `codegraph export`
+## `mapx export`
 
 Export the code graph in various formats.
 
 ```bash
-codegraph export [--format <fmt>] [--tokens <budget>] [--repo <name>] [-o <file>]
+mapx export [--format <fmt>] [--tokens <budget>] [--repo <name>] [-o <file>]
 ```
 
 Options:
@@ -104,13 +104,13 @@ Options:
 
 Examples:
 ```bash
-codegraph export                                          # Compact LLM summary (stdout)
-codegraph export -o summary.txt                           # LLM summary to file
-codegraph export --format=json -o graph.json              # Full JSON graph to file
-codegraph export --format=dot -o graph.dot                # GraphViz DOT to file
-codegraph export --format=svg -o graph.svg                # SVG visualization to file
-codegraph export --format=svg                             # SVG to stdout
-codegraph export --tokens=16384                           # More detailed LLM summary
+mapx export                                          # Compact LLM summary (stdout)
+mapx export -o summary.txt                           # LLM summary to file
+mapx export --format=json -o graph.json              # Full JSON graph to file
+mapx export --format=dot -o graph.dot                # GraphViz DOT to file
+mapx export --format=svg -o graph.svg                # SVG visualization to file
+mapx export --format=svg                             # SVG to stdout
+mapx export --tokens=16384                           # More detailed LLM summary
 ```
 
 ### Output File Validation
@@ -129,28 +129,28 @@ The `--format=svg` option generates an SVG visualization of the code graph:
 
 See [Installing GraphViz](#installing-graphviz) for setup instructions.
 
-## `codegraph summary`
+## `mapx summary`
 
 Show a one-line project summary (file count, symbol count, languages).
 
 ```bash
-codegraph summary [/path]
+mapx summary [/path]
 ```
 
-## `codegraph lang list`
+## `mapx lang list`
 
 List supported languages.
 
 ```bash
-codegraph lang list
+mapx lang list
 ```
 
-## `codegraph serve`
+## `mapx serve`
 
 Start as an MCP server. Supports stdio (default) and SSE (HTTP) transports.
 
 ```bash
-codegraph serve [--dir /path] [--sse] [--port <port>]
+mapx serve [--dir /path] [--sse] [--port <port>]
 ```
 
 Options:
@@ -160,12 +160,12 @@ Options:
 
 On startup, prints ready-to-copy configuration snippets for Claude Desktop, Cursor, and VS Code. SSE mode additionally prints the connection URL and messages endpoint.
 
-> **Note:** When started without `--dir`, the server checks whether the current working directory is an initialized CodeGraph project. If it is, that directory becomes the default. Otherwise no default is set and each tool call must include a `dir` argument. The active directory is logged to stderr at startup.
+> **Note:** When started without `--dir`, the server checks whether the current working directory is an initialized MapxGraph project. If it is, that directory becomes the default. Otherwise no default is set and each tool call must include a `dir` argument. The active directory is logged to stderr at startup.
 
 Examples:
 ```bash
-codegraph serve --dir /path/to/project                  # stdio (default)
-codegraph serve --sse --port 3456 --dir /path/to/project  # SSE on port 3456
+mapx serve --dir /path/to/project                  # stdio (default)
+mapx serve --sse --port 3456 --dir /path/to/project  # SSE on port 3456
 ```
 
 See [MCP Integration](mcp-integration.md) for full client configuration details.

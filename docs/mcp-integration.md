@@ -1,10 +1,10 @@
 # MCP Integration
 
-CodeGraph can run as an MCP (Model Context Protocol) server, allowing LLM tools to interact with the code graph directly.
+MapxGraph can run as an MCP (Model Context Protocol) server, allowing LLM tools to interact with the code graph directly.
 
 ## Transports
 
-CodeGraph supports two MCP transport modes:
+MapxGraph supports two MCP transport modes:
 
 | Transport | Flag | Use Case |
 |-----------|------|----------|
@@ -16,7 +16,7 @@ CodeGraph supports two MCP transport modes:
 ### stdio (default)
 
 ```bash
-codegraph serve --dir /path/to/project
+mapx serve --dir /path/to/project
 ```
 
 On startup, prints ready-to-copy configuration for Claude Desktop, Cursor, and VS Code.
@@ -24,7 +24,7 @@ On startup, prints ready-to-copy configuration for Claude Desktop, Cursor, and V
 ### SSE (HTTP)
 
 ```bash
-codegraph serve --sse --port 3456 --dir /path/to/project
+mapx serve --sse --port 3456 --dir /path/to/project
 ```
 
 Options:
@@ -39,7 +39,7 @@ On startup, prints the SSE URL, messages endpoint, and ready-to-copy configurati
 Both modes print configuration snippets on startup:
 
 ```
-  CodeGraph MCP server ready.
+  MapxGraph MCP server ready.
 
   Transport:    stdio
   Project dir:  /path/to/project
@@ -48,8 +48,8 @@ Both modes print configuration snippets on startup:
   ```json
   {
     "mcpServers": {
-      "codegraph": {
-        "command": "codegraph",
+      "mapx": {
+        "command": "mapx",
         "args": ["serve", "--dir", "/path/to/project"]
       }
     }
@@ -77,8 +77,8 @@ Add to `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "codegraph": {
-      "command": "codegraph",
+    "mapx": {
+      "command": "mapx",
       "args": ["serve", "--dir", "/path/to/your/project"]
     }
   }
@@ -89,7 +89,7 @@ Or with `npx tsx` from source:
 ```json
 {
   "mcpServers": {
-    "codegraph": {
+    "mapx": {
       "command": "npx",
       "args": ["tsx", "/path/to/mem-project/src/main.ts", "serve", "--dir", "/path/to/your/project"]
     }
@@ -101,7 +101,7 @@ Or with `npx tsx` from source:
 ```json
 {
   "mcpServers": {
-    "codegraph": {
+    "mapx": {
       "url": "http://localhost:3456/sse"
     }
   }
@@ -116,8 +116,8 @@ Add to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "codegraph": {
-      "command": "codegraph",
+    "mapx": {
+      "command": "mapx",
       "args": ["serve", "--dir", "/path/to/your/project"]
     }
   }
@@ -128,7 +128,7 @@ Add to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "codegraph": {
+    "mapx": {
       "url": "http://localhost:3456/sse"
     }
   }
@@ -144,8 +144,8 @@ Add to `.vscode/settings.json` or your user settings:
 {
   "mcp": {
     "servers": {
-      "codegraph": {
-        "command": "codegraph",
+      "mapx": {
+        "command": "mapx",
         "args": ["serve", "--dir", "/path/to/your/project"]
       }
     }
@@ -158,7 +158,7 @@ Add to `.vscode/settings.json` or your user settings:
 {
   "mcp": {
     "servers": {
-      "codegraph": {
+      "mapx": {
         "url": "http://localhost:3456/sse"
       }
     }
@@ -173,8 +173,8 @@ Add to your opencode configuration:
 ```json
 {
   "mcp": {
-    "codegraph": {
-      "command": "codegraph",
+    "mapx": {
+      "command": "mapx",
       "args": ["serve", "--dir", "/path/to/your/project"]
     }
   }
@@ -206,7 +206,7 @@ Each SSE connection creates an independent MCP session with its own server insta
 The `--dir` flag sets the default directory used by all tool calls that do not include an explicit `dir` argument.
 
 If `--dir` is omitted:
-- If the current working directory contains a `.codegraph/config.json` file, it is used as the default.
+- If the current working directory contains a `.mapx/config.json` file, it is used as the default.
 - Otherwise no default is set, and every tool call **must** include a `dir` argument. Missing it returns an error:
   ```
   No project directory set. Either pass a "dir" argument or start the server with --dir /path/to/project.
@@ -214,12 +214,12 @@ If `--dir` is omitted:
 
 The active directory is always printed to stderr at startup:
 ```
-[codegraph] Default project directory: /path/to/project
+[mapx] Default project directory: /path/to/project
 ```
 
 ## Available Tools
 
-### `codegraph_scan`
+### `mapx_scan`
 
 Scans the codebase and builds/updates the graph.
 
@@ -228,7 +228,7 @@ Scans the codebase and builds/updates the graph.
 
 **When to use:** At the start of a session or after files have changed.
 
-### `codegraph_query`
+### `mapx_query`
 
 Searches for symbols by name pattern.
 
@@ -238,7 +238,7 @@ Searches for symbols by name pattern.
 
 **When to use:** When you need to find where a class, function, or method is defined.
 
-### `codegraph_dependencies`
+### `mapx_dependencies`
 
 Gets dependencies and reverse dependencies for a file.
 
@@ -248,7 +248,7 @@ Gets dependencies and reverse dependencies for a file.
 
 **When to use:** When you need to understand how a file relates to other files.
 
-### `codegraph_export`
+### `mapx_export`
 
 Exports a compact, token-efficient summary of the code graph.
 
@@ -260,7 +260,7 @@ Exports a compact, token-efficient summary of the code graph.
 
 **When to use:** At the start of a session to get an overview of the codebase.
 
-### `codegraph_status`
+### `mapx_status`
 
 Checks what files have changed since the last scan.
 

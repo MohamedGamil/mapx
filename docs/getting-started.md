@@ -1,4 +1,4 @@
-# Getting Started with CodeGraph
+# Getting Started with MapxGraph
 
 ## Installation
 
@@ -15,69 +15,69 @@ npm install
 ## Quick Start
 
 ```bash
-# 1. Initialize CodeGraph in your project
+# 1. Initialize MapxGraph in your project
 cd /path/to/your/project
-codegraph init
+mapx init
 
 # 2. Scan the codebase
-codegraph scan
+mapx scan
 
 # 3. View the graph summary
-codegraph export
+mapx export
 
 # 4. Search for a symbol
-codegraph query MyClass
+mapx query MyClass
 
 # 5. Check dependencies
-codegraph deps src/index.ts
+mapx deps src/index.ts
 
 # 6. Export as SVG visualization
-codegraph export --format=svg -o graph.svg
+mapx export --format=svg -o graph.svg
 ```
 
 All commands accept a target directory:
 
 ```bash
 # Positional path
-codegraph scan /path/to/project
+mapx scan /path/to/project
 
 # --dir / -d flag
-codegraph scan --dir /path/to/project
-codegraph query "MyClass" -d /path/to/project
+mapx scan --dir /path/to/project
+mapx query "MyClass" -d /path/to/project
 
 # Global flag (works with any subcommand)
-codegraph -d /path/to/project scan
+mapx -d /path/to/project scan
 
 # If no directory is specified, defaults to current working directory.
 ```
 
 ## What Gets Created
 
-Running `init` creates a `.codegraph/` directory in your project and an `AGENTS.md` file:
+Running `init` creates a `.mapx/` directory in your project and an `AGENTS.md` file:
 
 ```
-.codegraph/
+.mapx/
 ├── config.json       # Project configuration
-├── codegraph.db      # SQLite database (after scan)
+├── mapx.db      # SQLite database (after scan)
 └── scan.lock         # Scan lock file (present only while a scan is running)
 
-AGENTS.md             # CodeGraph documentation for LLMs (auto-generated)
+AGENTS.md             # MapxGraph documentation for LLMs (auto-generated)
 ```
 
-Add `.codegraph/` to your `.gitignore` — it's a local development artifact.
+Add `.mapx/` to your `.gitignore` — it's a local development artifact.
 
 ## AGENTS.md
 
-During `init`, CodeGraph creates or updates an `AGENTS.md` file in the project root. This file contains documentation that helps LLM tools discover and use CodeGraph's CLI and MCP tools.
+During `init`, MapxGraph creates or updates an `AGENTS.md` file in the project root. This file contains documentation that helps LLM tools discover and use MapxGraph's CLI and MCP tools.
 
 The content is wrapped in markers:
 ```markdown
-<!-- codegraph -->
-...CodeGraph documentation...
-<!-- /codegraph -->
+<!-- mapx -->
+...MapxGraph documentation...
+<!-- /mapx -->
 ```
 
-- **No existing AGENTS.md**: Creates one with CodeGraph docs
+- **No existing AGENTS.md**: Creates one with MapxGraph docs
 - **Existing with markers**: Updates content between markers (preserves surrounding content)
 - **Existing without markers**: Prompts to insert at beginning/end, or skip
 - **`--no-agents` flag**: Skip AGENTS.md creation entirely
@@ -103,20 +103,20 @@ The content is wrapped in markers:
 Scans survive interruptions (Ctrl+C). Progress is saved in batches, so re-running `scan` resumes from where it left off.
 
 ```
-$ codegraph scan
+$ mapx scan
 Scan interrupted after 15/32 files. Progress saved — run `scan` again to resume.
 
-$ codegraph scan
+$ mapx scan
 Scanned 32 files in 523ms    # resumes from file 16
 ```
 
 ## Concurrent Scan Protection
 
-Only one scan can run on a project at a time. `scanFull` and `scanIncremental` write a PID lock file (`.codegraph/scan.lock`) on entry. A second invocation targeting the same project fails immediately:
+Only one scan can run on a project at a time. `scanFull` and `scanIncremental` write a PID lock file (`.mapx/scan.lock`) on entry. A second invocation targeting the same project fails immediately:
 
 ```
 Error: Another scan is already running on this project (PID 12345).
-Wait for it to finish or delete /path/to/.codegraph/scan.lock if it is stale.
+Wait for it to finish or delete /path/to/.mapx/scan.lock if it is stale.
 ```
 
 Stale locks (process no longer alive) are cleared automatically.
@@ -125,7 +125,7 @@ Stale locks (process no longer alive) are cleared automatically.
 
 ```bash
 # Build for current platform
-bun build --compile --minify --bytecode ./src/main.ts --outfile codegraph
+bun build --compile --minify --bytecode ./src/main.ts --outfile mapx
 
 # Cross-compile for all platforms
 make build-all

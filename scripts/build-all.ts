@@ -4,11 +4,11 @@ import { resolve } from 'node:path';
 const PROJECT_ROOT = resolve(import.meta.dirname, '..');
 
 const targets = [
-  { target: 'bun-linux-x64', outfile: 'dist/codegraph-linux-x64' },
-  { target: 'bun-linux-arm64', outfile: 'dist/codegraph-linux-arm64' },
-  { target: 'bun-darwin-arm64', outfile: 'dist/codegraph-darwin-arm64' },
-  { target: 'bun-darwin-x64', outfile: 'dist/codegraph-darwin-x64' },
-  { target: 'bun-windows-x64', outfile: 'dist/codegraph-windows-x64.exe' },
+  { target: 'bun-linux-x64', outfile: 'dist/mapx-linux-x64' },
+  { target: 'bun-linux-arm64', outfile: 'dist/mapx-linux-arm64' },
+  { target: 'bun-darwin-arm64', outfile: 'dist/mapx-darwin-arm64' },
+  { target: 'bun-darwin-x64', outfile: 'dist/mapx-darwin-x64' },
+  { target: 'bun-windows-x64', outfile: 'dist/mapx-windows-x64.exe' },
 ];
 
 console.log('Building WASM grammars...');

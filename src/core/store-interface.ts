@@ -15,5 +15,5 @@ export interface PreparedStmt {
 import { join } from 'node:path';
 
 export function createDatabasePath(workspaceRoot: string): string {
-  return join(workspaceRoot, '.codegraph', 'codegraph.db');
+  return join(workspaceRoot, '.mapx', 'mapx.db');
 }

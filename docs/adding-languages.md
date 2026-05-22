@@ -1,6 +1,6 @@
 # Adding Languages
 
-CodeGraph supports three tiers of language support.
+MapxGraph supports three tiers of language support.
 
 ## Tier 1: Built-in Languages
 
@@ -76,7 +76,7 @@ To add support for additional languages, you need:
 
 ## Tier 3: User-Defined Languages
 
-Users can add languages via `.codegraph/config.json` without modifying the tool:
+Users can add languages via `.mapx/config.json` without modifying the tool:
 
 ```json
 {

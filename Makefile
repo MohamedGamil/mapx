@@ -33,7 +33,7 @@ version-sync: ## Sync package.json version from root VERSION file
 
 # ── Daily Usage ───────────────────────────────────────────────
 
-init: ## Initialize codegraph in a project (make init DIR=/path)
+init: ## Initialize mapx in a project (make init DIR=/path)
 	$(CLI) init $(DIR)
 
 scan: ## Full scan of all source files (make scan DIR=/path)
@@ -80,13 +80,13 @@ lang-list: ## List supported languages
 # ── Testing ───────────────────────────────────────────────────
 
 test: ## Quick test: init + scan + export
-	rm -rf $(DIR)/.codegraph
+	rm -rf $(DIR)/.mapx
 	$(CLI) init $(DIR)
 	$(CLI) scan $(DIR)
 	$(CLI) export --dir=$(DIR)
 
 test-full: ## Full test: init + scan + all exports + query + deps
-	rm -rf $(DIR)/.codegraph
+	rm -rf $(DIR)/.mapx
 	$(CLI) init $(DIR)
 	@echo ""
 	@echo "=== SCAN ==="
@@ -119,8 +119,8 @@ test-full: ## Full test: init + scan + all exports + query + deps
 	@echo "=== LANG LIST ==="
 	$(CLI) lang list
 
-test-clean: ## Clean test: remove .codegraph and re-test
-	rm -rf $(DIR)/.codegraph
+test-clean: ## Clean test: remove .mapx and re-test
+	rm -rf $(DIR)/.mapx
 	$(MAKE) test DIR=$(DIR)
 
 # ── Lint & Typecheck ──────────────────────────────────────────
@@ -149,31 +149,31 @@ build-linux: wasm ## Build for linux-x64 (requires bun)
 ifndef BUN
 	$(error "bun is required for building")
 endif
-	bun build --compile --minify --bytecode --target=bun-linux-x64 ./src/main.ts --outfile dist/codegraph-linux-x64
+	bun build --compile --minify --bytecode --target=bun-linux-x64 ./src/main.ts --outfile dist/mapx-linux-x64
 
 build-linux-arm: wasm ## Build for linux-arm64 (requires bun)
 ifndef BUN
 	$(error "bun is required for building")
 endif
-	bun build --compile --minify --bytecode --target=bun-linux-arm64 ./src/main.ts --outfile dist/codegraph-linux-arm64
+	bun build --compile --minify --bytecode --target=bun-linux-arm64 ./src/main.ts --outfile dist/mapx-linux-arm64
 
 build-mac-arm: wasm ## Build for macOS ARM (requires bun)
 ifndef BUN
 	$(error "bun is required for building")
 endif
-	bun build --compile --minify --bytecode --target=bun-darwin-arm64 ./src/main.ts --outfile dist/codegraph-darwin-arm64
+	bun build --compile --minify --bytecode --target=bun-darwin-arm64 ./src/main.ts --outfile dist/mapx-darwin-arm64
 
 build-mac-x64: wasm ## Build for macOS x64 (requires bun)
 ifndef BUN
 	$(error "bun is required for building")
 endif
-	bun build --compile --minify --bytecode --target=bun-darwin-x64 ./src/main.ts --outfile dist/codegraph-darwin-x64
+	bun build --compile --minify --bytecode --target=bun-darwin-x64 ./src/main.ts --outfile dist/mapx-darwin-x64
 
 build-win: wasm ## Build for Windows x64 (requires bun)
 ifndef BUN
 	$(error "bun is required for building")
 endif
-	bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/codegraph-windows-x64.exe
+	bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/mapx-windows-x64.exe
 
 build: build-linux ## Build for current platform (linux-x64 default)
 
@@ -210,62 +210,62 @@ package-all: build-all ## Package all platforms
 PREFIX ?= /usr/local/bin
 
 install-local: build-linux ## Install to ~/.local/bin (user scope, no sudo needed)
-	@LOCAL_SHARE="$(HOME)/.local/share/codegraph"; \
+	@LOCAL_SHARE="$(HOME)/.local/share/mapx"; \
 	  mkdir -p ~/.local/bin "$$LOCAL_SHARE/wasm" "$$LOCAL_SHARE/queries" && \
-	  cp dist/codegraph-linux-x64 ~/.local/bin/codegraph && \
-	  chmod +x ~/.local/bin/codegraph && \
+	  cp dist/mapx-linux-x64 ~/.local/bin/mapx && \
+	  chmod +x ~/.local/bin/mapx && \
 	  cp -r wasm/. "$$LOCAL_SHARE/wasm/" && \
 	  cp -r queries/. "$$LOCAL_SHARE/queries/" && \
-	  echo "Installed to ~/.local/bin/codegraph" && \
+	  echo "Installed to ~/.local/bin/mapx" && \
 	  echo "Data:    $$LOCAL_SHARE/" && \
 	  echo "" && \
 	  echo "Ensure ~/.local/bin is in your PATH"
 
 install: build-linux ## Install system-wide to $(PREFIX) (may need sudo)
-	@SHARE_DIR="$(shell dirname $(PREFIX))/share/codegraph"; \
+	@SHARE_DIR="$(shell dirname $(PREFIX))/share/mapx"; \
 	  mkdir -p $(PREFIX) "$$SHARE_DIR/wasm" "$$SHARE_DIR/queries" && \
-	  cp dist/codegraph-linux-x64 $(PREFIX)/codegraph && \
-	  chmod +x $(PREFIX)/codegraph && \
+	  cp dist/mapx-linux-x64 $(PREFIX)/mapx && \
+	  chmod +x $(PREFIX)/mapx && \
 	  cp -r wasm/. "$$SHARE_DIR/wasm/" && \
 	  cp -r queries/. "$$SHARE_DIR/queries/" && \
-	  echo "Installed to $(PREFIX)/codegraph" && \
+	  echo "Installed to $(PREFIX)/mapx" && \
 	  echo "Data:    $$SHARE_DIR/"
 
 install-uninstall: ## Remove installed binary and data files
-	rm -f $(PREFIX)/codegraph ~/.local/bin/codegraph
-	rm -rf $(shell dirname $(PREFIX))/share/codegraph ~/.local/share/codegraph
-	@echo "Uninstalled codegraph"
+	rm -f $(PREFIX)/mapx ~/.local/bin/mapx
+	rm -rf $(shell dirname $(PREFIX))/share/mapx ~/.local/share/mapx
+	@echo "Uninstalled mapx"
 
 # ── Self-Extracting Installers ────────────────────────────────
 
 installer-linux: package-linux ## Self-extracting installer for linux-x64
 	bash scripts/make-installer.sh sh \
-		$(DIST_DIR)/codegraph-$(VERSION)-linux-x64.tar.gz \
-		$(DIST_DIR)/codegraph-$(VERSION)-linux-x64-installer.sh \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-x64.tar.gz \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-x64-installer.sh \
 		$(VERSION) linux-x64
 
 installer-linux-arm: package-linux-arm ## Self-extracting installer for linux-arm64
 	bash scripts/make-installer.sh sh \
-		$(DIST_DIR)/codegraph-$(VERSION)-linux-arm64.tar.gz \
-		$(DIST_DIR)/codegraph-$(VERSION)-linux-arm64-installer.sh \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-arm64.tar.gz \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-arm64-installer.sh \
 		$(VERSION) linux-arm64
 
 installer-mac-arm: package-mac-arm ## Self-extracting installer for macOS ARM
 	bash scripts/make-installer.sh sh \
-		$(DIST_DIR)/codegraph-$(VERSION)-darwin-arm64.tar.gz \
-		$(DIST_DIR)/codegraph-$(VERSION)-darwin-arm64-installer.sh \
+		$(DIST_DIR)/mapx-$(VERSION)-darwin-arm64.tar.gz \
+		$(DIST_DIR)/mapx-$(VERSION)-darwin-arm64-installer.sh \
 		$(VERSION) darwin-arm64
 
 installer-mac-x64: package-mac-x64 ## Self-extracting installer for macOS x64
 	bash scripts/make-installer.sh sh \
-		$(DIST_DIR)/codegraph-$(VERSION)-darwin-x64.tar.gz \
-		$(DIST_DIR)/codegraph-$(VERSION)-darwin-x64-installer.sh \
+		$(DIST_DIR)/mapx-$(VERSION)-darwin-x64.tar.gz \
+		$(DIST_DIR)/mapx-$(VERSION)-darwin-x64-installer.sh \
 		$(VERSION) darwin-x64
 
 installer-win: package-win ## Self-extracting installer for Windows x64
 	bash scripts/make-installer.sh ps1 \
-		$(DIST_DIR)/codegraph-$(VERSION)-windows-x64.zip \
-		$(DIST_DIR)/codegraph-$(VERSION)-windows-x64-installer.ps1 \
+		$(DIST_DIR)/mapx-$(VERSION)-windows-x64.zip \
+		$(DIST_DIR)/mapx-$(VERSION)-windows-x64-installer.ps1 \
 		$(VERSION)
 
 installer-all: installer-linux installer-linux-arm installer-mac-arm installer-mac-x64 installer-win ## Build all self-extracting installers
@@ -275,11 +275,11 @@ installer-all: installer-linux installer-linux-arm installer-mac-arm installer-m
 
 # ── Cleanup ───────────────────────────────────────────────────
 
-clean: ## Remove build artifacts and codegraph data
-	rm -rf .codegraph dist/release
+clean: ## Remove build artifacts and mapx data
+	rm -rf .mapx dist/release
 
 clean-all: clean ## Remove everything: dist, wasm, node_modules
 	rm -rf dist wasm node_modules
 
 clean-dist: ## Remove only built binaries
-	rm -rf dist/codegraph-*
+	rm -rf dist/mapx-*

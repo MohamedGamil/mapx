@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { Store } from './core/store.js';
-import { CodeGraph } from './core/graph.js';
+import { MapxGraph } from './core/graph.js';
 import { Scanner } from './core/scanner.js';
 import { Config } from './core/config.js';
 import { LLMExporter } from './exporters/llm-exporter.js';
@@ -33,15 +33,15 @@ function resolveDir(args: Record<string, unknown>): string | null {
 }
 
 async function loadContext(dir: string) {
-  const configPath = resolve(dir, '.codegraph', 'config.json');
+  const configPath = resolve(dir, '.mapx', 'config.json');
   if (!existsSync(configPath)) {
-    return { error: `CodeGraph not initialized in ${dir}. Run \`codegraph init ${dir}\` first.` };
+    return { error: `Mapx not initialized in ${dir}. Run \`mapx init ${dir}\` first.` };
   }
 
   const config = await Config.load(dir);
-  const dbPath = resolve(dir, '.codegraph', 'codegraph.db');
+  const dbPath = resolve(dir, '.mapx', 'mapx.db');
   const store = new Store(dbPath);
-  const graph = new CodeGraph(config.repo.name);
+  const graph = new MapxGraph(config.repo.name);
 
   const files = store.getAllFiles();
   for (const file of files) {
@@ -83,14 +83,14 @@ interface ServeOptions {
 
 function buildServer(): Server {
   const server = new Server(
-    { name: 'codegraph', version: '0.1.3' },
+    { name: 'mapx', version: '0.1.3' },
     { capabilities: { tools: {} } }
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
-        name: 'codegraph_scan',
+        name: 'mapx_scan',
         description: 'Scan the codebase and build/update the code graph. Run this when you need to understand project structure or after files have changed.',
         inputSchema: {
           type: 'object',
@@ -100,7 +100,7 @@ function buildServer(): Server {
         },
       },
       {
-        name: 'codegraph_query',
+        name: 'mapx_query',
         description: 'Search for symbols (classes, functions, methods) by name pattern. Returns definitions with file locations and signatures.',
         inputSchema: {
           type: 'object',
@@ -112,7 +112,7 @@ function buildServer(): Server {
         },
       },
       {
-        name: 'codegraph_dependencies',
+        name: 'mapx_dependencies',
         description: 'Get dependencies and reverse dependencies for a file. Shows what a file depends on and what depends on it.',
         inputSchema: {
           type: 'object',
@@ -124,7 +124,7 @@ function buildServer(): Server {
         },
       },
       {
-        name: 'codegraph_export',
+        name: 'mapx_export',
         description: 'Export a compact, token-efficient summary of the code graph. Use this at the start of a session to quickly understand the codebase structure.',
         inputSchema: {
           type: 'object',
@@ -137,7 +137,7 @@ function buildServer(): Server {
         },
       },
       {
-        name: 'codegraph_status',
+        name: 'mapx_status',
         description: 'Check what files have changed since the last scan. Use this to determine if a re-scan is needed.',
         inputSchema: {
           type: 'object',
@@ -166,7 +166,7 @@ function buildServer(): Server {
 
     try {
     switch (name) {
-      case 'codegraph_scan': {
+      case 'mapx_scan': {
         const resolved = resolveOrFail(args || {});
         if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
         const dir = resolved.dir;
@@ -187,7 +187,7 @@ function buildServer(): Server {
         }
       }
 
-      case 'codegraph_query': {
+      case 'mapx_query': {
         const resolved = resolveOrFail(args || {});
         if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
         const dir = resolved.dir;
@@ -210,7 +210,7 @@ function buildServer(): Server {
         return { content: [{ type: 'text', text: lines.join('\n\n') }] };
       }
 
-      case 'codegraph_dependencies': {
+      case 'mapx_dependencies': {
         const resolved = resolveOrFail(args || {});
         if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
         const dir = resolved.dir;
@@ -237,7 +237,7 @@ function buildServer(): Server {
         return { content: [{ type: 'text', text: parts.join('\n') }] };
       }
 
-      case 'codegraph_export': {
+      case 'mapx_export': {
         const resolved = resolveOrFail(args || {});
         if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
         const dir = resolved.dir;
@@ -268,7 +268,7 @@ function buildServer(): Server {
         return { content: [{ type: 'text', text: output }] };
       }
 
-      case 'codegraph_status': {
+      case 'mapx_status': {
         const resolved = resolveOrFail(args || {});
         if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
         const dir = resolved.dir;
@@ -301,13 +301,13 @@ function buildServer(): Server {
 }
 
 function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number): string {
-  const binPath = resolve(dir, 'node_modules', '.bin', 'codegraph');
+  const binPath = resolve(dir, 'node_modules', '.bin', 'mapx');
   const hasBin = existsSync(binPath);
-  const cmd = hasBin ? 'codegraph' : `npx tsx ${resolve(dir, 'src', 'main.ts')}`;
+  const cmd = hasBin ? 'mapx' : `npx tsx ${resolve(dir, 'src', 'main.ts')}`;
 
   const lines: string[] = [
     '',
-    '  CodeGraph MCP server ready.',
+    '  Mapx MCP server ready.',
     '',
   ];
 
@@ -322,7 +322,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
       '  ```json',
       '  {',
       '    "mcpServers": {',
-      '      "codegraph": {',
+      '      "mapx": {',
       `        "url": "http://localhost:${port}/sse"`,
       '      }',
       '    }',
@@ -334,7 +334,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
       '  {',
       '    "mcp": {',
       '      "servers": {',
-      '        "codegraph": {',
+      '        "mapx": {',
       `          "url": "http://localhost:${port}/sse"`,
       '        }',
       '      }',
@@ -351,7 +351,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
       '  ```json',
       '  {',
       '    "mcpServers": {',
-      '      "codegraph": {',
+      '      "mapx": {',
       `        "command": "${cmd}",`,
       `        "args": ["serve", "--dir", "${dir}"]`,
       '      }',
@@ -364,7 +364,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
       '  {',
       '    "mcp": {',
       '      "servers": {',
-      '        "codegraph": {',
+      '        "mapx": {',
       `          "command": "${cmd}",`,
       `          "args": ["serve", "--dir", "${dir}"]`,
       '        }',
@@ -377,7 +377,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
 
   lines.push(
     '',
-    '  Available tools: codegraph_scan, codegraph_query, codegraph_dependencies, codegraph_export, codegraph_status',
+    '  Available tools: mapx_scan, mapx_query, mapx_dependencies, mapx_export, mapx_status',
     '',
   );
 
@@ -388,20 +388,20 @@ export async function startMcpServer(dir?: string, options?: ServeOptions): Prom
   if (dir) {
     defaultDir = resolve(dir);
   } else {
-    // Fall back to cwd only if it is an initialized codegraph project; otherwise
+    // Fall back to cwd only if it is an initialized mapx project; otherwise
     // leave defaultDir as null so tool calls without an explicit "dir" fail clearly
     // instead of silently operating on the wrong database.
     const cwd = process.cwd();
-    if (existsSync(resolve(cwd, '.codegraph', 'config.json'))) {
+    if (existsSync(resolve(cwd, '.mapx', 'config.json'))) {
       defaultDir = cwd;
     }
     // defaultDir stays null when cwd is not an initialized project
   }
 
   if (defaultDir) {
-    process.stderr.write(`[codegraph] Default project directory: ${defaultDir}\n`);
+    process.stderr.write(`[mapx] Default project directory: ${defaultDir}\n`);
   } else {
-    process.stderr.write(`[codegraph] No default project directory set. Pass --dir /path/to/project or include "dir" in each tool call.\n`);
+    process.stderr.write(`[mapx] No default project directory set. Pass --dir /path/to/project or include "dir" in each tool call.\n`);
   }
   if (options?.sse) {
     const port = options.port || 3000;

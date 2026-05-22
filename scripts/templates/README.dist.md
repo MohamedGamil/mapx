@@ -1,6 +1,6 @@
-# CodeGraph - Multi-language Code Graph Memory System for LLMs
+# MapxGraph - Multi-language Code Graph Memory System for LLMs
 
-CodeGraph scans your source code, extracts symbols (classes, functions, methods, interfaces)
+MapxGraph scans your source code, extracts symbols (classes, functions, methods, interfaces)
 and dependencies (imports, extends, implements, calls), then builds a ranked graph you can
 query for instant codebase understanding.
 
@@ -8,26 +8,26 @@ query for instant codebase understanding.
 
 ```bash
 # Initialize in your project
-codegraph init
+mapx init
 
 # Scan all source files
-codegraph scan
+mapx scan
 
 # View compact summary
-codegraph export
+mapx export
 
 # Search for a symbol
-codegraph query MyClass
+mapx query MyClass
 
 # Check file dependencies
-codegraph deps src/index.ts
+mapx deps src/index.ts
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `init` | Initialize codegraph for the project |
+| `init` | Initialize mapx for the project |
 | `scan` | Full scan of all source files |
 | `update` | Incremental scan (only changed files) |
 | `status` | Show changed files since last scan |
@@ -48,14 +48,14 @@ codegraph deps src/index.ts
 
 ## MCP Integration
 
-Run `codegraph serve` and configure your LLM tool:
+Run `mapx serve` and configure your LLM tool:
 
 **Claude Desktop** (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "codegraph": {
-      "command": "codegraph",
+    "mapx": {
+      "command": "mapx",
       "args": ["serve"],
       "cwd": "/path/to/your/project"
     }
@@ -65,12 +65,12 @@ Run `codegraph serve` and configure your LLM tool:
 
 ## Storage
 
-All data is stored locally in `.codegraph/` within your project:
+All data is stored locally in `.mapx/` within your project:
 
 - `config.json` — Project configuration and language settings
-- `codegraph.db` — SQLite database with symbols, edges, and cache
+- `mapx.db` — SQLite database with symbols, edges, and cache
 
-Add `.codegraph/` to your `.gitignore`.
+Add `.mapx/` to your `.gitignore`.
 
 ## Documentation
 

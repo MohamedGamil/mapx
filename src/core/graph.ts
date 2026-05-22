@@ -2,7 +2,7 @@ import Graph from 'graphology';
 import pagerank from 'graphology-metrics/centrality/pagerank';
 import type { GraphEdge, SymbolKind } from '../types.js';
 
-export class CodeGraph {
+export class MapxGraph {
   private graph: Graph;
   private repo: string;
 
@@ -179,8 +179,8 @@ export class CodeGraph {
     return this.graph.toJSON();
   }
 
-  static fromJSON(data: object, repo: string): CodeGraph {
-    const cg = new CodeGraph(repo);
+  static fromJSON(data: object, repo: string): MapxGraph {
+    const cg = new MapxGraph(repo);
     cg.graph.import(data as any);
     return cg;
   }

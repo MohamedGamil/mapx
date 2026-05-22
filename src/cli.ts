@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
 import { Store } from './core/store.js';
-import { CodeGraph } from './core/graph.js';
+import { MapxGraph } from './core/graph.js';
 import { Scanner } from './core/scanner.js';
 import { Config } from './core/config.js';
 import { LLMExporter } from './exporters/llm-exporter.js';
@@ -96,8 +96,8 @@ function createProgressRenderer(): ProgressCallback {
   };
 }
 
-const CODEGRAPH_MARKER_START = '<!-- codegraph -->';
-const CODEGRAPH_MARKER_END = '<!-- /codegraph -->';
+const MAPX_MARKER_START = '<!-- mapx -->';
+const MAPX_MARKER_END = '<!-- /mapx -->';
 
 function readStubContent(): string {
   try {
@@ -106,9 +106,9 @@ function readStubContent(): string {
     return readFileSync(stubPath, 'utf-8');
   } catch {
     return [
-      '# CodeGraph - LLM Integration Guide',
+      '# MapxGraph - LLM Integration Guide',
       '',
-      'This project uses **CodeGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.',
+      'This project uses **MapxGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.',
       '',
       '## Commands',
       '',
@@ -116,49 +116,49 @@ function readStubContent(): string {
       '',
       '```bash',
       '# 1. Positional path argument',
-      'codegraph scan /path/to/project',
+      'mapx scan /path/to/project',
       '',
       '# 2. --dir / -d flag',
-      'codegraph scan --dir /path/to/project',
-      'codegraph query "MyClass" -d /path/to/project',
+      'mapx scan --dir /path/to/project',
+      'mapx query "MyClass" -d /path/to/project',
       '',
       '# 3. Global flag (works with any subcommand)',
-      'codegraph -d /path/to/project scan',
+      'mapx -d /path/to/project scan',
       '```',
       '',
       '```bash',
-      'codegraph init [/path]                                # First-time setup',
-      'codegraph scan [/path]                                # Full scan (survives Ctrl+C)',
-      'codegraph update [/path]                              # Incremental update',
-      'codegraph export [--dir /path]                        # LLM summary (8K tokens)',
-      'codegraph export --format=json                        # Full JSON graph',
-      'codegraph export --format=dot                         # GraphViz DOT',
-      'codegraph export --format=svg                         # SVG visualization',
-      'codegraph export -o summary.txt                       # Export to file',
-      'codegraph export --format=svg -o graph.svg            # SVG to file',
-      'codegraph query <term>                                # Search symbols',
-      'codegraph deps <file>                                 # File dependencies',
-      'codegraph summary [/path]                             # Project summary',
-      'codegraph serve --dir /path                           # Start MCP server (stdio)',
-      'codegraph serve --sse --port 3456 --dir /path         # SSE (HTTP) transport',
+      'mapx init [/path]                                # First-time setup',
+      'mapx scan [/path]                                # Full scan (survives Ctrl+C)',
+      'mapx update [/path]                              # Incremental update',
+      'mapx export [--dir /path]                        # LLM summary (8K tokens)',
+      'mapx export --format=json                        # Full JSON graph',
+      'mapx export --format=dot                         # GraphViz DOT',
+      'mapx export --format=svg                         # SVG visualization',
+      'mapx export -o summary.txt                       # Export to file',
+      'mapx export --format=svg -o graph.svg            # SVG to file',
+      'mapx query <term>                                # Search symbols',
+      'mapx deps <file>                                 # File dependencies',
+      'mapx summary [/path]                             # Project summary',
+      'mapx serve --dir /path                           # Start MCP server (stdio)',
+      'mapx serve --sse --port 3456 --dir /path         # SSE (HTTP) transport',
       '```',
       '',
       '## MCP Tools',
       '',
-      '- `codegraph_scan` — Scan/update the code graph',
-      '- `codegraph_query` — Search symbols by name',
-      '- `codegraph_dependencies` — Get deps for a file',
-      '- `codegraph_export` — Export graph (llm, json, dot, svg)',
-      '- `codegraph_status` — Check scan status',
+      '- `mapx_scan` — Scan/update the code graph',
+      '- `mapx_query` — Search symbols by name',
+      '- `mapx_dependencies` — Get deps for a file',
+      '- `mapx_export` — Export graph (llm, json, dot, svg)',
+      '- `mapx_status` — Check scan status',
       '',
       '## When to Use',
       '',
-      '1. Start of session: `codegraph export`',
-      '2. Find something: `codegraph query <term>`',
-      '3. Understand a file: `codegraph deps <file>`',
-      '4. Files changed: `codegraph update`',
-      '5. Major changes: `codegraph scan`',
-      '6. Visual overview: `codegraph export --format=svg -o graph.svg`',
+      '1. Start of session: `mapx export`',
+      '2. Find something: `mapx query <term>`',
+      '3. Understand a file: `mapx deps <file>`',
+      '4. Files changed: `mapx update`',
+      '5. Major changes: `mapx scan`',
+      '6. Visual overview: `mapx export --format=svg -o graph.svg`',
       '',
       '## Supported Languages',
       '',
@@ -171,20 +171,20 @@ function readStubContent(): string {
 
 function generateAgentsBlock(): string {
   const content = readStubContent();
-  return `${CODEGRAPH_MARKER_START}\n${content}\n${CODEGRAPH_MARKER_END}`;
+  return `${MAPX_MARKER_START}\n${content}\n${MAPX_MARKER_END}`;
 }
 
 function hasMarkers(content: string): boolean {
-  return content.includes(CODEGRAPH_MARKER_START) && content.includes(CODEGRAPH_MARKER_END);
+  return content.includes(MAPX_MARKER_START) && content.includes(MAPX_MARKER_END);
 }
 
 function replaceBetweenMarkers(existing: string, block: string): string {
-  const startIdx = existing.indexOf(CODEGRAPH_MARKER_START);
-  const endIdx = existing.indexOf(CODEGRAPH_MARKER_END);
+  const startIdx = existing.indexOf(MAPX_MARKER_START);
+  const endIdx = existing.indexOf(MAPX_MARKER_END);
   if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
     return existing;
   }
-  return existing.slice(0, startIdx) + block + existing.slice(endIdx + CODEGRAPH_MARKER_END.length);
+  return existing.slice(0, startIdx) + block + existing.slice(endIdx + MAPX_MARKER_END.length);
 }
 
 function prompt(question: string, options: string[]): Promise<number> {
@@ -206,7 +206,7 @@ async function writeAgentsMd(dir: string): Promise<void> {
 
   if (!existsSync(agentsPath)) {
     writeFileSync(agentsPath, block + '\n', 'utf-8');
-    console.log('Created AGENTS.md with CodeGraph documentation');
+    console.log('Created AGENTS.md with MapxGraph documentation');
     return;
   }
 
@@ -216,35 +216,35 @@ async function writeAgentsMd(dir: string): Promise<void> {
     const updated = replaceBetweenMarkers(existing, block);
     if (updated !== existing) {
       writeFileSync(agentsPath, updated, 'utf-8');
-      console.log('Updated CodeGraph docs in AGENTS.md');
+      console.log('Updated MapxGraph docs in AGENTS.md');
     }
     return;
   }
 
-  if (existing.includes(CODEGRAPH_MARKER_START)) {
-    writeFileSync(agentsPath, existing.replace(CODEGRAPH_MARKER_START, block), 'utf-8');
-    console.log('Updated CodeGraph docs in AGENTS.md');
+  if (existing.includes(MAPX_MARKER_START)) {
+    writeFileSync(agentsPath, existing.replace(MAPX_MARKER_START, block), 'utf-8');
+    console.log('Updated MapxGraph docs in AGENTS.md');
     return;
   }
 
   if (!process.stdin.isTTY) {
-    console.log('AGENTS.md exists without CodeGraph docs. Re-run `init` in a terminal to add them.');
+    console.log('AGENTS.md exists without MapxGraph docs. Re-run `init` in a terminal to add them.');
     return;
   }
 
   console.log(`\nAGENTS.md already exists in ${dir}`);
   const choice = await prompt('How would you like to handle AGENTS.md?', [
-    'Insert CodeGraph docs at the end',
-    'Insert CodeGraph docs at the beginning',
+    'Insert MapxGraph docs at the end',
+    'Insert MapxGraph docs at the beginning',
     'Skip (keep current file)',
   ]);
 
   if (choice === 0) {
     writeFileSync(agentsPath, existing.trimEnd() + '\n\n' + block + '\n', 'utf-8');
-    console.log('Inserted CodeGraph documentation into AGENTS.md');
+    console.log('Inserted MapxGraph documentation into AGENTS.md');
   } else if (choice === 1) {
     writeFileSync(agentsPath, block + '\n\n' + existing.trimStart(), 'utf-8');
-    console.log('Inserted CodeGraph documentation into AGENTS.md');
+    console.log('Inserted MapxGraph documentation into AGENTS.md');
   } else {
     console.log('Skipped AGENTS.md (kept existing file)');
   }
@@ -254,14 +254,14 @@ export function buildCLI(): Command {
   const program = new Command();
 
   program
-    .name('codegraph')
+    .name('mapx')
     .description('Multi-language code graph memory system for LLMs')
     .version(readVersion())
     .option('-d, --dir <path>', 'Target project directory (default: current directory)');
 
   program
     .command('init')
-    .description('Initialize codegraph for a project')
+    .description('Initialize mapx for a project')
     .argument('[path]', 'Target directory')
     .option('--name <name>', 'Repository name')
     .option('--no-agents', 'Skip AGENTS.md creation')
@@ -271,7 +271,7 @@ export function buildCLI(): Command {
       if (opts.agents !== false) {
         await writeAgentsMd(dir);
       }
-      console.log(`Initialized codegraph in ${dir}/.codegraph/`);
+      console.log(`Initialized mapx in ${dir}/.mapx/`);
       console.log(`Repo: ${config.repo.name}`);
     });
 
@@ -366,7 +366,7 @@ export function buildCLI(): Command {
       const lastScan    = store.getMeta('last_scan_time');
       const lastCommit  = store.getMeta('last_scan_commit');
       const schemaVer   = store.getMeta('schema_version');
-      const dbPath      = resolve(dir, '.codegraph', 'codegraph.db');
+      const dbPath      = resolve(dir, '.mapx', 'mapx.db');
 
       // ── Scan info ──────────────────────────────────────────────────────
       console.log('\n── Scan ─────────────────────────────────────────────');
@@ -656,16 +656,16 @@ export function buildCLI(): Command {
 export async function loadContext(dir: string): Promise<{
   config: Config;
   store: Store;
-  graph: CodeGraph;
+  graph: MapxGraph;
 }> {
-  const configPath = resolve(dir, '.codegraph', 'config.json');
+  const configPath = resolve(dir, '.mapx', 'config.json');
   if (!existsSync(configPath)) {
-    console.error(`CodeGraph not initialized in ${dir}. Run \`codegraph init ${dir}\` first.`);
+    console.error(`MapxGraph not initialized in ${dir}. Run \`mapx init ${dir}\` first.`);
     process.exit(1);
   }
 
   const config = await Config.load(dir);
-  const dbPath = resolve(dir, '.codegraph', 'codegraph.db');
+  const dbPath = resolve(dir, '.mapx', 'mapx.db');
   const store = new Store(dbPath);
 
   // Ensure the DB connection is closed when the process exits normally or
@@ -677,7 +677,7 @@ export async function loadContext(dir: string): Promise<{
   process.once('SIGINT', () => { closeStore(); process.exit(130); });
   process.once('SIGTERM', () => { closeStore(); process.exit(143); });
 
-  const graph = new CodeGraph(config.repo.name);
+  const graph = new MapxGraph(config.repo.name);
 
   const files = store.getAllFiles();
   for (const file of files) {

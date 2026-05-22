@@ -1,11 +1,11 @@
 import { Store } from '../core/store.js';
-import { CodeGraph } from '../core/graph.js';
+import { MapxGraph } from '../core/graph.js';
 
 export class DotExporter {
   private store: Store;
-  private graph: CodeGraph;
+  private graph: MapxGraph;
 
-  constructor(store: Store, graph: CodeGraph) {
+  constructor(store: Store, graph: MapxGraph) {
     this.store = store;
     this.graph = graph;
   }
@@ -16,7 +16,7 @@ export class DotExporter {
     const rankedFiles = this.graph.getRankedFiles();
 
     const lines: string[] = [];
-    lines.push('digraph CodeGraph {');
+    lines.push('digraph Mapx {');
     lines.push('  rankdir=LR;');
     lines.push('  node [shape=box, style=filled];');
     lines.push('');

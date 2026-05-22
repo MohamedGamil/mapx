@@ -2,7 +2,7 @@
 
 ## Overview
 
-CodeGraph is a local code graph memory system that provides persistent, structured understanding of codebases for LLMs.
+MapxGraph is a local code graph memory system that provides persistent, structured understanding of codebases for LLMs.
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -41,9 +41,9 @@ Walks the filesystem, detects languages, orchestrates parsing, and stores result
 - **Incremental scan**: Uses git blob-hash comparison to detect changed files, only re-parses those
 - **Concurrent parsing**: File reads are parallelized via `Promise.all`; parsing uses bounded concurrency (up to 8 goroutine-style workers sharing a counter) to overlap async WASM I/O waits on the main thread
 - **Write batching**: Parse results are written to SQLite in batches of 100 files per transaction, keeping WAL flush overhead low
-- **Scan lock**: `scanFull` and `scanIncremental` write a PID lock file (`.codegraph/scan.lock`) on entry and remove it on exit (or abort). If the lock exists and the recorded PID is still alive, the second scan fails immediately with a clear message. Stale locks (dead PID) are removed automatically.
+- **Scan lock**: `scanFull` and `scanIncremental` write a PID lock file (`.mapx/scan.lock`) on entry and remove it on exit (or abort). If the lock exists and the recorded PID is still alive, the second scan fails immediately with a clear message. Stale locks (dead PID) are removed automatically.
 - **Resilience**: Progress saved per-batch to SQLite meta table. Re-running `scan` resumes from where it left off after interruption (Ctrl+C)
-- **Excludes**: `node_modules/`, `vendor/`, `.git/`, `dist/`, `.codegraph/`, and configurable patterns
+- **Excludes**: `node_modules/`, `vendor/`, `.git/`, `dist/`, `.mapx/`, and configurable patterns
 
 ### Graph (`src/core/graph.ts`)
 
@@ -115,4 +115,4 @@ Visual progress for scan operations:
 3. `update` → GitTracker detects changes → Scanner re-parses changed files → Store updates
 4. `query` → Store searches SQLite → Returns matching symbols with locations
 5. `deps` → Graph traverses edges → Returns dependency tree
-6. `init` → Creates `.codegraph/` + `AGENTS.md` (with `<!-- codegraph -->` markers)
+6. `init` → Creates `.mapx/` + `AGENTS.md` (with `<!-- mapx -->` markers)

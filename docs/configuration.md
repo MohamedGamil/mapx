@@ -1,6 +1,6 @@
 # Configuration
 
-CodeGraph stores its configuration in `.codegraph/config.json`.
+MapxGraph stores its configuration in `.mapx/config.json`.
 
 ## Default Config
 
@@ -21,7 +21,7 @@ CodeGraph stores its configuration in `.codegraph/config.json`.
       "vendor/**",
       ".git/**",
       "dist/**",
-      ".codegraph/**",
+      ".mapx/**",
       "*.min.js",
       "*.min.css",
       "package-lock.json",

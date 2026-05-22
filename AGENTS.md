@@ -1,11 +1,11 @@
-<!-- codegraph -->
-# CodeGraph - LLM Integration Guide
+<!-- mapx -->
+# MapxGraph - LLM Integration Guide
 
-This project uses **CodeGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.
+This project uses **MapxGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.
 
-## What CodeGraph Does
+## What MapxGraph Does
 
-CodeGraph scans source files, extracts symbols (classes, functions, methods, interfaces) and dependencies (imports, requires, extends, implements, calls), builds a weighted graph with PageRank importance scoring, and persists everything to `.codegraph/`.
+MapxGraph scans source files, extracts symbols (classes, functions, methods, interfaces) and dependencies (imports, requires, extends, implements, calls), builds a weighted graph with PageRank importance scoring, and persists everything to `.mapx/`.
 
 This means you (the LLM) can quickly understand the codebase structure without reading every file.
 
@@ -15,14 +15,14 @@ All commands accept a target directory. Three ways to specify:
 
 ```bash
 # 1. Positional path argument
-codegraph scan /path/to/project
+mapx scan /path/to/project
 
 # 2. --dir / -d flag
-codegraph scan --dir /path/to/project
-codegraph query "MyClass" -d /path/to/project
+mapx scan --dir /path/to/project
+mapx query "MyClass" -d /path/to/project
 
 # 3. Global flag (works with any subcommand)
-codegraph -d /path/to/project scan
+mapx -d /path/to/project scan
 
 # If no directory is specified, defaults to current working directory.
 ```
@@ -31,69 +31,69 @@ codegraph -d /path/to/project scan
 
 ```bash
 # First-time setup
-codegraph init [/path]            # accepts positional path
+mapx init [/path]            # accepts positional path
 
 # Full scan (run once, or after major changes)
-codegraph scan [/path]
+mapx scan [/path]
 
 # Incremental update (fast, only re-scans changed files)
-codegraph update [/path]
+mapx update [/path]
 
 # Check what changed since last scan
-codegraph status [/path]
+mapx status [/path]
 
 # Export compact graph summary (token-efficient)
-codegraph export [--dir /path]              # default: LLM format, 8192 token budget
-codegraph export --tokens=16384             # larger budget
-codegraph export --format=json              # full graph as JSON
-codegraph export --format=dot               # GraphViz DOT for visualization
-codegraph export --format=svg               # SVG visualization (uses GraphViz if installed, else built-in renderer)
+mapx export [--dir /path]              # default: LLM format, 8192 token budget
+mapx export --tokens=16384             # larger budget
+mapx export --format=json              # full graph as JSON
+mapx export --format=dot               # GraphViz DOT for visualization
+mapx export --format=svg               # SVG visualization (uses GraphViz if installed, else built-in renderer)
 
 # Export to file (validates path before writing)
-codegraph export -o summary.txt             # LLM summary to file
-codegraph export --format=json -o graph.json
-codegraph export --format=svg -o graph.svg
+mapx export -o summary.txt             # LLM summary to file
+mapx export --format=json -o graph.json
+mapx export --format=svg -o graph.svg
 
 # Search for symbols
-codegraph query <symbol-name> [--dir /path]
+mapx query <symbol-name> [--dir /path]
 
 # Show dependencies for a file
-codegraph deps <file-path> [--dir /path]
+mapx deps <file-path> [--dir /path]
 
 # Project summary
-codegraph summary [/path]
+mapx summary [/path]
 
 # List supported languages
-codegraph lang list
+mapx lang list
 
 # Start MCP server
-codegraph serve --dir /path/to/project                  # stdio transport (default)
-codegraph serve --sse --port 3456 --dir /path/to/project # SSE (HTTP) transport
+mapx serve --dir /path/to/project                  # stdio transport (default)
+mapx serve --sse --port 3456 --dir /path/to/project # SSE (HTTP) transport
 ```
 
 ## MCP Tools
 
-When running as an MCP server, CodeGraph exposes these tools:
+When running as an MCP server, MapxGraph exposes these tools:
 
-- **`codegraph_scan`** — Scan/update the code graph
-- **`codegraph_query`** — Search symbols by name pattern
-- **`codegraph_dependencies`** — Get deps and reverse-deps for a file
-- **`codegraph_export`** — Export compact graph summary (supports llm, json, dot, svg formats)
-- **`codegraph_status`** — Check scan status and file counts
+- **`mapx_scan`** — Scan/update the code graph
+- **`mapx_query`** — Search symbols by name pattern
+- **`mapx_dependencies`** — Get deps and reverse-deps for a file
+- **`mapx_export`** — Export compact graph summary (supports llm, json, dot, svg formats)
+- **`mapx_status`** — Check scan status and file counts
 
 ## When to Use
 
-1. **Start of session**: Run `codegraph export` to get a compact overview (~2-8K tokens)
-2. **Need to find something**: Run `codegraph query <term>` instead of grepping
-3. **Need to understand a file**: Run `codegraph deps <file>` to see relationships
-4. **Files changed**: Run `codegraph update` to incrementally update the graph
-5. **Major changes**: Run `codegraph scan` for a full re-scan
-6. **Need a visual overview**: Run `codegraph export --format=svg -o graph.svg`
+1. **Start of session**: Run `mapx export` to get a compact overview (~2-8K tokens)
+2. **Need to find something**: Run `mapx query <term>` instead of grepping
+3. **Need to understand a file**: Run `mapx deps <file>` to see relationships
+4. **Files changed**: Run `mapx update` to incrementally update the graph
+5. **Major changes**: Run `mapx scan` for a full re-scan
+6. **Need a visual overview**: Run `mapx export --format=svg -o graph.svg`
 
 ## Storage
 
-- `.codegraph/config.json` — Repo registry + settings
-- `.codegraph/codegraph.db` — SQLite database (symbols, edges, cache, snapshots)
+- `.mapx/config.json` — Repo registry + settings
+- `.mapx/mapx.db` — SQLite database (symbols, edges, cache, snapshots)
 
 ## Supported Languages
 
@@ -101,4 +101,4 @@ When running as an MCP server, CodeGraph exposes these tools:
 - **JavaScript** (built-in): classes, methods, functions, arrow functions
 - **TypeScript** (built-in): classes, methods, functions, interfaces, enums, type aliases, properties
 
-<!-- /codegraph -->
+<!-- /mapx -->

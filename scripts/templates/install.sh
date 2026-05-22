@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CodeGraph Installer
+# MapxGraph Installer
 # Usage: ./install.sh [--local | --system | --prefix PATH] [--uninstall] [--force]
 set -euo pipefail
 
@@ -27,11 +27,11 @@ parse_args() {
         case "$1" in
             --local)
                 PREFIX="$HOME/.local/bin"
-                DATA_DIR="$HOME/.local/share/codegraph"
+                DATA_DIR="$HOME/.local/share/mapx"
                 shift ;;
             --system)
                 PREFIX="/usr/local/bin"
-                DATA_DIR="/usr/local/share/codegraph"
+                DATA_DIR="/usr/local/share/mapx"
                 shift ;;
             --prefix)    PREFIX="$2"; shift 2 ;;
             --data-dir)  DATA_DIR="$2"; shift 2 ;;
@@ -47,12 +47,12 @@ parse_args() {
                 echo "Manual options:"
                 echo "  --prefix PATH    Custom binary install directory"
                 echo "  --data-dir PATH  Custom data directory (wasm + queries)"
-                echo "  --uninstall      Remove codegraph binary and data"
+                echo "  --uninstall      Remove mapx binary and data"
                 echo "  --force          Skip confirmation prompts"
                 echo ""
                 echo "Default (no flags): auto-detects first writable location from:"
-                echo "  ~/.local/bin  →  data in ~/.local/share/codegraph"
-                echo "  /usr/local/bin  →  data in /usr/local/share/codegraph"
+                echo "  ~/.local/bin  →  data in ~/.local/share/mapx"
+                echo "  /usr/local/bin  →  data in /usr/local/share/mapx"
                 exit 0
                 ;;
             *) die "Unknown option: $1" ;;
@@ -61,13 +61,13 @@ parse_args() {
 }
 
 # Derive data dir from prefix when not explicitly set.
-# Follows XDG: /usr/local/bin → /usr/local/share/codegraph
-#               ~/.local/bin  → ~/.local/share/codegraph
+# Follows XDG: /usr/local/bin → /usr/local/share/mapx
+#               ~/.local/bin  → ~/.local/share/mapx
 derive_data_dir() {
     if [ -n "$DATA_DIR" ]; then return; fi
     local parent
     parent="$(dirname "$PREFIX")"
-    DATA_DIR="$parent/share/codegraph"
+    DATA_DIR="$parent/share/mapx"
 }
 
 detect_prefix() {
@@ -77,9 +77,9 @@ detect_prefix() {
     fi
 
     local candidates=(
-        "$HOME/.local/bin:$HOME/.local/share/codegraph"
-        "/usr/local/bin:/usr/local/share/codegraph"
-        "$HOME/bin:$HOME/share/codegraph"
+        "$HOME/.local/bin:$HOME/.local/share/mapx"
+        "/usr/local/bin:/usr/local/share/mapx"
+        "$HOME/bin:$HOME/share/mapx"
     )
 
     for entry in "${candidates[@]}"; do
@@ -96,7 +96,7 @@ detect_prefix() {
 }
 
 check_existing() {
-    local target="$PREFIX/codegraph"
+    local target="$PREFIX/mapx"
     if [ -f "$target" ]; then
         local existing_version
         existing_version="$("$target" --version 2>/dev/null | grep -oP '[\d.]+' || echo "unknown")"
@@ -152,19 +152,19 @@ add_to_path() {
                 read -rp "Add $PREFIX to PATH in $shell_rc? [y/N] " confirm
             fi
             if [[ "$confirm" =~ ^[Yy]$ ]]; then
-                printf '\n# Added by CodeGraph installer\nexport PATH="%s:$PATH"\n' "$PREFIX" >> "$shell_rc"
+                printf '\n# Added by MapxGraph installer\nexport PATH="%s:$PATH"\n' "$PREFIX" >> "$shell_rc"
                 ok "Added to $shell_rc — run 'source $shell_rc' or open a new terminal"
                 return
             fi
         fi
     fi
 
-    info "Add this to your shell config to use codegraph:"
+    info "Add this to your shell config to use mapx:"
     echo "    export PATH=\"$PREFIX:\$PATH\""
 }
 
 do_install() {
-    local binary="$SCRIPT_DIR/codegraph"
+    local binary="$SCRIPT_DIR/mapx"
 
     if [ ! -f "$binary" ]; then
         die "Binary not found at $binary. Ensure you extracted the archive correctly."
@@ -173,41 +173,41 @@ do_install() {
     detect_prefix
     check_existing
 
-    info "Installing CodeGraph v${VERSION}..."
-    info "  Binary: $PREFIX/codegraph"
+    info "Installing MapxGraph v${VERSION}..."
+    info "  Binary: $PREFIX/mapx"
     info "  Data:   $DATA_DIR/"
     echo ""
 
     mkdir -p "$PREFIX"
-    cp "$binary" "$PREFIX/codegraph"
-    chmod +x "$PREFIX/codegraph"
-    ok "Binary: $PREFIX/codegraph"
+    cp "$binary" "$PREFIX/mapx"
+    chmod +x "$PREFIX/mapx"
+    ok "Binary: $PREFIX/mapx"
 
     install_data
 
     add_to_path
 
     echo ""
-    ok "CodeGraph v${VERSION} installed successfully"
+    ok "MapxGraph v${VERSION} installed successfully"
     echo ""
     echo "Quick start:"
     echo "    cd /path/to/your/project"
-    echo "    codegraph init"
-    echo "    codegraph scan"
-    echo "    codegraph export"
+    echo "    mapx init"
+    echo "    mapx scan"
+    echo "    mapx export"
     echo ""
     echo "Uninstall: $0 --uninstall"
 }
 
 do_uninstall() {
     detect_prefix
-    local target="$PREFIX/codegraph"
+    local target="$PREFIX/mapx"
 
     # Search common locations if not found at detected prefix
     if [ ! -f "$target" ]; then
         for dir in "$HOME/.local/bin" "/usr/local/bin" "$HOME/bin"; do
-            if [ -f "$dir/codegraph" ]; then
-                target="$dir/codegraph"
+            if [ -f "$dir/mapx" ]; then
+                target="$dir/mapx"
                 PREFIX="$dir"
                 derive_data_dir
                 break
@@ -216,7 +216,7 @@ do_uninstall() {
     fi
 
     if [ ! -f "$target" ]; then
-        die "codegraph is not installed (searched $PREFIX and common locations)"
+        die "mapx is not installed (searched $PREFIX and common locations)"
     fi
 
     info "Uninstalling from $target..."

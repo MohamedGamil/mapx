@@ -126,7 +126,7 @@ export interface UserLanguageDefinition {
   nodeMappings: Partial<Record<SymbolKind, string>>;
 }
 
-export interface CodeGraphConfig {
+export interface MapxConfig {
   version: string;
   repos: RepoConfig[];
   languages: Record<string, UserLanguageDefinition>;

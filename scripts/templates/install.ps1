@@ -1,10 +1,10 @@
-# CodeGraph Installer (Windows)
+# MapxGraph Installer (Windows)
 # Run in PowerShell: .\install.ps1
 # Options:
-#   .\install.ps1 -Local              # User install: ~\AppData\Local\Programs\codegraph
-#   .\install.ps1 -System             # System install: C:\Program Files\CodeGraph (needs admin)
+#   .\install.ps1 -Local              # User install: ~\AppData\Local\Programs\mapx
+#   .\install.ps1 -System             # System install: C:\Program Files\MapxGraph (needs admin)
 #   .\install.ps1 -Prefix "C:\Tools"  # Custom install directory
-#   .\install.ps1 -Uninstall          # Remove codegraph
+#   .\install.ps1 -Uninstall          # Remove mapx
 
 param(
     [switch]$Local = $false,
@@ -25,11 +25,11 @@ function Write-Err($msg)   { Write-Host "[ERROR] $msg" -ForegroundColor Red; exi
 
 # Apply scope shortcuts
 if ($Local) {
-    $script:Prefix  = "$env:LOCALAPPDATA\Programs\codegraph\bin"
-    $script:DataDir = "$env:LOCALAPPDATA\Programs\codegraph"
+    $script:Prefix  = "$env:LOCALAPPDATA\Programs\mapx\bin"
+    $script:DataDir = "$env:LOCALAPPDATA\Programs\mapx"
 } elseif ($System) {
-    $script:Prefix  = "C:\Program Files\CodeGraph\bin"
-    $script:DataDir = "C:\Program Files\CodeGraph"
+    $script:Prefix  = "C:\Program Files\MapxGraph\bin"
+    $script:DataDir = "C:\Program Files\MapxGraph"
 } else {
     $script:Prefix  = $Prefix
     $script:DataDir = $DataDir
@@ -48,15 +48,15 @@ function Detect-Prefix {
     }
 
     $candidates = @(
-        @{ Bin = "$env:LOCALAPPDATA\Programs\codegraph\bin"; Data = "$env:LOCALAPPDATA\Programs\codegraph" }
-        @{ Bin = "$env:USERPROFILE\.local\bin";              Data = "$env:USERPROFILE\.local\share\codegraph" }
-        @{ Bin = "$env:USERPROFILE\bin";                     Data = "$env:USERPROFILE\share\codegraph" }
+        @{ Bin = "$env:LOCALAPPDATA\Programs\mapx\bin"; Data = "$env:LOCALAPPDATA\Programs\mapx" }
+        @{ Bin = "$env:USERPROFILE\.local\bin";              Data = "$env:USERPROFILE\.local\share\mapx" }
+        @{ Bin = "$env:USERPROFILE\bin";                     Data = "$env:USERPROFILE\share\mapx" }
     )
 
     foreach ($entry in $candidates) {
         try {
             if (-not (Test-Path $entry.Bin)) { New-Item -ItemType Directory -Path $entry.Bin -Force | Out-Null }
-            $testFile = Join-Path $entry.Bin ".codegraph-write-test"
+            $testFile = Join-Path $entry.Bin ".mapx-write-test"
             "test" | Out-File $testFile -ErrorAction Stop
             Remove-Item $testFile
             $script:Prefix  = $entry.Bin
@@ -90,20 +90,20 @@ function Install-Data {
 }
 
 function Do-Install {
-    $binary = Join-Path $ScriptDir "codegraph.exe"
+    $binary = Join-Path $ScriptDir "mapx.exe"
     if (-not (Test-Path $binary)) {
         Write-Err "Binary not found at $binary. Ensure you extracted the archive correctly."
     }
 
     Detect-Prefix
-    $target = Join-Path $script:Prefix "codegraph.exe"
+    $target = Join-Path $script:Prefix "mapx.exe"
 
     if ((Test-Path $target) -and -not $Force) {
         $confirm = Read-Host "Overwrite existing $target? [y/N]"
         if ($confirm -notmatch "^[Yy]$") { Write-Err "Aborted" }
     }
 
-    Write-Info "Installing CodeGraph..."
+    Write-Info "Installing MapxGraph..."
     Write-Info "  Binary: $target"
     Write-Info "  Data:   $($script:DataDir)"
     Write-Host ""
@@ -125,30 +125,30 @@ function Do-Install {
     }
 
     Write-Host ""
-    Write-OK "CodeGraph installed successfully"
+    Write-OK "MapxGraph installed successfully"
     Write-Host ""
     Write-Host "Quick start:"
     Write-Host "    cd C:\path\to\your\project"
-    Write-Host "    codegraph init"
-    Write-Host "    codegraph scan"
-    Write-Host "    codegraph export"
+    Write-Host "    mapx init"
+    Write-Host "    mapx scan"
+    Write-Host "    mapx export"
     Write-Host ""
     Write-Host "Uninstall: .\install.ps1 -Uninstall"
 }
 
 function Do-Uninstall {
     Detect-Prefix
-    $target = Join-Path $script:Prefix "codegraph.exe"
+    $target = Join-Path $script:Prefix "mapx.exe"
 
     # Search common locations if not found
     if (-not (Test-Path $target)) {
         $searchDirs = @(
-            "$env:LOCALAPPDATA\Programs\codegraph\bin"
+            "$env:LOCALAPPDATA\Programs\mapx\bin"
             "$env:USERPROFILE\.local\bin"
             "$env:USERPROFILE\bin"
         )
         foreach ($dir in $searchDirs) {
-            $candidate = Join-Path $dir "codegraph.exe"
+            $candidate = Join-Path $dir "mapx.exe"
             if (Test-Path $candidate) {
                 $target = $candidate
                 $script:Prefix  = $dir
@@ -159,7 +159,7 @@ function Do-Uninstall {
     }
 
     if (-not (Test-Path $target)) {
-        Write-Err "codegraph.exe not found. Already uninstalled?"
+        Write-Err "mapx.exe not found. Already uninstalled?"
     }
 
     Remove-Item $target -Force

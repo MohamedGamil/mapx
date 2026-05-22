@@ -1,11 +1,11 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import type { CodeGraphConfig, RepoConfig, UserLanguageDefinition } from '../types.js';
+import type { MapxConfig, RepoConfig, UserLanguageDefinition } from '../types.js';
 import type { LanguageDefinition } from '../languages/registry.js';
 import { getBuiltinLanguages } from '../languages/registry.js';
 
-const DEFAULT_CONFIG: CodeGraphConfig = {
+const DEFAULT_CONFIG: MapxConfig = {
   version: '1.0.0',
   repos: [],
   languages: {},
@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: CodeGraphConfig = {
       'vendor/**',
       '.git/**',
       'dist/**',
-      '.codegraph/**',
+      '.mapx/**',
       '*.min.js',
       '*.min.css',
       'package-lock.json',
@@ -28,19 +28,19 @@ const DEFAULT_CONFIG: CodeGraphConfig = {
 
 export class Config {
   private configPath: string;
-  private config: CodeGraphConfig;
+  private config: MapxConfig;
 
-  private constructor(configPath: string, config: CodeGraphConfig) {
+  private constructor(configPath: string, config: MapxConfig) {
     this.configPath = configPath;
     this.config = config;
   }
 
   static async load(workspaceRoot: string): Promise<Config> {
-    const configPath = join(workspaceRoot, '.codegraph', 'config.json');
-    const codegraphDir = join(workspaceRoot, '.codegraph');
+    const configPath = join(workspaceRoot, '.mapx', 'config.json');
+    const mapxDir = join(workspaceRoot, '.mapx');
 
     if (!existsSync(configPath)) {
-      await mkdir(codegraphDir, { recursive: true });
+      await mkdir(mapxDir, { recursive: true });
       const defaultConfig = {
         ...DEFAULT_CONFIG,
         repos: [{
@@ -53,21 +53,21 @@ export class Config {
     }
 
     const data = await readFile(configPath, 'utf-8');
-    const config = JSON.parse(data) as CodeGraphConfig;
+    const config = JSON.parse(data) as MapxConfig;
     return new Config(configPath, config);
   }
 
   static async init(workspaceRoot: string, repoName?: string): Promise<Config> {
-    const codegraphDir = join(workspaceRoot, '.codegraph');
-    await mkdir(codegraphDir, { recursive: true });
+    const mapxDir = join(workspaceRoot, '.mapx');
+    await mkdir(mapxDir, { recursive: true });
 
-    const configPath = join(codegraphDir, 'config.json');
+    const configPath = join(mapxDir, 'config.json');
 
     // Read and merge existing config if present, preserving user customisations
-    let existing: CodeGraphConfig | null = null;
+    let existing: MapxConfig | null = null;
     if (existsSync(configPath)) {
       try {
-        existing = JSON.parse(await readFile(configPath, 'utf-8')) as CodeGraphConfig;
+        existing = JSON.parse(await readFile(configPath, 'utf-8')) as MapxConfig;
       } catch {
         existing = null; // corrupt file — overwrite cleanly
       }
@@ -89,7 +89,7 @@ export class Config {
       ? existingRepos
       : [{ name: defaultRepoName, path: '.' }];
 
-    const config: CodeGraphConfig = {
+    const config: MapxConfig = {
       version: existing?.version ?? DEFAULT_CONFIG.version,
       repos,
       languages: existing?.languages ?? {},

@@ -56,8 +56,8 @@ function findAssetRoot(): string {
   const binDir = dirname(process.execPath);
   const candidates = [
     binDir,
-    resolve(binDir, '..', 'share', 'codegraph'),
-    join(process.env['HOME'] ?? '', '.local', 'share', 'codegraph'),
+    resolve(binDir, '..', 'share', 'mapx'),
+    join(process.env['HOME'] ?? '', '.local', 'share', 'mapx'),
   ];
   for (const dir of candidates) {
     if (existsSync(join(dir, 'wasm'))) return dir;

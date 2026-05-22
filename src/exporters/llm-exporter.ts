@@ -1,14 +1,14 @@
 import { Store } from '../core/store.js';
-import { CodeGraph } from '../core/graph.js';
+import { MapxGraph } from '../core/graph.js';
 import type { ExportOptions } from '../types.js';
 
 const TOKEN_CHARS_PER_LINE = 4;
 
 export class LLMExporter {
   private store: Store;
-  private graph: CodeGraph;
+  private graph: MapxGraph;
 
-  constructor(store: Store, graph: CodeGraph) {
+  constructor(store: Store, graph: MapxGraph) {
     this.store = store;
     this.graph = graph;
   }
@@ -24,7 +24,7 @@ export class LLMExporter {
     const rankedSymbols = this.graph.getRankedSymbols();
 
     const repoName = options.repo || 'project';
-    parts.push(`# CodeGraph: ${repoName}`);
+    parts.push(`# Mapx: ${repoName}`);
     parts.push('');
 
     const fileSection = this.buildFileSection(files, rankedFiles, edges);
