@@ -111,7 +111,7 @@
 - [ ] **Concrete first**: implement Django, Express, and Laravel extended detectors before abstracting
 - [ ] Add framework detection confidence scoring to suppress false positives
 - [x] Implement Python detectors: Django, Flask, FastAPI (F22)
-- [ ] Implement Node.js detectors: Express, NestJS (F23)
+- [x] Implement Node.js detectors: Express, NestJS (F23)
 - [ ] Implement frontend detectors: React Router, Tanstack Router, Next.js, SvelteKit (F24)
   - [ ] Mark all frontend route edges with `metadata.routeType = "client"` (distinct from server routes)
 - [ ] Implement backend detectors: Rails, Spring Boot, Gin, chi, gorilla/mux, Axum, actix-web, Rocket, ASP.NET Core, Vapor; Laravel extended, Drupal (F25)

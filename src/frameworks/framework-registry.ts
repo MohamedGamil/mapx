@@ -3,6 +3,8 @@ import { LaravelDetector } from './detectors/laravel.js';
 import { DjangoDetector } from './detectors/django.js';
 import { FlaskDetector } from './detectors/flask.js';
 import { FastAPIDetector } from './detectors/fastapi.js';
+import { ExpressDetector } from './detectors/express.js';
+import { NestJSDetector } from './detectors/nestjs.js';
 
 export class FrameworkRegistry {
   private static instance: FrameworkRegistry | null = null;
@@ -13,6 +15,8 @@ export class FrameworkRegistry {
     this.register(new DjangoDetector());
     this.register(new FlaskDetector());
     this.register(new FastAPIDetector());
+    this.register(new ExpressDetector());
+    this.register(new NestJSDetector());
   }
 
   static getInstance(): FrameworkRegistry {

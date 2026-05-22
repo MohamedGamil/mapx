@@ -975,12 +975,16 @@ export class Scanner {
             for (const hook of hooks) {
               routeRegistry.addHook(hook);
 
+              const edgeType = (['graphql_resolver', 'message_handler', 'websocket_handler', 'middleware'].includes(hook.hookType)
+                ? hook.hookType
+                : 'hook') as any;
+
               this.store.insertEdge({
                 sourceFile: relPath,
                 targetFile: hook.handlerFile,
                 sourceSymbol: null,
                 targetSymbol: hook.handlerSymbol || null,
-                edgeType: 'hook',
+                edgeType,
                 repo: repo.name,
                 weight: 1.0,
                 verifiability: 'inferred',
@@ -995,7 +999,7 @@ export class Scanner {
                 targetFile: hook.handlerFile,
                 sourceSymbol: null,
                 targetSymbol: hook.handlerSymbol || null,
-                edgeType: 'hook',
+                edgeType,
                 repo: repo.name,
                 weight: 1.0,
                 verifiability: 'inferred',
