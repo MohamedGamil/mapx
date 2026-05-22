@@ -245,7 +245,7 @@ export function buildCLI(): Command {
   program
     .name('codegraph')
     .description('Multi-language code graph memory system for LLMs')
-    .version('0.1.2')
+    .version('0.1.3')
     .option('-d, --dir <path>', 'Target project directory (default: current directory)');
 
   program

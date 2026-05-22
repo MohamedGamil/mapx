@@ -77,7 +77,7 @@ export async function startMcpServer(dir?: string): Promise<void> {
   }
 
   const server = new Server(
-    { name: 'codegraph', version: '0.1.2' },
+    { name: 'codegraph', version: '0.1.3' },
     { capabilities: { tools: {} } }
   );
 
