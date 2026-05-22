@@ -223,7 +223,7 @@ Fully independent of I01–I06. Can be merged at any time. Requires a one-time s
 
 Adds structural intelligence and data-flow tracing to mapx. Three capabilities:
 
-1. **F14 — Cluster detection**: infer logical modules/domains from namespace declarations (PHP, TypeScript), directory hierarchy, and edge-density community detection (Label Propagation). Clusters are persisted to a new schema v3 SQLite schema and exposed via `mapx clusters`.
+1. **F14 — Cluster detection**: infer logical modules/domains from namespace declarations (PHP, TypeScript), directory hierarchy, and edge-density community detection (Label Propagation). Clusters are persisted to a new schema v4 SQLite schema and exposed via `mapx clusters`.
 
 2. **F15 — Cluster-aware export**: DOT `subgraph cluster_*` rendering, SVG cluster bounding boxes, LLM `## Structure` section, JSON `clusters` array. New `--cluster` and `--depth` flags on `mapx export`. Fully backward-compatible — default `--cluster none` produces identical output to current.
 
@@ -291,7 +291,7 @@ _None yet._
 
 ### Blockers / notes
 
-Independent of all other iterations. Cross-repo FQN edge resolution is richer when I04/I05 (PHP namespace resolution) are merged, but F18 functions correctly without them. Schema version coordination needed with I08 (F14): whichever iteration merges first claims v3; the other uses v4.
+Independent of all other iterations. Cross-repo FQN edge resolution is richer when I04/I05 (PHP namespace resolution) are merged, but F18 functions correctly without them. Bumps schema version to v5, building on top of the schema v4 changes from I08.
 
 ---
 
@@ -352,7 +352,7 @@ Fully independent of all other iterations. The biggest risk is scope-tracking co
 
 ### Scope
 
-Adds framework-specific route extraction for 21 web frameworks across 9 language ecosystems. A shared `FrameworkDetector` interface and `RouteRegistry` (F21) power all detectors. Python ecosystems (Django, Flask, FastAPI) are covered by F22; Node.js/TypeScript backends (Express, NestJS) by F23; frontend routing (React Router v6, Tanstack Router, Next.js, SvelteKit) by F24; the remaining backends (Laravel extended, Drupal, Rails, Spring Boot, Gin/chi/gorilla/mux, Axum/actix-web/Rocket, ASP.NET Core, Vapor) by F25; and PHP CMS/frameworks (Symfony, Yii2/Yii3, WordPress) by F26. The new `mapx routes` CLI command and `mapx_routes` MCP tool surface extracted routes; the new `mapx hooks` command and `mapx_hooks` MCP tool surface hook/filter/event registrations. Schema v3 adds a `metadata TEXT` column to the `edges` table for route-specific data (HTTP method, path, framework, confidence).
+Adds framework-specific route extraction for 21 web frameworks across 9 language ecosystems. A shared `FrameworkDetector` interface and `RouteRegistry` (F21) power all detectors. Python ecosystems (Django, Flask, FastAPI) are covered by F22; Node.js/TypeScript backends (Express, NestJS) by F23; frontend routing (React Router v6, Tanstack Router, Next.js, SvelteKit) by F24; the remaining backends (Laravel extended, Drupal, Rails, Spring Boot, Gin/chi/gorilla/mux, Axum/actix-web/Rocket, ASP.NET Core, Vapor) by F25; and PHP CMS/frameworks (Symfony, Yii2/Yii3, WordPress) by F26. The new `mapx routes` CLI command and `mapx_routes` MCP tool surface extracted routes; the new `mapx hooks` command and `mapx_hooks` MCP tool surface hook/filter/event registrations. Schema v6 adds a `metadata TEXT` column to the `edges` table for route-specific data (HTTP method, path, framework, confidence).
 
 Four new `ReferenceType` values are introduced: `hook` (Drupal hook implementations), `graphql_resolver` (NestJS @Query/@Mutation), `message_handler` (NestJS @MessagePattern), `websocket_handler` (NestJS @SubscribeMessage).
 

@@ -104,7 +104,7 @@
 
 ## Phase 5 — Framework Support (after I12)
 
-### I13 · Framework-Aware Parsing & Route Context · F21–F26 · Risk: HIGH · Requires: I12 (v5 → v6)
+### I13 · Framework-Aware Parsing & Route Context · F21–F26 · Risk: HIGH · Requires: I10, I12 (v5 → v6)
 - [ ] **Concrete first**: implement Django, Express, and Laravel extended detectors before abstracting
 - [ ] Extract `FrameworkDetector` interface and `RouteRegistry` class from concrete implementations (F21)
 - [ ] Add `mapx routes [--framework=X]` CLI and `mapx_routes` MCP tool

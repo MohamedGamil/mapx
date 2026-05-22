@@ -305,7 +305,7 @@ src/parsers/languages/php.ts             ← move route extraction to src/framew
 - [ ] `FrameworkDetector` interface and `RouteBinding` type defined in `src/frameworks/types.ts`
 - [ ] `FrameworkRegistry.detectActive()` returns correct detector list for each test project
 - [ ] `RouteRegistry.flush()` writes `route` edges with `metadata` JSON to the store
-- [ ] Schema migration v3 adds `metadata TEXT` column to `edges` table without breaking existing databases
+- [ ] Schema migration v6 adds `metadata TEXT` column to `edges` table without breaking existing databases
 - [ ] `mapx routes` CLI lists routes from a test project with Django and Express
 - [ ] `mapx_routes` MCP tool returns JSON-parseable response
 - [ ] F08 Laravel route extraction behaviour is unchanged after refactor to `FrameworkDetector`

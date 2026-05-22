@@ -514,10 +514,10 @@ src/exporters/dot-exporter.ts    ← cross-repo edges rendered as dashed inter-c
 
 ## Schema changes
 
-No schema migration required. All necessary columns already exist:
+A schema migration is required to support cross-repo edges:
 - `files.repo` — already stores repo name
 - `symbols.repo` — already stores repo name
-- `edges` — already has `repo` column; `targetRepo` is added as a new column
+- `edges` — requires adding a new `target_repo` column
 
 ```sql
 -- Migration: add target_repo column to edges (nullable; NULL = same repo)

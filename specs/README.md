@@ -94,7 +94,7 @@ specs/
 | F18 | Git workspace & submodule awareness | `planned` | I10 | [F18](features/F18-git-workspace-submodules.md) |
 | F19 | Smart context & search MCP/CLI tools | `planned` | I11 | [F19](features/F19-smart-context-tools.md) |
 | F20 | Language expansion (Python, Go, Rust, Java, C#, Ruby, C, C++, Swift, Kotlin, Scala, Dart, Svelte, Vue, Lua/Luau, Elixir, Zig, Bash, Pascal) | `planned` | I12 | [F20](features/F20-language-expansion.md) |
-| F21 | Framework detection infrastructure (FrameworkDetector, RouteRegistry, schema v3, `mapx routes`) | `planned` | I13 | [F21](features/F21-framework-infrastructure.md) |
+| F21 | Framework detection infrastructure (FrameworkDetector, RouteRegistry, schema v6, `mapx routes`) | `planned` | I13 | [F21](features/F21-framework-infrastructure.md) |
 | F22 | Python framework routes (Django, Flask, FastAPI) | `planned` | I13 | [F22](features/F22-python-frameworks.md) |
 | F23 | Node.js/TypeScript framework routes (Express, NestJS) | `planned` | I13 | [F23](features/F23-nodejs-frameworks.md) |
 | F24 | Frontend routing frameworks (React Router, Tanstack Router, Next.js, SvelteKit) | `planned` | I13 | [F24](features/F24-frontend-routing.md) |
@@ -216,7 +216,7 @@ I13 (F21–F26: framework-aware parsing)
 
 I14 (F27: TOON export)
  ├── FULLY INDEPENDENT — no dependency on any other iteration
- └── Benefits from I13 route/hook metadata in edges table (metadata JSON column from F21 schema v3) but works without it
+ └── Benefits from I13 route/hook metadata in edges table (metadata JSON column from F21 schema v6) but works without it
 
 I15 (F28: web dashboard)
  ├── Requires I07 (F13 npm dist) — dashboard assets must be shippable in the npm package

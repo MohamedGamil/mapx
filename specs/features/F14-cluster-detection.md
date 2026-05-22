@@ -133,7 +133,7 @@ CREATE INDEX IF NOT EXISTS idx_membership_cluster ON cluster_membership(cluster_
 This is schema version **4** (v3 is taken by F01/I01 which adds `verifiability` to `edges`). The upgrade migration:
 
 ```sql
--- Migration v3
+-- Migration v4
 CREATE TABLE IF NOT EXISTS clusters ( ... );
 CREATE TABLE IF NOT EXISTS cluster_membership ( ... );
 ```
@@ -240,7 +240,7 @@ export interface ParseResult {
 }
 ```
 
-The scanner writes `fileMetadata.namespace` to the `files` table as a new `namespace` column (schema migration v3).
+The scanner writes `fileMetadata.namespace` to the `files` table as a new `namespace` column (schema migration v4).
 
 ---
 
