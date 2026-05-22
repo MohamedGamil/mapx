@@ -1,10 +1,13 @@
+import { createRequire } from 'node:module';
 import type { StoreBackend, PreparedStmt } from './store-interface.js';
+
+const _require = createRequire(import.meta.url);
 
 export class NodeStore implements StoreBackend {
   private db: any;
 
   constructor(dbPath: string) {
-    const Database = require('better-sqlite3');
+    const Database = _require('better-sqlite3');
     this.db = new Database(dbPath);
     this.pragma('journal_mode = WAL');
     this.pragma('foreign_keys = ON');

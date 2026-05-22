@@ -62,26 +62,53 @@ export async function loadLanguage(langDef: LanguageDefinition): Promise<Languag
   return language;
 }
 
+export interface ParsedCaptures {
+  symbols: Map<string, QueryCapture[]>;
+  references: Map<string, QueryCapture[]>;
+  nameByNodeId: Map<number, string>;
+}
+
 export async function parseWithQueries(
   source: string,
   language: Language,
   symbolsQuery: string,
   referencesQuery: string
-): Promise<{ symbols: Map<string, QueryCapture[]>; references: Map<string, QueryCapture[]> }> {
+): Promise<ParsedCaptures> {
   const parser = await initParser();
   parser.setLanguage(language);
   const tree = parser.parse(source);
+  if (!tree) {
+    return { symbols: new Map(), references: new Map(), nameByNodeId: new Map() };
+  }
 
   const symbolCaptures = new Map<string, QueryCapture[]>();
   const refCaptures = new Map<string, QueryCapture[]>();
+  const nameByNodeId = new Map<number, string>();
 
   try {
     const symQuery = new Query(language, symbolsQuery);
     const symMatches = symQuery.captures(tree.rootNode);
+    const kindNodeIds = new Set<number>();
     for (const capture of symMatches) {
       const existing = symbolCaptures.get(capture.name) || [];
       existing.push(capture);
       symbolCaptures.set(capture.name, existing);
+
+      if (capture.name.startsWith('symbol.kind_')) {
+        kindNodeIds.add(capture.node.id);
+      }
+    }
+    for (const capture of symMatches) {
+      if (capture.name === 'symbol.name') {
+        let node: any = capture.node.parent;
+        while (node) {
+          if (kindNodeIds.has(node.id)) {
+            nameByNodeId.set(node.id, capture.node.text);
+            break;
+          }
+          node = node.parent;
+        }
+      }
     }
   } catch (e: any) {
     if (!e.message?.includes('no query')) throw e;
@@ -99,7 +126,7 @@ export async function parseWithQueries(
     if (!e.message?.includes('no query')) throw e;
   }
 
-  return { symbols: symbolCaptures, references: refCaptures };
+  return { symbols: symbolCaptures, references: refCaptures, nameByNodeId };
 }
 
 export async function loadQueryFile(queryPath: string): Promise<string> {

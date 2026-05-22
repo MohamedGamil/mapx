@@ -89,10 +89,16 @@ export class Scanner {
     const discovered = await this.discoverFiles(repoRoot);
     this.onProgress?.({ phase: 'discover', current: discovered.length, total: discovered.length });
 
+    const filesWithSymbols = new Set<string>();
+    for (const sym of this.store.getAllSymbols(repo.name)) {
+      filesWithSymbols.add(sym.file_path as string);
+    }
+
     const newFiles = discovered.filter(f => f.isNew);
     const changedFiles = discovered.filter(f => !f.isNew && f.contentChanged);
-    const unchangedFiles = discovered.filter(f => !f.isNew && !f.contentChanged);
-    const filesToParse = [...newFiles, ...changedFiles];
+    const incompleteFiles = discovered.filter(f => !f.isNew && !f.contentChanged && !filesWithSymbols.has(f.relativePath));
+    const unchangedFiles = discovered.filter(f => !f.isNew && !f.contentChanged && filesWithSymbols.has(f.relativePath));
+    const filesToParse = [...newFiles, ...changedFiles, ...incompleteFiles];
 
     const resumeState = this.loadResumeState();
     const resumedCompleted = new Set(resumeState?.completedFiles || []);

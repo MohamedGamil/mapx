@@ -12,7 +12,8 @@ export interface PreparedStmt {
   all(...args: unknown[]): Record<string, unknown>[];
 }
 
+import { join } from 'node:path';
+
 export function createDatabasePath(workspaceRoot: string): string {
-  const path = await import('node:path');
-  return path.join(workspaceRoot, '.codegraph', 'codegraph.db');
+  return join(workspaceRoot, '.codegraph', 'codegraph.db');
 }

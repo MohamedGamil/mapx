@@ -1,6 +1,7 @@
 import type { StoreBackend } from './store-interface.js';
-import { BunStore } from './store-bun.js';
-import { NodeStore } from './store-node.js';
+import { createRequire } from 'node:module';
+
+const dynamicRequire = createRequire(import.meta.url);
 
 const CURRENT_SCHEMA_VERSION = 2;
 
@@ -84,8 +85,10 @@ const MIGRATIONS: Migration[] = [
 function createStoreBackend(dbPath: string): StoreBackend {
   const isBun = typeof (globalThis as any).Bun !== 'undefined';
   if (isBun) {
+    const { BunStore } = dynamicRequire('./store-bun.js');
     return new BunStore(dbPath);
   }
+  const { NodeStore } = dynamicRequire('./store-node.js');
   return new NodeStore(dbPath);
 }
 

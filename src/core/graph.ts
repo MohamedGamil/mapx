@@ -64,7 +64,7 @@ export class CodeGraph {
 
   computePageRank(): Map<string, number> {
     try {
-      const scores = pagerank(this.graph, { alpha: 0.85 });
+      const scores = pagerank(this.graph, { alpha: 0.85 } as any);
       for (const [node, score] of Object.entries(scores)) {
         if (this.graph.hasNode(node)) {
           this.graph.mergeNodeAttributes(node, { pagerank: score });

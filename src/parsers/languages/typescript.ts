@@ -31,7 +31,7 @@ export class TypeScriptParser implements LanguageParser {
     const references: ExtractedReference[] = [];
 
     try {
-      const { symbols: symCaptures, references: refCaptures } = await parseWithQueries(
+      const { symbols: symCaptures, references: refCaptures, nameByNodeId } = await parseWithQueries(
         source, this.language, this.symbolsQuery!, this.referencesQuery!
       );
 
@@ -41,7 +41,7 @@ export class TypeScriptParser implements LanguageParser {
         if (captureName.startsWith('symbol.kind_')) {
           const kind = captureName.replace('symbol.kind_', '') as SymbolKind;
           for (const capture of captures) {
-            const name = capture.node.text;
+            const name = nameByNodeId.get(capture.node.id) || capture.node.text;
             const startLine = capture.node.startPosition.row + 1;
             const endLine = capture.node.endPosition.row + 1;
 

@@ -1,10 +1,17 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
+const REF_TYPE_MAP: Record<string, string> = {
+  import: 'import',
+  require: 'require',
+  extends: 'extends',
+  implements: 'implements',
+  call: 'call',
+  instantiation: 'instantiation',
+};
 
 interface ParseJob {
   id: number;
@@ -38,9 +45,29 @@ let Language: any;
 let Query: any;
 let loadedLanguages: Map<string, { language: any; symbolsQuery: string; referencesQuery: string }> = new Map();
 let langDefs: Map<string, any>;
+let assetRoot: string;
+let nameByNodeId: Map<number, string>;
+
+function findAssetRoot(): string {
+  const thisFile = fileURLToPath(import.meta.url);
+  if (existsSync(thisFile)) {
+    return resolve(dirname(thisFile), '..', '..');
+  }
+  const binDir = dirname(process.execPath);
+  const candidates = [
+    binDir,
+    resolve(binDir, '..', 'share', 'codegraph'),
+    join(process.env['HOME'] ?? '', '.local', 'share', 'codegraph'),
+  ];
+  for (const dir of candidates) {
+    if (existsSync(join(dir, 'wasm'))) return dir;
+  }
+  return binDir;
+}
 
 async function initParser(): Promise<void> {
   if (parserReady) return;
+  assetRoot = findAssetRoot();
   const mod = await import('web-tree-sitter');
   Parser = mod.Parser;
   Language = mod.Language;
@@ -73,14 +100,12 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
   if (!langCtx) {
     try {
       const def = langDefs.get(langKey);
-      const __dirname = dirname(fileURLToPath(import.meta.url));
-      const wasmPath = resolve(__dirname, '..', '..', def.grammarWasm);
+      const wasmPath = resolve(assetRoot, def.grammarWasm);
       const wasmBuffer = await readFile(wasmPath);
       const language = await Language.load(wasmBuffer);
 
-      const queriesBase = resolve(__dirname, '..', '..');
-      const symbolsQuery = await readFile(resolve(queriesBase, def.queries.symbols), 'utf-8');
-      const referencesQuery = await readFile(resolve(queriesBase, def.queries.references), 'utf-8');
+      const symbolsQuery = await readFile(resolve(assetRoot, def.queries.symbols), 'utf-8');
+      const referencesQuery = await readFile(resolve(assetRoot, def.queries.references), 'utf-8');
 
       langCtx = { language, symbolsQuery, referencesQuery };
       loadedLanguages.set(langKey, langCtx);
@@ -93,26 +118,46 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
     const parser = new Parser();
     parser.setLanguage(langCtx.language);
     const tree = parser.parse(source);
+    if (!tree) {
+      return { ...empty, errors: [{ message: `Parser returned null for ${job.filePath}` }] };
+    }
 
     const symbols: ParseResult['symbols'] = [];
     const references: ParseResult['references'] = [];
+    nameByNodeId = new Map();
 
     try {
       const symQuery = new Query(langCtx.language, langCtx.symbolsQuery);
-      for (const capture of symQuery.captures(tree.rootNode)) {
-        const nodeText = capture.node.text;
-        const startLine = capture.node.startPosition.row + 1;
-        const endLine = capture.node.endPosition.row + 1;
-
-        if (capture.name.startsWith('symbol.')) {
-          const kind = capture.name.split('.').pop() || 'function';
+      const allSymCaptures = symQuery.captures(tree.rootNode);
+      const kindNodeIds = new Set<number>();
+      for (const capture of allSymCaptures) {
+        if (capture.name.startsWith('symbol.kind_')) {
+          kindNodeIds.add(capture.node.id);
+        }
+      }
+      for (const capture of allSymCaptures) {
+        if (capture.name === 'symbol.name') {
+          let node: any = capture.node.parent;
+          while (node) {
+            if (kindNodeIds.has(node.id)) {
+              nameByNodeId.set(node.id, capture.node.text);
+              break;
+            }
+            node = node.parent;
+          }
+        }
+      }
+      for (const capture of allSymCaptures) {
+        if (capture.name.startsWith('symbol.kind_')) {
+          const kind = capture.name.replace('symbol.kind_', '');
+          const name = nameByNodeId.get(capture.node.id) || capture.node.text;
           symbols.push({
-            name: nodeText,
+            name,
             kind,
             scope: null,
-            signature: nodeText,
-            startLine,
-            endLine,
+            signature: name,
+            startLine: capture.node.startPosition.row + 1,
+            endLine: capture.node.endPosition.row + 1,
             metadata: {},
           });
         }
@@ -122,14 +167,18 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
     try {
       const refQuery = new Query(langCtx.language, langCtx.referencesQuery);
       for (const capture of refQuery.captures(tree.rootNode)) {
-        const nodeText = capture.node.text;
         const startLine = capture.node.startPosition.row + 1;
 
-        if (capture.name.startsWith('ref.')) {
-          const refType = capture.name.split('.').pop() || 'call';
+        if (capture.name.startsWith('ref.target_')) {
+          const rawType = capture.name.replace('ref.target_', '');
+          const refType = REF_TYPE_MAP[rawType] || 'call';
+          let targetName = capture.node.text;
+          if (rawType === 'import') {
+            targetName = targetName.replace(/^['"]|['"]$/g, '');
+          }
           references.push({
             sourceSymbol: null,
-            targetName: nodeText,
+            targetName,
             referenceType: refType,
             startLine,
           });
