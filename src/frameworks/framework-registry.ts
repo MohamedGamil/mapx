@@ -9,6 +9,7 @@ import { ReactRouterDetector } from './detectors/react-router.js';
 import { TanstackRouterDetector } from './detectors/tanstack-router.js';
 import { NextJSDetector } from './detectors/nextjs.js';
 import { SvelteKitDetector } from './detectors/sveltekit.js';
+import { VueRouterDetector } from './detectors/vue-router.js';
 
 export class FrameworkRegistry {
   private static instance: FrameworkRegistry | null = null;
@@ -25,6 +26,7 @@ export class FrameworkRegistry {
     this.register(new TanstackRouterDetector());
     this.register(new NextJSDetector());
     this.register(new SvelteKitDetector());
+    this.register(new VueRouterDetector());
   }
 
   static getInstance(): FrameworkRegistry {
