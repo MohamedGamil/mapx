@@ -1,5 +1,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -7,6 +8,7 @@ import {
 import { z } from 'zod';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
+import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { Store } from './core/store.js';
 import { CodeGraph } from './core/graph.js';
 import { Scanner } from './core/scanner.js';
@@ -71,11 +73,12 @@ const dirProperty = {
   },
 };
 
-export async function startMcpServer(dir?: string): Promise<void> {
-  if (dir) {
-    defaultDir = resolve(dir);
-  }
+interface ServeOptions {
+  sse?: boolean;
+  port?: number;
+}
 
+function buildServer(): Server {
   const server = new Server(
     { name: 'codegraph', version: '0.1.3' },
     { capabilities: { tools: {} } }
@@ -262,7 +265,151 @@ export async function startMcpServer(dir?: string): Promise<void> {
     }
   });
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error(`CodeGraph MCP server running on stdio (default dir: ${defaultDir})`);
+  return server;
+}
+
+function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number): string {
+  const binPath = resolve(dir, 'node_modules', '.bin', 'codegraph');
+  const hasBin = existsSync(binPath);
+  const cmd = hasBin ? 'codegraph' : `npx tsx ${resolve(dir, 'src', 'main.ts')}`;
+
+  const lines: string[] = [
+    '',
+    '  CodeGraph MCP server ready.',
+    '',
+  ];
+
+  if (transport === 'sse' && port) {
+    lines.push(
+      `  Transport:    SSE (HTTP)`,
+      `  URL:          http://localhost:${port}/sse`,
+      `  Messages:     POST http://localhost:${port}/messages?sessionId=<id>`,
+      `  Project dir:  ${dir}`,
+      '',
+      '  Claude Desktop (claude_desktop_config.json):',
+      '  ```json',
+      '  {',
+      '    "mcpServers": {',
+      '      "codegraph": {',
+      `        "url": "http://localhost:${port}/sse"`,
+      '      }',
+      '    }',
+      '  }',
+      '  ```',
+      '',
+      '  Cursor / VS Code (.cursor/mcp.json or settings.json):',
+      '  ```json',
+      '  {',
+      '    "mcp": {',
+      '      "servers": {',
+      '        "codegraph": {',
+      `          "url": "http://localhost:${port}/sse"`,
+      '        }',
+      '      }',
+      '    }',
+      '  }',
+      '  ```',
+    );
+  } else {
+    lines.push(
+      `  Transport:    stdio`,
+      `  Project dir:  ${dir}`,
+      '',
+      '  Claude Desktop (claude_desktop_config.json):',
+      '  ```json',
+      '  {',
+      '    "mcpServers": {',
+      '      "codegraph": {',
+      `        "command": "${cmd}",`,
+      `        "args": ["serve", "--dir", "${dir}"]`,
+      '      }',
+      '    }',
+      '  }',
+      '  ```',
+      '',
+      '  Cursor / VS Code (.cursor/mcp.json or settings.json):',
+      '  ```json',
+      '  {',
+      '    "mcp": {',
+      '      "servers": {',
+      '        "codegraph": {',
+      `          "command": "${cmd}",`,
+      `          "args": ["serve", "--dir", "${dir}"]`,
+      '        }',
+      '      }',
+      '    }',
+      '  }',
+      '  ```',
+    );
+  }
+
+  lines.push(
+    '',
+    '  Available tools: codegraph_scan, codegraph_query, codegraph_dependencies, codegraph_export, codegraph_status',
+    '',
+  );
+
+  return lines.join('\n');
+}
+
+export async function startMcpServer(dir?: string, options?: ServeOptions): Promise<void> {
+  if (dir) {
+    defaultDir = resolve(dir);
+  }
+
+  if (options?.sse) {
+    const port = options.port || 3000;
+    const transports: Map<string, SSEServerTransport> = new Map();
+
+    const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+      const url = new URL(req.url || '/', `http://localhost:${port}`);
+
+      if (req.method === 'GET' && url.pathname === '/sse') {
+        const transport = new SSEServerTransport('/messages', res);
+        transports.set(transport.sessionId, transport);
+
+        const server = buildServer();
+        await server.connect(transport);
+
+        res.on('close', () => {
+          transports.delete(transport.sessionId);
+        });
+
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/messages') {
+        const sessionId = url.searchParams.get('sessionId');
+        if (!sessionId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing sessionId parameter' }));
+          return;
+        }
+
+        const transport = transports.get(sessionId);
+        if (!transport) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Session not found. Connect via GET /sse first.' }));
+          return;
+        }
+
+        await transport.handlePostMessage(req, res);
+        return;
+      }
+
+      res.writeHead(404);
+      res.end('Not found');
+    });
+
+    await new Promise<void>((resolve) => {
+      httpServer.listen(port, () => resolve());
+    });
+
+    console.error(generateConfigs(defaultDir, 'sse', port));
+  } else {
+    const server = buildServer();
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error(generateConfigs(defaultDir, 'stdio'));
+  }
 }

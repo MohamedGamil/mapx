@@ -140,14 +140,26 @@ codegraph lang list
 
 ## `codegraph serve`
 
-Start as an MCP server using stdio transport. Used by LLM tools like Claude Desktop, Cursor, or opencode.
+Start as an MCP server. Supports stdio (default) and SSE (HTTP) transports.
 
 ```bash
-codegraph serve [--dir /path]
+codegraph serve [--dir /path] [--sse] [--port <port>]
 ```
 
 Options:
 - `--dir / -d` — Default target directory for MCP tools
+- `--sse` — Enable SSE (HTTP) transport instead of stdio
+- `--port <port>` — Port for SSE transport (default: 3000)
+
+On startup, prints ready-to-copy configuration snippets for Claude Desktop, Cursor, and VS Code. SSE mode additionally prints the connection URL and messages endpoint.
+
+Examples:
+```bash
+codegraph serve --dir /path/to/project                  # stdio (default)
+codegraph serve --sse --port 3456 --dir /path/to/project  # SSE on port 3456
+```
+
+See [MCP Integration](mcp-integration.md) for full client configuration details.
 
 ## Installing GraphViz
 

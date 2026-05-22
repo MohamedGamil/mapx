@@ -2,12 +2,90 @@
 
 CodeGraph can run as an MCP (Model Context Protocol) server, allowing LLM tools to interact with the code graph directly.
 
-## Setup
+## Transports
+
+CodeGraph supports two MCP transport modes:
+
+| Transport | Flag | Use Case |
+|-----------|------|----------|
+| **stdio** | _(default)_ | Local development, CLI-based MCP clients (Claude Desktop, Cursor, opencode) |
+| **SSE** | `--sse` | HTTP-based clients, remote access, browsers, multi-client |
+
+## Starting the Server
+
+### stdio (default)
+
+```bash
+codegraph serve --dir /path/to/project
+```
+
+On startup, prints ready-to-copy configuration for Claude Desktop, Cursor, and VS Code.
+
+### SSE (HTTP)
+
+```bash
+codegraph serve --sse --port 3456 --dir /path/to/project
+```
+
+Options:
+- `--sse` — Enable SSE transport (HTTP) instead of stdio
+- `--port <port>` — Port to listen on (default: 3000)
+- `--dir / -d` — Default target directory for MCP tools
+
+On startup, prints the SSE URL, messages endpoint, and ready-to-copy configuration.
+
+### Startup Output
+
+Both modes print configuration snippets on startup:
+
+```
+  CodeGraph MCP server ready.
+
+  Transport:    stdio
+  Project dir:  /path/to/project
+
+  Claude Desktop (claude_desktop_config.json):
+  ```json
+  {
+    "mcpServers": {
+      "codegraph": {
+        "command": "codegraph",
+        "args": ["serve", "--dir", "/path/to/project"]
+      }
+    }
+  }
+  ```
+
+  Cursor / VS Code (.cursor/mcp.json or settings.json):
+  ...
+```
+
+SSE mode additionally prints:
+```
+  Transport:    SSE (HTTP)
+  URL:          http://localhost:3456/sse
+  Messages:     POST http://localhost:3456/messages?sessionId=<id>
+```
+
+## Client Configuration
 
 ### Claude Desktop
 
 Add to `claude_desktop_config.json`:
 
+**stdio:**
+```json
+{
+  "mcpServers": {
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["serve", "--dir", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+Or with `npx tsx` from source:
 ```json
 {
   "mcpServers": {
@@ -19,14 +97,12 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-Or with the compiled binary:
-
+**SSE:**
 ```json
 {
   "mcpServers": {
     "codegraph": {
-      "command": "/path/to/codegraph",
-      "args": ["serve", "--dir", "/path/to/your/project"]
+      "url": "http://localhost:3456/sse"
     }
   }
 }
@@ -36,12 +112,55 @@ Or with the compiled binary:
 
 Add to `.cursor/mcp.json`:
 
+**stdio:**
 ```json
 {
   "mcpServers": {
     "codegraph": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/mem-project/src/main.ts", "serve", "--dir", "/path/to/your/project"]
+      "command": "codegraph",
+      "args": ["serve", "--dir", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+**SSE:**
+```json
+{
+  "mcpServers": {
+    "codegraph": {
+      "url": "http://localhost:3456/sse"
+    }
+  }
+}
+```
+
+### VS Code
+
+Add to `.vscode/settings.json` or your user settings:
+
+**stdio:**
+```json
+{
+  "mcp": {
+    "servers": {
+      "codegraph": {
+        "command": "codegraph",
+        "args": ["serve", "--dir", "/path/to/your/project"]
+      }
+    }
+  }
+}
+```
+
+**SSE:**
+```json
+{
+  "mcp": {
+    "servers": {
+      "codegraph": {
+        "url": "http://localhost:3456/sse"
+      }
     }
   }
 }
@@ -55,12 +174,32 @@ Add to your opencode configuration:
 {
   "mcp": {
     "codegraph": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/mem-project/src/main.ts", "serve", "--dir", "/path/to/your/project"]
+      "command": "codegraph",
+      "args": ["serve", "--dir", "/path/to/your/project"]
     }
   }
 }
 ```
+
+## SSE Protocol Details
+
+The SSE transport follows the standard MCP SSE protocol:
+
+1. **Connect**: `GET /sse` — Opens an SSE stream. The first event is `endpoint` with the session-specific messages URL:
+   ```
+   event: endpoint
+   data: /messages?sessionId=<uuid>
+   ```
+
+2. **Send messages**: `POST /messages?sessionId=<uuid>` — Send JSON-RPC requests. Returns `202 Accepted`.
+
+3. **Receive responses**: Responses arrive as SSE `message` events on the GET stream:
+   ```
+   event: message
+   data: {"jsonrpc":"2.0","id":1,"result":{...}}
+   ```
+
+Each SSE connection creates an independent MCP session with its own server instance.
 
 ## Available Tools
 

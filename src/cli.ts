@@ -129,7 +129,8 @@ function readStubContent(): string {
       'codegraph query <term>                                # Search symbols',
       'codegraph deps <file>                                 # File dependencies',
       'codegraph summary [/path]                             # Project summary',
-      'codegraph serve --dir /path                           # Start MCP server',
+      'codegraph serve --dir /path                           # Start MCP server (stdio)',
+      'codegraph serve --sse --port 3456 --dir /path         # SSE (HTTP) transport',
       '```',
       '',
       '## MCP Tools',
@@ -520,10 +521,15 @@ export function buildCLI(): Command {
     .command('serve')
     .description('Start MCP server (stdio transport)')
     .option('-d, --dir <path>', 'Default target directory for MCP tools')
+    .option('--port <port>', 'Port for SSE transport (default: 45123)', '45123')
+    .option('--sse', 'Enable SSE transport instead of stdio')
     .action(async (opts: Record<string, unknown>) => {
       const defaultDir = resolveDir(opts, program.opts());
       const { startMcpServer } = await import('./mcp.js');
-      await startMcpServer(defaultDir);
+      await startMcpServer(defaultDir, {
+        sse: opts.sse as boolean | undefined,
+        port: parseInt(opts.port as string, 10) || 45123,
+      });
     });
 
   return program;

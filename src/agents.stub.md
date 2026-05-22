@@ -65,8 +65,9 @@ codegraph summary [/path]
 # List supported languages
 codegraph lang list
 
-# Start MCP server (stdio transport)
-codegraph serve --dir /path/to/project     # sets default dir for MCP tools
+# Start MCP server
+codegraph serve --dir /path/to/project                  # stdio transport (default)
+codegraph serve --sse --port 3456 --dir /path/to/project # SSE (HTTP) transport
 ```
 
 ## MCP Tools
