@@ -3,7 +3,9 @@ import { createRequire } from 'node:module';
 
 const dynamicRequire = createRequire(import.meta.url);
 
-const SCHEMA = `
+const CURRENT_SCHEMA_VERSION = 2;
+
+const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS files (
   path TEXT PRIMARY KEY,
   repo TEXT NOT NULL,
@@ -64,6 +66,22 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 `;
 
+interface Migration {
+  version: number;
+  description: string;
+  up: string[];
+}
+
+const MIGRATIONS: Migration[] = [
+  {
+    version: 2,
+    description: 'Add content_hash column to files table',
+    up: [
+      `ALTER TABLE files ADD COLUMN content_hash TEXT`,
+    ],
+  },
+];
+
 function createStoreBackend(dbPath: string): StoreBackend {
   const isBun = typeof (globalThis as any).Bun !== 'undefined';
   if (isBun) {
@@ -79,7 +97,53 @@ export class Store {
 
   constructor(dbPath: string) {
     this.backend = createStoreBackend(dbPath);
-    this.backend.exec(SCHEMA);
+    this.backend.exec(INITIAL_SCHEMA);
+    this.runMigrations();
+  }
+
+  private runMigrations(): void {
+    const currentVersion = this.getSchemaVersion();
+
+    if (currentVersion >= CURRENT_SCHEMA_VERSION) return;
+
+    const pending = MIGRATIONS.filter(m => m.version > currentVersion);
+    if (pending.length === 0) {
+      this.setMeta('schema_version', String(CURRENT_SCHEMA_VERSION));
+      return;
+    }
+
+    this.backend.inTransaction(() => {
+      for (const migration of pending) {
+        for (const sql of migration.up) {
+          this.backend.exec(sql);
+        }
+        this.setMeta('schema_version', String(migration.version));
+      }
+    });
+  }
+
+  private getSchemaVersion(): number {
+    try {
+      const version = this.getMeta('schema_version');
+      if (version !== null) return parseInt(version, 10) || 0;
+    } catch {}
+
+    const hasContentHash = this.columnExists('files', 'content_hash');
+    if (hasContentHash) {
+      this.setMeta('schema_version', '2');
+      return 2;
+    }
+
+    return 1;
+  }
+
+  private columnExists(table: string, column: string): boolean {
+    try {
+      const rows = this.backend.prepare(`PRAGMA table_info(${table})`).all();
+      return rows.some((row: any) => row.name === column);
+    } catch {
+      return false;
+    }
   }
 
   get raw(): StoreBackend {
@@ -102,14 +166,15 @@ export class Store {
     repo: string;
     language: string;
     gitBlobHash: string | null;
+    contentHash: string | null;
     lastScanned: string;
     sizeBytes: number;
     lines: number;
   }): void {
     this.backend.prepare(`
-      INSERT OR REPLACE INTO files (path, repo, language, git_blob_hash, last_scanned, size_bytes, lines)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(file.path, file.repo, file.language, file.gitBlobHash, file.lastScanned, file.sizeBytes, file.lines);
+      INSERT OR REPLACE INTO files (path, repo, language, git_blob_hash, content_hash, last_scanned, size_bytes, lines)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(file.path, file.repo, file.language, file.gitBlobHash, file.contentHash, file.lastScanned, file.sizeBytes, file.lines);
   }
 
   deleteFile(filePath: string): void {
