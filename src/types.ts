@@ -6,6 +6,7 @@ export interface CodeFile {
   lastScanned: string | null;
   sizeBytes: number;
   lines: number;
+  metadata?: Record<string, any>;
 }
 
 export interface ExtractedSymbol {
@@ -35,6 +36,7 @@ export interface ExtractedReference {
   referenceType: ReferenceType;
   startLine: number;
   verifiability?: 'verified' | 'inferred';
+  metadata?: Record<string, any>;
 }
 
 export type ReferenceType =
@@ -45,12 +47,17 @@ export type ReferenceType =
   | 'call'
   | 'instantiation'
   | 'return_type'
-  | 'param_type';
+  | 'param_type'
+  | 'relation'
+  | 'route'
+  | 'middleware'
+  | 'binding';
 
 export interface ParseResult {
   symbols: ExtractedSymbol[];
   references: ExtractedReference[];
   errors: ParseError[];
+  fileMetadata?: Record<string, any>;
 }
 
 export interface ParseError {
@@ -68,6 +75,7 @@ export interface GraphEdge {
   repo: string;
   weight: number;
   verifiability?: 'verified' | 'inferred';
+  metadata?: Record<string, any>;
 }
 
 export type ScanPhase = 'discover' | 'index' | 'parse' | 'resolve' | 'detect';

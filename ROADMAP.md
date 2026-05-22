@@ -8,42 +8,42 @@
 ## Phase 1 — Foundation (all parallel)
 
 ### I01 · Schema Migration + Parser Edge Labelling · F01 · Risk: Low
-- [ ] `ALTER TABLE edges ADD COLUMN verifiability TEXT DEFAULT 'verified'` (schema v2 → v3)
-- [ ] Update PHP, JS, TS parsers to label edges as `verified` or `inferred`
-- [ ] Implement common-method filter list (suppress noise from generic method names)
-- [ ] Add `--verified-only` flag to `mapx metrics` and `mapx export`
+- [x] `ALTER TABLE edges ADD COLUMN verifiability TEXT DEFAULT 'verified'` (schema v2 → v3)
+- [x] Update PHP, JS, TS parsers to label edges as `verified` or `inferred`
+- [x] Implement common-method filter list (suppress noise from generic method names)
+- [x] Add `--verified-only` flag to `mapx metrics` and `mapx export`
 
 ### I02 · Glob Filter Pipeline · F03 · Risk: Low
-- [ ] Add `--include` / `--exclude` glob patterns to `mapx scan`, `mapx update`, `mapx export`
-- [ ] Apply filtering at discovery time (zero I/O cost for excluded files)
-- [ ] Persist patterns in `.mapx/config.json` under `includePatterns` / `excludePatterns`
+- [x] Add `--include` / `--exclude` glob patterns to `mapx scan`, `mapx update`, `mapx export`
+- [x] Apply filtering at discovery time (zero I/O cost for excluded files)
+- [x] Persist patterns in `.mapx/config.json` under `includePatterns` / `excludePatterns`
 
 ### I04 · PHP Parser Fundamentals · F05, F06, F10 · Risk: Medium
-- [ ] Implement `UsageImportTable` class for FQN resolution from `use` imports (F05)
-- [ ] Add type-hint dependency edges: `param_type`, `return_type`, `property_type` (F06)
-- [ ] Auto-exclude `vendor/`, `bootstrap/cache/`, compiled views, test helpers (F10)
-- [ ] Validate: F05 is the only shared dependency of F06, F07, F08, F09
+- [x] Implement `UsageImportTable` class for FQN resolution from `use` imports (F05)
+- [x] Add type-hint dependency edges: `param_type`, `return_type`, `property_type` (F06)
+- [x] Auto-exclude `vendor/`, `bootstrap/cache/`, compiled views, test helpers (F10)
+- [x] Validate: F05 is the only shared dependency of F06, F07, F08, F09
 
 ### I07 · npm Distribution & Node.js DX · F13 · Risk: Low
-- [ ] Publish `mapx` npm package with `bin: { mapx }`, `engines: { node: ">=20.0.0" }`
-- [ ] Implement `store-node.ts` using `better-sqlite3` (fallback when Bun unavailable)
-- [ ] Add `curl | sh` installer script and `mapx init` AGENTS.md injection
-- [ ] Add `MAPX_NO_UI=1` env flag to skip client bundle build in CI
+- [x] Publish `mapx` npm package with `bin: { mapx }`, `engines: { node: ">=20.0.0" }`
+- [x] Implement `store-node.ts` using `better-sqlite3` (fallback when Bun unavailable)
+- [x] Add `curl | sh` installer script and `mapx init` AGENTS.md injection
+- [x] Add `MAPX_NO_UI=1` env flag to skip client bundle build in CI
 
 ---
 
 ## Phase 2 — Core Features (after relevant Phase 1 items)
 
 ### I03 · CLI + MCP Surface · F02, F04 · Risk: Low · Requires: I01
-- [ ] Implement `mapx metrics [--lang=X] [--verified-only]` with Ca/Ce/instability reports (F02)
-- [ ] Implement `mapx edges [--type=X] [--from=X] [--to=X]` for granular edge querying (F04)
-- [ ] Add MCP tools: `mapx_metrics`, `mapx_edges`
+- [x] Implement `mapx metrics [--lang=X] [--verified-only]` with Ca/Ce/instability reports (F02)
+- [x] Implement `mapx edges [--type=X] [--from=X] [--to=X]` for granular edge querying (F04)
+- [x] Add MCP tools: `mapx_metrics`, `mapx_edges`
 
 ### I05 · Laravel Structural Patterns · F07, F08, F09 · Risk: Medium · Requires: I04
-- [ ] Add Eloquent relationship edges: `has_one`, `has_many`, `belongs_to`, `belongs_to_many`, `morph_*` (F07)
-- [ ] Detect route-to-controller bindings; emit `route` + `middleware` edge types (F08)
-- [ ] Detect IoC container bindings; emit `binds`, `singleton`, `alias` edge types (F09)
-- [ ] Confirm: F08 and F09 depend only on F05 FQN resolution, not F06 type hints
+- [x] Add Eloquent relationship edges: `has_one`, `has_many`, `belongs_to`, `belongs_to_many`, `morph_*` (F07)
+- [x] Detect route-to-controller bindings; emit `route` + `middleware` edge types (F08)
+- [x] Detect IoC container bindings; emit `binds`, `singleton`, `alias` edge types (F09)
+- [x] Confirm: F08 and F09 depend only on F05 FQN resolution, not F06 type hints
 
 ### I08 · Code Structure, Clusters & Data Flow · F14, F15, F16 · Risk: HIGH · Requires: I01
 - [ ] Implement `ClusterDetector` with namespace, directory, and Label Propagation strategies (F14)

@@ -114,8 +114,8 @@ export type ReferenceType =
 
 ```scheme
 ; Array-form handler: Route::get('/path', [Controller::class, 'method'])
-(static_call_expression
-  class_name: (name) @_route (#eq? @_route "Route")
+(scoped_call_expression
+  scope: (name) @_route (#eq? @_route "Route")
   name: (name) @ref.route_verb
   arguments: (arguments
     (argument (encapsed_string) @ref.route_uri)
@@ -128,8 +128,8 @@ export type ReferenceType =
           (string (string_content) @ref.route_method)))))) @ref.type_route
 
 ; resource() / apiResource()
-(static_call_expression
-  class_name: (name) @_route (#eq? @_route "Route")
+(scoped_call_expression
+  scope: (name) @_route (#eq? @_route "Route")
   name: (name) @ref.route_resource_type
   (#match? @ref.route_resource_type "^(resource|apiResource)$")
   arguments: (arguments

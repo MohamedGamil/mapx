@@ -603,6 +603,9 @@ export class Scanner {
     repoName: string,
     fileMap: Map<string, string>,
   ): void {
+    if (result.fileMetadata) {
+      this.store.updateFileMetadata(relativePath, result.fileMetadata);
+    }
     this.store.deleteSymbolsForFile(relativePath);
 
     for (const sym of result.symbols) {

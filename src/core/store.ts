@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 
 const dynamicRequire = createRequire(import.meta.url);
 
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 
 const INITIAL_SCHEMA = `
 CREATE TABLE IF NOT EXISTS files (
@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS files (
   git_blob_hash TEXT,
   last_scanned TEXT,
   size_bytes INTEGER DEFAULT 0,
-  lines INTEGER DEFAULT 0
+  lines INTEGER DEFAULT 0,
+  metadata TEXT DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS symbols (
@@ -43,7 +44,9 @@ CREATE TABLE IF NOT EXISTS edges (
   target_symbol TEXT,
   edge_type TEXT NOT NULL,
   repo TEXT NOT NULL,
-  weight REAL DEFAULT 1.0
+  weight REAL DEFAULT 1.0,
+  verifiability TEXT NOT NULL DEFAULT 'verified',
+  metadata TEXT DEFAULT '{}'
 );
 
 CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_file);
@@ -86,6 +89,14 @@ const MIGRATIONS: Migration[] = [
     up: [
       `ALTER TABLE edges ADD COLUMN verifiability TEXT NOT NULL DEFAULT 'verified'`,
       `CREATE INDEX IF NOT EXISTS idx_edges_verifiability ON edges (verifiability)`,
+    ],
+  },
+  {
+    version: 4,
+    description: 'Add metadata column to edges and files tables',
+    up: [
+      `ALTER TABLE edges ADD COLUMN metadata TEXT DEFAULT '{}'`,
+      `ALTER TABLE files ADD COLUMN metadata TEXT DEFAULT '{}'`,
     ],
   },
 ];
@@ -178,11 +189,33 @@ export class Store {
     lastScanned: string;
     sizeBytes: number;
     lines: number;
+    metadata?: Record<string, any>;
   }): void {
     this.backend.prepare(`
-      INSERT OR REPLACE INTO files (path, repo, language, git_blob_hash, content_hash, last_scanned, size_bytes, lines)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(file.path, file.repo, file.language, file.gitBlobHash, file.contentHash, file.lastScanned, file.sizeBytes, file.lines);
+      INSERT OR REPLACE INTO files (path, repo, language, git_blob_hash, content_hash, last_scanned, size_bytes, lines, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      file.path,
+      file.repo,
+      file.language,
+      file.gitBlobHash,
+      file.contentHash,
+      file.lastScanned,
+      file.sizeBytes,
+      file.lines,
+      file.metadata ? JSON.stringify(file.metadata) : '{}'
+    );
+  }
+
+  updateFileMetadata(filePath: string, metadata: Record<string, any>): void {
+    const file = this.getFile(filePath);
+    let merged = { ...metadata };
+    if (file && file.metadata) {
+      try {
+        merged = { ...JSON.parse(file.metadata as string), ...metadata };
+      } catch {}
+    }
+    this.backend.prepare('UPDATE files SET metadata = ? WHERE path = ?').run(JSON.stringify(merged), filePath);
   }
 
   deleteFile(filePath: string): void {
@@ -256,10 +289,11 @@ export class Store {
     repo: string;
     weight: number;
     verifiability?: 'verified' | 'inferred';
+    metadata?: Record<string, any>;
   }): void {
     this.backend.prepare(`
-      INSERT INTO edges (source_file, target_file, source_symbol, target_symbol, edge_type, repo, weight, verifiability)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO edges (source_file, target_file, source_symbol, target_symbol, edge_type, repo, weight, verifiability, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       edge.sourceFile,
       edge.targetFile,
@@ -268,7 +302,8 @@ export class Store {
       edge.edgeType,
       edge.repo,
       edge.weight,
-      edge.verifiability ?? 'verified'
+      edge.verifiability ?? 'verified',
+      edge.metadata ? JSON.stringify(edge.metadata) : '{}'
     );
   }
 

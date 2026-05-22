@@ -116,6 +116,10 @@ export class SvgExporter {
       implements: { stroke: '#333', dash: '6,3' },
       call: { stroke: '#999', dash: '3,3' },
       instantiation: { stroke: '#999', dash: '3,3' },
+      relation: { stroke: '#1d4ed8', dash: '' },
+      route: { stroke: '#15803d', dash: '' },
+      binding: { stroke: '#7c3aed', dash: '5,5' },
+      middleware: { stroke: '#ea580c', dash: '3,3' },
     };
 
     const seen = new Set<string>();

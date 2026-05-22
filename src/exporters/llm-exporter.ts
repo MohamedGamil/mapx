@@ -154,8 +154,58 @@ export class LLMExporter {
     const lines: string[] = [];
     lines.push('## Dependencies');
 
-    const unique = new Map<string, { source: string; target: string; type: string; verifiability?: string }>();
+    const routeGroups = new Map<string, {
+      source: string;
+      controller: string;
+      routes: Array<{ verb: string; uri: string }>;
+    }>();
+
+    const otherEdges: Record<string, unknown>[] = [];
+
     for (const edge of edges) {
+      if (edge.edge_type === 'route') {
+        const src = edge.source_file as string;
+        const controller = (edge.target_symbol as string) || (edge.target_file as string).split('/').pop() || 'Controller';
+        const key = `${src}->${controller}`;
+
+        let meta: any = {};
+        if (edge.metadata) {
+          try {
+            meta = typeof edge.metadata === 'string' ? JSON.parse(edge.metadata) : edge.metadata;
+          } catch {}
+        }
+
+        const verb = meta.httpVerb || 'GET';
+        const uri = meta.uri || '/';
+
+        if (!routeGroups.has(key)) {
+          routeGroups.set(key, { source: src, controller, routes: [] });
+        }
+        routeGroups.get(key)!.routes.push({ verb, uri });
+      } else {
+        otherEdges.push(edge);
+      }
+    }
+
+    // Output route groups
+    for (const group of routeGroups.values()) {
+      const uriToVerbs = new Map<string, Set<string>>();
+      for (const r of group.routes) {
+        if (!uriToVerbs.has(r.uri)) {
+          uriToVerbs.set(r.uri, new Set());
+        }
+        uriToVerbs.get(r.uri)!.add(r.verb);
+      }
+      const descParts: string[] = [];
+      for (const [uri, verbs] of uriToVerbs.entries()) {
+        const verbsStr = Array.from(verbs).sort().join('/');
+        descParts.push(`${verbsStr} ${uri}`);
+      }
+      lines.push(`- ${group.source} → ${group.controller} (${group.routes.length} routes: ${descParts.join(', ')})`);
+    }
+
+    const unique = new Map<string, { source: string; target: string; type: string; verifiability?: string }>();
+    for (const edge of otherEdges) {
       const key = `${edge.source_file}->${edge.target_file}:${edge.edge_type}`;
       if (!unique.has(key)) {
         unique.set(key, {

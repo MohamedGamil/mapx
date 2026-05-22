@@ -46,6 +46,7 @@ export class GraphExporter {
         sizeBytes: f.size_bytes,
         lines: f.lines,
         lastScanned: f.last_scanned,
+        metadata: f.metadata ? JSON.parse(f.metadata as string) : undefined,
       })),
       symbols: symbols.map(s => ({
         name: s.name,
@@ -63,6 +64,7 @@ export class GraphExporter {
         sourceSymbol: e.source_symbol || undefined,
         targetSymbol: e.target_symbol || undefined,
         verifiability: e.verifiability || 'verified',
+        metadata: e.metadata ? JSON.parse(e.metadata as string) : undefined,
       })),
       graph: graphData,
     };

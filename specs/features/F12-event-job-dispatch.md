@@ -174,8 +174,8 @@ When detected: `metadata.laravelRole = 'listener'`
         class_name: (name) @ref.target_dispatch)))) @ref.type_dispatch
 
 ; OrderPlaced::dispatch(...) / ProcessOrder::dispatchSync(...)
-(static_call_expression
-  class_name: (name) @ref.target_dispatch2
+(scoped_call_expression
+  scope: (name) @ref.target_dispatch2
   name: (name) @_dispatch_method
   (#match? @_dispatch_method "^(dispatch|dispatchSync|dispatchIf|dispatchUnless|dispatchAfterResponse)$")) @ref.type_dispatch_static
 
@@ -188,8 +188,8 @@ When detected: `metadata.laravelRole = 'listener'`
         class_name: (name) @ref.target_notify)))) @ref.type_notify
 
 ; Notification::send($users, new InvoiceReady(...))
-(static_call_expression
-  class_name: (name) @_notif_facade (#eq? @_notif_facade "Notification")
+(scoped_call_expression
+  scope: (name) @_notif_facade (#eq? @_notif_facade "Notification")
   name: (name) @_send (#match? @_send "^(send|sendNow)$")
   arguments: (arguments
     _

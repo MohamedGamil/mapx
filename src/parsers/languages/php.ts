@@ -40,6 +40,7 @@ export class PhpParser implements LanguageParser {
 
     const symbols: ExtractedSymbol[] = [];
     const references: ExtractedReference[] = [];
+    let fileMetadata: Record<string, any> | undefined = undefined;
 
     try {
       const { symbols: symCaptures, references: refCaptures, nameByNodeId } = await parseWithQueries(
@@ -130,6 +131,13 @@ export class PhpParser implements LanguageParser {
         });
       }
 
+      const ELOQUENT_RELATIONSHIP_METHODS = new Set([
+        'hasOne', 'hasMany', 'hasOneThrough', 'hasManyThrough',
+        'belongsTo', 'belongsToMany',
+        'morphTo', 'morphOne', 'morphMany', 'morphToMany', 'morphedByMany',
+        'hasOneOfMany',
+      ]);
+
       const resolveToFqn = (name: string): string => {
         if (name.startsWith('\\')) {
           return name.substring(1);
@@ -161,7 +169,15 @@ export class PhpParser implements LanguageParser {
 
             let verifiability: 'verified' | 'inferred' = 'verified';
             if (referenceType === 'call') {
-              const parentType = capture.node.parent?.type;
+              const parent = capture.node.parent;
+              if (
+                parent?.type === 'member_call_expression' &&
+                parent.child(0)?.text === '$this' &&
+                ELOQUENT_RELATIONSHIP_METHODS.has(cleaned)
+              ) {
+                continue;
+              }
+              const parentType = parent?.type;
               if (parentType === 'member_call_expression' || COMMON_FRAMEWORK_METHODS.has(cleaned)) {
                 verifiability = 'inferred';
               }
@@ -260,13 +276,427 @@ export class PhpParser implements LanguageParser {
       processTypeHints(refCaptures.get('ref.target_return_type') || [], 'return_type');
       processTypeHints(refCaptures.get('ref.target_property') || [], 'param_type');
 
+      // LARAVEL STRUCTURAL PATTERNS
+
+      // F07: Eloquent Relationship Edges
+      const RELATIONSHIP_TYPES: Record<string, string> = {
+        hasOne: 'one-to-one',
+        morphOne: 'one-to-one',
+        hasMany: 'one-to-many',
+        morphMany: 'one-to-many',
+        hasOneThrough: 'one-to-many',
+        hasManyThrough: 'one-to-many',
+        belongsTo: 'many-to-one',
+        morphTo: 'many-to-one',
+        belongsToMany: 'many-to-many',
+        morphToMany: 'many-to-many',
+        morphedByMany: 'many-to-many',
+      };
+
+      const cleanQuotes = (str: string): string => {
+        return str.replace(/^['"]|['"]$/g, '').trim();
+      };
+
+      const getArgText = (argsNode: any, idx: number): string | null => {
+        if (!argsNode || argsNode.type !== 'arguments') return null;
+        const argNode = argsNode.namedChild(idx);
+        if (!argNode) return null;
+        const valNode = argNode.type === 'argument' ? (argNode.namedChild(0) || argNode) : argNode;
+        if (valNode.type === 'class_constant_access_expression') {
+          const classNode = valNode.namedChild(0);
+          if (classNode) return classNode.text;
+        }
+        return cleanQuotes(valNode.text);
+      };
+
+      const modelClasses = new Set<string>();
+      const controllerClasses = new Set<string>();
+      const serviceProviderClasses = new Set<string>();
+
+      const relationMethodCaptures = refCaptures.get('ref.relation_method_name') || [];
+      for (const cap of relationMethodCaptures) {
+        const methodName = cap.node.text;
+        if (!ELOQUENT_RELATIONSHIP_METHODS.has(methodName)) continue;
+
+        const parent = cap.node.parent;
+        if (!parent || parent.type !== 'member_call_expression') continue;
+
+        const obj = parent.child(0);
+        if (!obj || obj.text !== '$this') continue;
+
+        const { className } = getEnclosingScope(cap.node);
+        if (!className) continue;
+
+        modelClasses.add(className);
+
+        const argsNode = parent.namedChildren.find((c: any) => c.type === 'arguments');
+        if (!argsNode) continue;
+        const targetArgText = getArgText(argsNode, 0);
+        if (targetArgText) {
+          const targetFqn = resolveToFqn(targetArgText);
+          const startLine = cap.node.startPosition.row + 1;
+          
+          const arg0 = argsNode.namedChild(0);
+          if (arg0) {
+            const valNode = arg0.type === 'argument' ? (arg0.namedChild(0) || arg0) : arg0;
+            const isClassConst = valNode ? valNode.type === 'class_constant_access_expression' : false;
+
+            references.push({
+              sourceSymbol: className,
+              targetName: targetFqn,
+              referenceType: 'relation',
+              startLine,
+              verifiability: isClassConst ? 'verified' : 'inferred',
+              metadata: {
+                relationshipMethod: methodName,
+                relationshipType: RELATIONSHIP_TYPES[methodName] || 'one-to-many',
+              },
+            });
+          }
+        }
+      }
+
+      // F08: Route-to-Controller Binding Edges
+      const ROUTE_VERBS = new Set([
+        'get', 'post', 'put', 'patch', 'delete', 'options', 'any', 'match',
+        'resource', 'apiResource',
+      ]);
+
+      const routeMethodCaptures = refCaptures.get('ref.route_method_name') || [];
+      let routeCallCount = 0;
+
+      const extractRouteMiddlewares = (node: any): string[] => {
+        const mws: string[] = [];
+        let curr = node.parent;
+        while (curr && (curr.type === 'member_call_expression' || curr.type === 'scoped_call_expression')) {
+          const methodNameNode = curr.childForFieldName('name');
+          const methodName = methodNameNode ? methodNameNode.text : '';
+          if (methodName === 'middleware') {
+            const argsNode = curr.namedChildren.find((c: any) => c.type === 'arguments');
+            if (argsNode) {
+              const firstArg = argsNode.namedChild(0);
+              if (firstArg) {
+                const valNode = firstArg.type === 'argument' ? (firstArg.namedChild(0) || firstArg) : firstArg;
+                if (valNode.type === 'array_creation_expression') {
+                  for (let i = 0; i < valNode.namedChildCount; i++) {
+                    const el = valNode.namedChild(i);
+                    const val = el.type === 'array_element_initializer' ? el.namedChild(el.namedChildCount - 1) : el;
+                    if (val) {
+                      const mwText = cleanQuotes(val.text);
+                      if (mwText) mws.push(mwText);
+                    }
+                  }
+                } else {
+                  const mwText = cleanQuotes(valNode.text);
+                  if (mwText) mws.push(mwText);
+                }
+              }
+            }
+          }
+          curr = curr.parent;
+        }
+        return mws;
+      };
+
+      const extractRouteName = (node: any): string | null => {
+        let curr = node.parent;
+        while (curr && (curr.type === 'member_call_expression' || curr.type === 'scoped_call_expression')) {
+          const methodNameNode = curr.childForFieldName('name');
+          const methodName = methodNameNode ? methodNameNode.text : '';
+          if (methodName === 'name') {
+            const argsNode = curr.namedChildren.find((c: any) => c.type === 'arguments');
+            const nameVal = getArgText(argsNode, 0);
+            if (nameVal) return nameVal;
+          }
+          curr = curr.parent;
+        }
+        return null;
+      };
+
+      const extractEnclosingGroupMiddlewaresAndPrefixes = (node: any): { prefixes: string[], middlewares: string[] } => {
+        const prefixes: string[] = [];
+        const middlewares: string[] = [];
+        let curr = node.parent;
+        while (curr) {
+          if (curr.type === 'anonymous_function' || curr.type === 'arrow_function') {
+            const argNode = curr.parent;
+            const argsNode = argNode?.type === 'argument' ? argNode.parent : argNode;
+            if (argsNode && argsNode.type === 'arguments') {
+              const callNode = argsNode.parent;
+              if (callNode && (callNode.type === 'member_call_expression' || callNode.type === 'scoped_call_expression')) {
+                let chain = callNode;
+                while (chain && (chain.type === 'member_call_expression' || chain.type === 'scoped_call_expression')) {
+                  const mNameNode = chain.childForFieldName('name');
+                  const mName = mNameNode ? mNameNode.text : '';
+                  if (mName === 'prefix') {
+                    const innerArgs = chain.namedChildren.find((c: any) => c.type === 'arguments');
+                    const val = getArgText(innerArgs, 0);
+                    if (val) prefixes.push(val);
+                  } else if (mName === 'middleware') {
+                    const innerArgs = chain.namedChildren.find((c: any) => c.type === 'arguments');
+                    if (innerArgs) {
+                      const firstArg = innerArgs.namedChild(0);
+                      if (firstArg) {
+                        const valNode = firstArg.type === 'argument' ? (firstArg.namedChild(0) || firstArg) : firstArg;
+                        if (valNode.type === 'array_creation_expression') {
+                          for (let i = 0; i < valNode.namedChildCount; i++) {
+                            const el = valNode.namedChild(i);
+                            const innerVal = el.type === 'array_element_initializer' ? el.namedChild(el.namedChildCount - 1) : el;
+                            if (innerVal) {
+                              const mwText = cleanQuotes(innerVal.text);
+                              if (mwText) middlewares.push(mwText);
+                            }
+                          }
+                        } else {
+                          const mwText = cleanQuotes(valNode.text);
+                          if (mwText) middlewares.push(mwText);
+                        }
+                      }
+                    }
+                  }
+                  chain = chain.namedChild(0);
+                }
+              }
+            }
+          }
+          curr = curr.parent;
+        }
+        return { prefixes, middlewares };
+      };
+
+      const buildFullUri = (routeUri: string, prefixes: string[]): string => {
+        const reversed = [...prefixes].reverse();
+        const segments = [...reversed, routeUri].map(p => p.replace(/^\/|\/$/g, '')).filter(Boolean);
+        return '/' + segments.join('/');
+      };
+
+      for (const cap of routeMethodCaptures) {
+        const verb = cap.node.text;
+        if (!ROUTE_VERBS.has(verb)) continue;
+        
+        routeCallCount++;
+
+        const parent = cap.node.parent;
+        if (!parent || parent.type !== 'scoped_call_expression') continue;
+
+        const argsNode = parent.namedChildren.find((c: any) => c.type === 'arguments');
+        if (!argsNode) continue;
+
+        const rawUri = getArgText(argsNode, 0) || '/';
+        const startLine = cap.node.startPosition.row + 1;
+
+        const groupCtx = extractEnclosingGroupMiddlewaresAndPrefixes(parent);
+        const fullUri = buildFullUri(rawUri, groupCtx.prefixes);
+        
+        const chainedMws = extractRouteMiddlewares(parent);
+        const allMiddlewares = Array.from(new Set([...groupCtx.middlewares, ...chainedMws]));
+
+        for (const mw of allMiddlewares) {
+          references.push({
+            sourceSymbol: null,
+            targetName: mw,
+            referenceType: 'middleware',
+            startLine,
+            verifiability: mw.includes('\\') ? 'verified' : 'inferred',
+          });
+        }
+
+        const routeName = extractRouteName(parent);
+
+        if (verb === 'resource' || verb === 'apiResource') {
+          const controllerArgText = getArgText(argsNode, 1);
+          if (controllerArgText) {
+            const controllerFqn = resolveToFqn(controllerArgText);
+            controllerClasses.add(controllerFqn.split('\\').pop()!);
+
+            const arg1 = argsNode.namedChild(1);
+            if (arg1) {
+              const valNode = arg1.type === 'argument' ? (arg1.namedChild(0) || arg1) : arg1;
+              const isClassConst = valNode ? valNode.type === 'class_constant_access_expression' : false;
+
+              references.push({
+                sourceSymbol: null,
+                targetName: controllerFqn,
+                referenceType: 'route',
+                startLine,
+                verifiability: isClassConst ? 'verified' : 'inferred',
+                metadata: {
+                  httpVerb: 'ANY',
+                  uri: fullUri,
+                  controllerMethod: null,
+                  routeName,
+                  middlewares: allMiddlewares,
+                  resourceType: verb,
+                },
+              });
+            }
+          }
+        } else {
+          const handlerArg = argsNode.namedChild(1);
+          if (handlerArg) {
+            const valNode = handlerArg.type === 'argument' ? (handlerArg.namedChild(0) || handlerArg) : handlerArg;
+            let controllerClass: string | null = null;
+            let controllerMethod: string | null = null;
+            let isClassConst = false;
+
+            if (valNode.type === 'array_creation_expression') {
+              const el0 = valNode.namedChild(0);
+              const el1 = valNode.namedChild(1);
+              
+              const getVal = (el: any) => {
+                if (!el) return null;
+                return el.type === 'array_element_initializer' ? el.namedChild(el.namedChildCount - 1) : el;
+              };
+              
+              const v0 = getVal(el0);
+              const v1 = getVal(el1);
+
+              if (v0) {
+                if (v0.type === 'class_constant_access_expression') {
+                  controllerClass = v0.namedChild(0)?.text || null;
+                  isClassConst = true;
+                } else {
+                  controllerClass = cleanQuotes(v0.text);
+                }
+              }
+              if (v1) {
+                controllerMethod = cleanQuotes(v1.text);
+              }
+            } else if (valNode.type === 'string' || valNode.type === 'encapsed_string') {
+              const strVal = cleanQuotes(valNode.text);
+              if (strVal.includes('@')) {
+                const parts = strVal.split('@');
+                controllerClass = parts[0];
+                controllerMethod = parts[1] || null;
+              }
+            }
+
+            if (controllerClass) {
+              const controllerFqn = resolveToFqn(controllerClass);
+              controllerClasses.add(controllerFqn.split('\\').pop()!);
+
+              references.push({
+                sourceSymbol: null,
+                targetName: controllerFqn,
+                referenceType: 'route',
+                startLine,
+                verifiability: isClassConst ? 'verified' : 'inferred',
+                metadata: {
+                  httpVerb: verb.toUpperCase(),
+                  uri: fullUri,
+                  controllerMethod,
+                  routeName,
+                  middlewares: allMiddlewares,
+                  resourceType: null,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      // F09: Service Container Binding Resolution
+      const CONTAINER_BINDING_METHODS = new Set(['bind', 'singleton', 'scoped', 'instance', 'alias']);
+      const bindingMethodCaptures = refCaptures.get('ref.binding_method_name') || [];
+
+      for (const cap of bindingMethodCaptures) {
+        const methodName = cap.node.text;
+        if (!CONTAINER_BINDING_METHODS.has(methodName)) continue;
+
+        const parent = cap.node.parent;
+        if (!parent || parent.type !== 'member_call_expression') continue;
+
+        const obj = parent.child(0);
+        if (!obj) continue;
+        const objText = obj.text;
+        const isApp = objText.startsWith('$this->app') || objText === '$app' || objText.startsWith('app(');
+        if (!isApp) continue;
+
+        const { className, methodName: encMethod } = getEnclosingScope(cap.node);
+        if (className) {
+          serviceProviderClasses.add(className);
+        }
+
+        const argsNode = parent.namedChildren.find((c: any) => c.type === 'arguments');
+        if (!argsNode) continue;
+        const abstractVal = getArgText(argsNode, 0);
+        if (abstractVal) {
+          const concreteVal = getArgText(argsNode, 1);
+          const abstractFqn = resolveToFqn(abstractVal);
+          const concreteFqn = concreteVal ? resolveToFqn(concreteVal) : null;
+          const startLine = cap.node.startPosition.row + 1;
+
+          const arg0 = argsNode.namedChild(0);
+          if (arg0) {
+            const valNode0 = arg0.type === 'argument' ? (arg0.namedChild(0) || arg0) : arg0;
+            const isAbstractClassConst = valNode0 ? valNode0.type === 'class_constant_access_expression' : false;
+
+            references.push({
+              sourceSymbol: encMethod || 'register',
+              targetName: abstractFqn,
+              referenceType: 'binding',
+              startLine,
+              verifiability: isAbstractClassConst ? 'verified' : 'inferred',
+              metadata: {
+                bindingType: methodName,
+                concreteClass: concreteFqn,
+                serviceProviderPhase: encMethod === 'boot' ? 'boot' : 'register',
+              },
+            });
+          }
+        }
+      }
+
+      // Collect extend-based classes and resolve roles on symbols
+      const extendsCapList = refCaptures.get('ref.target_extends') || [];
+      for (const ext of extendsCapList) {
+        const { className } = getEnclosingScope(ext.node);
+        if (!className) continue;
+        const extText = ext.node.text;
+        if (
+          extText === 'Model' || extText === 'Authenticatable' || extText === 'Pivot' ||
+          extText.endsWith('\\Model') || extText.endsWith('\\Authenticatable') || extText.endsWith('\\Pivot')
+        ) {
+          modelClasses.add(className);
+        }
+        if (
+          extText === 'Controller' || extText === 'BaseController' ||
+          extText.endsWith('\\Controller') || extText.endsWith('\\BaseController')
+        ) {
+          controllerClasses.add(className);
+        }
+        if (
+          extText === 'ServiceProvider' ||
+          extText.endsWith('\\ServiceProvider')
+        ) {
+          serviceProviderClasses.add(className);
+        }
+      }
+
+      for (const sym of symbols) {
+        if (sym.kind === 'class') {
+          if (modelClasses.has(sym.name)) {
+            sym.metadata.laravelRole = 'model';
+          } else if (controllerClasses.has(sym.name)) {
+            sym.metadata.laravelRole = 'controller';
+          } else if (serviceProviderClasses.has(sym.name)) {
+            sym.metadata.laravelRole = 'service_provider';
+          }
+        }
+      }
+
+      // Check if file is a route file
+      const isRouteFile = filePath.includes('routes/') || routeCallCount >= 2;
+      if (isRouteFile) {
+        fileMetadata = { laravelRole: 'route_file' };
+      }
+
       // F10: Classification of migration, seeder, and factory roles
       let isMigration = filePath.includes('/migrations/');
       let isSeeder = filePath.includes('/seeders/');
       let isFactory = filePath.includes('/factories/');
 
-      const extendsCaptures = refCaptures.get('ref.target_extends') || [];
-      for (const ext of extendsCaptures) {
+      for (const ext of extendsCapList) {
         const extText = ext.node.text;
         if (extText === 'Migration' || extText === 'Illuminate\\Database\\Migrations\\Migration' || extText === '\\Illuminate\\Database\\Migrations\\Migration') {
           isMigration = true;
@@ -294,7 +724,7 @@ export class PhpParser implements LanguageParser {
       errors.push({ message: e.message, line: 0 });
     }
 
-    return { symbols, references, errors };
+    return { symbols, references, errors, fileMetadata };
   }
 
   private extractSignature(source: string, node: any, name: string, kind: string, startLine: number): string {

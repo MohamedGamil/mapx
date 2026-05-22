@@ -57,6 +57,10 @@ export class DotExporter {
       implements: 'dashed',
       call: 'dotted',
       instantiation: 'dotted',
+      relation: 'bold',
+      route: 'solid',
+      binding: 'dashed',
+      middleware: 'dotted',
     };
 
     const seen = new Set<string>();
@@ -72,7 +76,17 @@ export class DotExporter {
       if (edge.verifiability === 'inferred') {
         style = 'dashed';
       }
-      lines.push(`  "${src}" -> "${tgt}" [label="${type}", style=${style}];`);
+      let colorAttr = '';
+      if (type === 'relation') {
+        colorAttr = ', color="blue"';
+      } else if (type === 'route') {
+        colorAttr = ', color="green"';
+      } else if (type === 'binding') {
+        colorAttr = ', color="purple"';
+      } else if (type === 'middleware') {
+        colorAttr = ', color="orange"';
+      }
+      lines.push(`  "${src}" -> "${tgt}" [label="${type}", style=${style}${colorAttr}];`);
     }
 
     lines.push('}');
