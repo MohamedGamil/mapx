@@ -1,5 +1,8 @@
 import type { FrameworkDetector, RouteBinding, HookBinding, ScanContext } from '../types.js';
 import { LaravelDetector } from './detectors/laravel.js';
+import { DjangoDetector } from './detectors/django.js';
+import { FlaskDetector } from './detectors/flask.js';
+import { FastAPIDetector } from './detectors/fastapi.js';
 
 export class FrameworkRegistry {
   private static instance: FrameworkRegistry | null = null;
@@ -7,6 +10,9 @@ export class FrameworkRegistry {
 
   private constructor() {
     this.register(new LaravelDetector());
+    this.register(new DjangoDetector());
+    this.register(new FlaskDetector());
+    this.register(new FastAPIDetector());
   }
 
   static getInstance(): FrameworkRegistry {

@@ -110,7 +110,7 @@
 - [x] Schema migration: `ALTER TABLE edges ADD COLUMN metadata TEXT` (v5 → v6)
 - [ ] **Concrete first**: implement Django, Express, and Laravel extended detectors before abstracting
 - [ ] Add framework detection confidence scoring to suppress false positives
-- [ ] Implement Python detectors: Django, Flask, FastAPI (F22)
+- [x] Implement Python detectors: Django, Flask, FastAPI (F22)
 - [ ] Implement Node.js detectors: Express, NestJS (F23)
 - [ ] Implement frontend detectors: React Router, Tanstack Router, Next.js, SvelteKit (F24)
   - [ ] Mark all frontend route edges with `metadata.routeType = "client"` (distinct from server routes)
