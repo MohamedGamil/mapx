@@ -627,7 +627,7 @@ export class PhpParser extends GenericWasmParser {
       }
 
       // Check if file is a route file
-      const isRouteFile = filePath.includes('routes/');
+      const isRouteFile = filePath.replace(/\\/g, '/').includes('routes/');
       if (isRouteFile) {
         fileMetadata = { laravelRole: 'route_file' };
       }

@@ -108,16 +108,16 @@
 - [x] Extract `FrameworkDetector` interface and `RouteRegistry` class from concrete implementations (F21)
 - [x] Add `mapx routes [--framework=X]` CLI and `mapx_routes` MCP tool
 - [x] Schema migration: `ALTER TABLE edges ADD COLUMN metadata TEXT` (v5 → v6)
-- [ ] **Concrete first**: implement Django, Express, and Laravel extended detectors before abstracting
-- [ ] Add framework detection confidence scoring to suppress false positives
+- [x] **Concrete first**: implement Django, Express, and Laravel extended detectors before abstracting
+- [x] Add framework detection confidence scoring to suppress false positives
 - [x] Implement Python detectors: Django, Flask, FastAPI (F22)
 - [x] Implement Node.js detectors: Express, NestJS (F23)
 - [x] Implement frontend detectors: React Router, Tanstack Router, Next.js, SvelteKit, Vue Router (F24)
   - [x] Mark all frontend route edges with `metadata.routeType = "client"` (distinct from server routes)
 - [x] Implement backend detectors: Rails, Spring Boot, Gin, chi, gorilla/mux, Axum, actix-web, Rocket, ASP.NET Core, Vapor; Laravel extended, Drupal (F25)
 - [x] Implement PHP CMS detectors: Symfony, Yii2, Yii3, WordPress (F26)
-- [ ] **Risk**: frontend `route` edges must carry `routeType: "client"` to distinguish from server-side route edges
-- [ ] **Risk**: 21 frameworks = high ongoing maintenance surface — confidence scoring is mandatory
+- [x] **Risk**: frontend `route` edges must carry `routeType: "client"` to distinguish from server-side route edges
+- [x] **Risk**: 21 frameworks = high ongoing maintenance surface — confidence scoring is mandatory
 
 ---
 

@@ -95,11 +95,11 @@ specs/
 | F19 | Smart context & search MCP/CLI tools | `done` | I11 | [F19](features/F19-smart-context-tools.md) |
 | F20 | Language expansion (Python, Go, Rust, Java, C#, Ruby, C, C++, Swift, Kotlin, Scala, Dart, Svelte, Vue, Lua/Luau, Elixir, Zig, Bash, Pascal) | `done` | I12 | [F20](features/F20-language-expansion.md) |
 | F21 | Framework detection infrastructure (FrameworkDetector, RouteRegistry, schema v6, `mapx routes`) | `done` | I13 | [F21](features/F21-framework-infrastructure.md) |
-| F22 | Python framework routes (Django, Flask, FastAPI) | `planned` | I13 | [F22](features/F22-python-frameworks.md) |
-| F23 | Node.js/TypeScript framework routes (Express, NestJS) | `planned` | I13 | [F23](features/F23-nodejs-frameworks.md) |
-| F24 | Frontend routing frameworks (React Router, Tanstack Router, Next.js, SvelteKit) | `planned` | I13 | [F24](features/F24-frontend-routing.md) |
-| F25 | Backend framework routes (Laravel extended, Drupal, Rails, Spring, Gin/chi/gorilla, Axum/actix/Rocket, ASP.NET Core, Vapor) | `planned` | I13 | [F25](features/F25-backend-frameworks.md) |
-| F26 | PHP CMS/framework routes (Symfony attribute + YAML routes, Yii2/Yii3, WordPress hooks/filters/shortcodes/REST/template hierarchy) | `planned` | I13 | [F26](features/F26-php-cms-frameworks.md) |
+| F22 | Python framework routes (Django, Flask, FastAPI) | `done` | I13 | [F22](features/F22-python-frameworks.md) |
+| F23 | Node.js/TypeScript framework routes (Express, NestJS) | `done` | I13 | [F23](features/F23-nodejs-frameworks.md) |
+| F24 | Frontend routing frameworks (React Router, Tanstack Router, Next.js, SvelteKit) | `done` | I13 | [F24](features/F24-frontend-routing.md) |
+| F25 | Backend framework routes (Laravel extended, Drupal, Rails, Spring, Gin/chi/gorilla, Axum/actix/Rocket, ASP.NET Core, Vapor) | `done` | I13 | [F25](features/F25-backend-frameworks.md) |
+| F26 | PHP CMS/framework routes (Symfony attribute + YAML routes, Yii2/Yii3, WordPress hooks/filters/shortcodes/REST/template hierarchy) | `done` | I13 | [F26](features/F26-php-cms-frameworks.md) |
 | F27 | TOON export format (`mapx export --format=toon`) | `done` | I14 | [F27](features/F27-toon-export.md) |
 | F28 | Bundled lightweight web dashboard (`mapx ui`) | `done` | I15 | [F28](features/F28-web-dashboard.md) |
 
@@ -123,7 +123,7 @@ specs/
 | [I10](iterations/I10.md) | Git workspace & submodule awareness | `done` | F18 |
 | [I11](iterations/I11.md) | Smart context & search tools | `done` | F19 |
 | [I12](iterations/I12.md) | Language expansion (19 languages) | `done` | F20 |
-| [I13](iterations/I13.md) | Framework-aware parsing & route context (21 frameworks) | `in-progress` | F21, F22, F23, F24, F25, F26 |
+| [I13](iterations/I13.md) | Framework-aware parsing & route context (21 frameworks) | `done` | F21, F22, F23, F24, F25, F26 |
 | [I14](iterations/I14.md) | TOON export format | `done` | F27 |
 | [I15](iterations/I15.md) | Bundled web dashboard (`mapx ui`) | `done` | F28 |
 

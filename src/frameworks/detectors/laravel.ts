@@ -33,8 +33,20 @@ export class LaravelDetector implements FrameworkDetector {
   }
 
   async extractRoutes(filePath: string, content: string, ctx: ScanContext): Promise<RouteBinding[]> {
-    const isRouteFile = filePath.includes('routes/');
-    const hasRouteAttributes = content.includes('RouteAttributes') || content.includes('#[Route') || content.includes('#[Get') || content.includes('#[Post');
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const isRouteFile = normalizedPath.includes('routes/');
+    const hasRouteAttributes = content.includes('RouteAttributes') ||
+      content.includes('#[Route') ||
+      content.includes('#[Get') ||
+      content.includes('#[Post') ||
+      content.includes('#[Put') ||
+      content.includes('#[Patch') ||
+      content.includes('#[Delete') ||
+      content.includes('#[Options') ||
+      content.includes('#[Any') ||
+      content.includes('#[Head') ||
+      content.includes('#[Prefix') ||
+      content.includes('#[Middleware');
 
     if (!isRouteFile && !hasRouteAttributes) {
       return [];
@@ -496,7 +508,8 @@ function processRouteChain(
           controllerMethod = classAndMethod[2];
         }
       } else if (handlerStr.includes('@')) {
-        const strMatch = handlerStr.match(/['"]([^'"]+)@([^'"]+)['"]/);
+        const cleanHandler = handlerStr.replace(/['"]/g, '');
+        const strMatch = cleanHandler.match(/^([a-zA-Z0-9_\\]+)@([a-zA-Z0-9_]+)$/);
         if (strMatch) {
           controllerClass = strMatch[1];
           controllerMethod = strMatch[2];

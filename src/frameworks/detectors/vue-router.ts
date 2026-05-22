@@ -27,14 +27,14 @@ export class VueRouterDetector implements FrameworkDetector {
   async extractRoutes(filePath: string, content: string, ctx: ScanContext): Promise<RouteBinding[]> {
     const routes: RouteBinding[] = [];
 
-    if (!content.includes('VueRouter') && !content.includes('createRouter') && !content.includes('routes')) {
+    if (!content.includes('VueRouter') && !content.includes('createRouter') && !content.includes('routes') && !content.includes('routerMap') && !content.includes('routeMap')) {
       return [];
     }
 
-    // Locate "routes: [" or "routes = [" or type-annotated declarations
+    // Locate "routes: [", "routes = [", "routerMap = [", "routeMap: [", etc.
     let index = 0;
     while (true) {
-      const match = content.substring(index).match(/\broutes(?:\s*:[^=]+)?\s*[=:]\s*\[/);
+      const match = content.substring(index).match(/\b[a-zA-Z0-9_]*(?:routes|Routes|routesList|routerMap|routeMap|RouteMap)(?:\s*:[^=]+)?\s*[=:]\s*\[/);
       if (!match) break;
 
       const startOfArray = index + match.index! + match[0].length - 1;
@@ -69,29 +69,66 @@ export class VueRouterDetector implements FrameworkDetector {
 
       // Parse current route object
       const objBody = obj.content;
-      const pathMatch = objBody.match(/\bpath\s*:\s*['"]([^'"]*)['"]/);
+      const pathMatch = objBody.match(/\bpath\s*:\s*['"`]([^'"`]*)['"`]/);
       const pathVal = pathMatch ? pathMatch[1] : '';
 
-      // Try matching standard component: Home or component: () => import('./Home.vue')
-      const compMatch = objBody.match(/\bcomponent\s*:\s*([a-zA-Z0-9_]+)/);
-      const importMatch = objBody.match(/import\s*\(\s*['"]([^'"]+)['"]\s*\)/);
-      const requireMatch = objBody.match(/require\s*\(\s*(?:\[\s*)?['"]([^'"]+)['"]/);
+      // Try matching component or components
+      const componentsList: { symbol: string, file: string }[] = [];
 
-      let componentSymbol = compMatch ? compMatch[1] : undefined;
-      let resolvedFile = filePath;
-
-      if (importMatch || requireMatch) {
-        const importPath = importMatch ? importMatch[1] : requireMatch![1];
-        if (importPath.startsWith('.')) {
-          // Resolve relative component path
-          resolvedFile = join(dirname(filePath), importPath);
-        }
-        // Use filename or final path part as component symbol representation
-        componentSymbol = importPath.split('/').pop()?.replace(/\.[a-zA-Z0-9]+$/, '') || 'Component';
-      } else if (componentSymbol) {
+      // 1. Single component matches: component: ComponentName
+      const compMatch = objBody.match(/\bcomponent\s*:\s*([a-zA-Z0-9_]+)\b(?!\s*=>)/);
+      if (compMatch && compMatch[1] !== 'import' && compMatch[1] !== 'require') {
+        const componentSymbol = compMatch[1];
+        let resolvedFile = filePath;
         const resolvedPath = ctx.resolveSymbolToFile(componentSymbol);
         if (resolvedPath) {
           resolvedFile = resolvedPath;
+        }
+        componentsList.push({ symbol: componentSymbol, file: resolvedFile });
+      }
+
+      // 2. Dynamic import matches: component: () => import('./Home.vue')
+      const importMatches = objBody.matchAll(/import\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g);
+      for (const impMatch of importMatches) {
+        const importPath = impMatch[1];
+        let resolvedFile = filePath;
+        if (importPath.startsWith('.')) {
+          resolvedFile = join(dirname(filePath), importPath);
+        }
+        const symbol = importPath.split('/').pop()?.replace(/\.[a-zA-Z0-9]+$/, '') || 'Component';
+        componentsList.push({ symbol, file: resolvedFile });
+      }
+
+      // 3. Legacy require/resolve matches: component: resolve => require(['./Home.vue'], resolve)
+      // or require('./Home.vue').default
+      const requireMatches = objBody.matchAll(/require\s*\(\s*(?:\[\s*)?['"`]([^'"`]+)['"`]/g);
+      for (const reqMatch of requireMatches) {
+        const importPath = reqMatch[1];
+        let resolvedFile = filePath;
+        if (importPath.startsWith('.')) {
+          resolvedFile = join(dirname(filePath), importPath);
+        }
+        const symbol = importPath.split('/').pop()?.replace(/\.[a-zA-Z0-9]+$/, '') || 'Component';
+        componentsList.push({ symbol, file: resolvedFile });
+      }
+
+      // 4. Named views / components: components: { default: Home, sidebar: () => import('./Sidebar.vue') }
+      const componentsMatch = objBody.match(/\bcomponents\s*:\s*\{([^}]+)\}/);
+      if (componentsMatch) {
+        const compsBody = componentsMatch[1];
+        // Match simple symbols in components object: default: Home
+        const symbolRegex = /\b[a-zA-Z0-9_]+\s*:\s*([a-zA-Z0-9_]+)\b(?!\s*=>)/g;
+        let match;
+        while ((match = symbolRegex.exec(compsBody)) !== null) {
+          const compSym = match[1];
+          if (compSym !== 'import' && compSym !== 'require') {
+            let resolvedFile = filePath;
+            const resolvedPath = ctx.resolveSymbolToFile(compSym);
+            if (resolvedPath) {
+              resolvedFile = resolvedPath;
+            }
+            componentsList.push({ symbol: compSym, file: resolvedFile });
+          }
         }
       }
 
@@ -99,13 +136,28 @@ export class VueRouterDetector implements FrameworkDetector {
       const cleanPath = pathVal.replace(/^\/|\/$/g, '');
       const fullPath = '/' + [...cleanParentPrefix, cleanPath].filter(Boolean).join('/');
 
-      if (componentSymbol || objBody.includes('children')) {
+      if (componentsList.length > 0) {
+        for (const comp of componentsList) {
+          routes.push({
+            framework: this.name,
+            method: 'GET',
+            path: fullPath,
+            handlerFile: comp.file,
+            handlerSymbol: comp.symbol,
+            metadata: {
+              confidence: 'inferred',
+              routeType: 'client',
+            },
+          });
+        }
+      } else if (objBody.includes('children')) {
+        // If children exist but no direct component, register placeholder component
         routes.push({
           framework: this.name,
           method: 'GET',
           path: fullPath,
-          handlerFile: resolvedFile,
-          handlerSymbol: componentSymbol || 'Component',
+          handlerFile: filePath,
+          handlerSymbol: 'Component',
           metadata: {
             confidence: 'inferred',
             routeType: 'client',
