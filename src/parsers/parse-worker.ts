@@ -43,7 +43,7 @@ let parserReady = false;
 let Parser: any;
 let Language: any;
 let Query: any;
-let loadedLanguages: Map<string, { language: any; symbolsQuery: string; referencesQuery: string }> = new Map();
+let loadedLanguages: Map<string, { language: any; symbolsQuery: string; referencesQuery: string; parser: any; compiledSymQuery: any; compiledRefQuery: any }> = new Map();
 let langDefs: Map<string, any>;
 let assetRoot: string;
 let nameByNodeId: Map<number, string>;
@@ -107,7 +107,11 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
       const symbolsQuery = await readFile(resolve(assetRoot, def.queries.symbols), 'utf-8');
       const referencesQuery = await readFile(resolve(assetRoot, def.queries.references), 'utf-8');
 
-      langCtx = { language, symbolsQuery, referencesQuery };
+      const parser = new Parser();
+      parser.setLanguage(language);
+      const compiledSymQuery = new Query(language, symbolsQuery);
+      const compiledRefQuery = new Query(language, referencesQuery);
+      langCtx = { language, symbolsQuery, referencesQuery, parser, compiledSymQuery, compiledRefQuery };
       loadedLanguages.set(langKey, langCtx);
     } catch {
       return { ...empty, errors: [{ message: `Failed to load language for ${job.filePath}` }] };
@@ -115,9 +119,7 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
   }
 
   try {
-    const parser = new Parser();
-    parser.setLanguage(langCtx.language);
-    const tree = parser.parse(source);
+    const tree = langCtx.parser.parse(source);
     if (!tree) {
       return { ...empty, errors: [{ message: `Parser returned null for ${job.filePath}` }] };
     }
@@ -127,7 +129,7 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
     nameByNodeId = new Map();
 
     try {
-      const symQuery = new Query(langCtx.language, langCtx.symbolsQuery);
+      const symQuery = langCtx.compiledSymQuery;
       const allSymCaptures = symQuery.captures(tree.rootNode);
       const kindNodeIds = new Set<number>();
       for (const capture of allSymCaptures) {
@@ -165,7 +167,7 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
     } catch {}
 
     try {
-      const refQuery = new Query(langCtx.language, langCtx.referencesQuery);
+      const refQuery = langCtx.compiledRefQuery;
       for (const capture of refQuery.captures(tree.rootNode)) {
         const startLine = capture.node.startPosition.row + 1;
 
@@ -192,10 +194,34 @@ async function parseFile(job: ParseJob): Promise<ParseResult> {
   }
 }
 
+async function initLanguages(): Promise<void> {
+  // Pre-warm all language grammars sequentially before accepting any jobs.
+  // This avoids a race condition where concurrent async message handlers all see
+  // loadedLanguages.get(lang) === null and try to compile WASM simultaneously,
+  // saturating the libuv thread pool and causing a hang.
+  for (const [key, def] of langDefs) {
+    try {
+      const wasmPath = resolve(assetRoot, def.grammarWasm);
+      const wasmBuffer = await readFile(wasmPath);
+      const language = await Language.load(wasmBuffer);
+      const symbolsQuery = await readFile(resolve(assetRoot, def.queries.symbols), 'utf-8');
+      const referencesQuery = await readFile(resolve(assetRoot, def.queries.references), 'utf-8');
+      const parser = new Parser();
+      parser.setLanguage(language);
+      const compiledSymQuery = new Query(language, symbolsQuery);
+      const compiledRefQuery = new Query(language, referencesQuery);
+      loadedLanguages.set(key, { language, symbolsQuery, referencesQuery, parser, compiledSymQuery, compiledRefQuery });
+    } catch {
+      // language unavailable — files of this type will return empty results
+    }
+  }
+}
+
 async function main() {
   langDefs = new Map(Object.entries(workerData.languages));
 
   await initParser();
+  await initLanguages();
 
   parentPort!.on('message', async (job: ParseJob) => {
     const result = await parseFile(job);

@@ -51,6 +51,15 @@ export: ## Export LLM-friendly summary, 8K tokens (make export DIR=/path)
 export-wide: ## Export with larger token budget (16K)
 	$(CLI) export --tokens=16384 --dir=$(DIR)
 
+export-json: ## Export in JSON format (make export-json DIR=/path)
+	$(CLI) export --format=json --dir=$(DIR)
+
+export-dot: ## Export in DOT format (make export-dot DIR=/path)
+	$(CLI) export --format=dot --dir=$(DIR)
+
+export-svg: ## Export in SVG format (make export-svg DIR=/path)
+	$(CLI) export --format=svg --dir=$(DIR)
+
 query: ## Search symbols: make query q=ClassName DIR=/path
 	@test -n "$(q)" || (echo "Usage: make query q=SearchTerm [DIR=/path]" && exit 1)
 	$(CLI) query "$(q)" --dir=$(DIR)

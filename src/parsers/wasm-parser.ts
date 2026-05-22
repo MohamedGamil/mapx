@@ -40,22 +40,17 @@ function findAssetRoot(): string {
 
 const PROJECT_ROOT = findAssetRoot();
 
-let parserInstance: Parser | null = null;
-let initialized = false;
+let initPromise: Promise<void> | null = null;
 
-async function initParser(): Promise<Parser> {
-  if (!initialized) {
-    await Parser.init();
-    initialized = true;
+function ensureInit(): Promise<void> {
+  if (!initPromise) {
+    initPromise = Parser.init();
   }
-  if (!parserInstance) {
-    parserInstance = new Parser();
-  }
-  return parserInstance;
+  return initPromise;
 }
 
 export async function loadLanguage(langDef: LanguageDefinition): Promise<Language> {
-  await initParser();
+  await ensureInit();
   const wasmPath = resolve(PROJECT_ROOT, langDef.grammarWasm);
   const wasmBuffer = await readFile(wasmPath);
   const language = await Language.load(wasmBuffer);
@@ -74,7 +69,10 @@ export async function parseWithQueries(
   symbolsQuery: string,
   referencesQuery: string
 ): Promise<ParsedCaptures> {
-  const parser = await initParser();
+  await ensureInit();
+  // Use a fresh parser instance per call to avoid language-switching races
+  // when multiple concurrent parses share the same instance.
+  const parser = new Parser();
   parser.setLanguage(language);
   const tree = parser.parse(source);
   if (!tree) {

@@ -11,17 +11,21 @@ export class PhpParser implements LanguageParser {
   private language: any = null;
   private symbolsQuery: string | null = null;
   private referencesQuery: string | null = null;
+  private loadingPromise: Promise<void> | null = null;
 
   constructor(langDef: LanguageDefinition) {
     this.langDef = langDef;
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (!this.language) {
-      this.language = await loadLanguage(this.langDef);
-      this.symbolsQuery = await loadQueryFile(this.langDef.queries.symbols);
-      this.referencesQuery = await loadQueryFile(this.langDef.queries.references);
+  private ensureLoaded(): Promise<void> {
+    if (!this.loadingPromise) {
+      this.loadingPromise = (async () => {
+        this.language = await loadLanguage(this.langDef);
+        this.symbolsQuery = await loadQueryFile(this.langDef.queries.symbols);
+        this.referencesQuery = await loadQueryFile(this.langDef.queries.references);
+      })();
     }
+    return this.loadingPromise;
   }
 
   async parse(filePath: string, source: string): Promise<ParseResult> {

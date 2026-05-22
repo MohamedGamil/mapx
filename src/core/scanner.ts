@@ -2,7 +2,6 @@ import { readFile, stat, readdir } from 'node:fs/promises';
 import { resolve, relative, extname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { cpus } from 'node:os';
-import { Worker } from 'node:worker_threads';
 import { Store } from './store.js';
 import { CodeGraph } from './graph.js';
 import { Config } from './config.js';
@@ -157,28 +156,42 @@ export class Scanner {
 
       const parseResults = await this.parseFilesParallel(toParse, workspaceRoot);
 
-      for (let i = 0; i < toParse.length && !this.aborted; i++) {
-        const f = toParse[i];
-        const result = parseResults[i];
+      // Pre-build file map once — avoids O(n²) getAllFiles calls inside resolveReferences
+      const allTrackedFiles = this.store.getAllFiles(repo.name);
+      const fileMap = new Map<string, string>();
+      for (const f of allTrackedFiles) fileMap.set(f.path as string, f.path as string);
+      for (const f of toParse) fileMap.set(f.relativePath, f.relativePath);
 
-        this.writeParseResult(f.relativePath, result, repo.name);
+      // Write in batches to keep each SQLite transaction small (avoids large WAL / fsync stalls)
+      const BATCH_SIZE = 100;
+      for (let batchStart = 0; batchStart < toParse.length && !this.aborted; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, toParse.length);
 
-        totalSymbols += result.symbols.length;
-        totalEdges += result.references.length;
-        completed.add(f.relativePath);
+        this.store.inTransaction(() => {
+          for (let i = batchStart; i < batchEnd; i++) {
+            this.writeParseResultWithMap(toParse[i].relativePath, parseResults[i], repo.name, fileMap);
+          }
+        });
+
+        // Progress and resume state updated AFTER the transaction commits
+        for (let i = batchStart; i < batchEnd; i++) {
+          totalSymbols += parseResults[i].symbols.length;
+          totalEdges += parseResults[i].references.length;
+          completed.add(toParse[i].relativePath);
+        }
+
+        this.onProgress?.({
+          phase: 'parse',
+          current: completed.size,
+          total: discovered.length,
+          file: toParse[batchEnd - 1].relativePath,
+        });
 
         this.saveResumeState({
           totalFiles: discovered.length,
           completedFiles: [...completed],
           totalSymbols,
           totalEdges,
-        });
-
-        this.onProgress?.({
-          phase: 'parse',
-          current: completed.size,
-          total: discovered.length,
-          file: f.relativePath,
         });
       }
     } else if (unchangedFiles.length > 0) {
@@ -402,105 +415,17 @@ export class Scanner {
 
   private async parseFilesParallel(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
     if (files.length === 0) return [];
-
-    const results: ParseResult[] = new Array(files.length);
-    const hasWorkers = typeof Worker !== 'undefined';
-
-    if (hasWorkers && files.length >= 4) {
-      try {
-        return await this.parseWithWorkers(files, workspaceRoot);
-      } catch {
-        // fall through to main-thread parsing
-      }
-    }
-
     return this.parseOnMainThread(files, workspaceRoot);
   }
 
   private async parseWithWorkers(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
-    const results: ParseResult[] = new Array(files.length);
-    const { fileURLToPath } = await import('node:url');
-    const { dirname } = await import('node:path');
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const workerPath = resolve(__dirname, '..', 'parsers', 'parse-worker.ts');
-
-    const builtinLangs = getBuiltinLanguages();
-    const serializableLangs: Record<string, any> = {};
-    for (const [k, v] of Object.entries(builtinLangs)) {
-      serializableLangs[k] = {
-        extensions: v.extensions,
-        grammarWasm: v.grammarWasm,
-        queries: v.queries,
-      };
-    }
-
-    let nextIdx = 0;
-    const resultPromises: Promise<void>[] = [];
-
-    const createWorker = async (): Promise<void> => {
-      const worker = new Worker(workerPath, {
-        workerData: { languages: serializableLangs },
-        execArgv: ['--require', 'tsx/cjs'],
-      });
-
-      await new Promise<void>((resolve, reject) => {
-        worker.on('message', (msg) => {
-          if (msg.type === 'ready') resolve();
-          else if (msg.type === 'error') reject(new Error(msg.error));
-        });
-        worker.on('error', reject);
-        setTimeout(() => reject(new Error('Worker init timeout')), 15000);
-      });
-
-      const pending = new Map<number, { resolve: (r: ParseResult) => void; reject: (e: Error) => void }>();
-
-      worker.on('message', (msg: any) => {
-        if (msg.id !== undefined && pending.has(msg.id)) {
-          const { resolve } = pending.get(msg.id)!;
-          pending.delete(msg.id);
-          resolve(msg as ParseResult);
-        }
-      });
-
-      worker.on('error', (err) => {
-        for (const { reject } of pending.values()) reject(err);
-        pending.clear();
-      });
-
-      while (!this.aborted) {
-        const idx = nextIdx;
-        if (idx >= files.length) break;
-        nextIdx++;
-
-        const f = files[idx];
-        const relPath = relative(workspaceRoot, f.absolutePath).replace(/\\/g, '/');
-
-        const promise = new Promise<ParseResult>((res, rej) => {
-          pending.set(idx, { resolve: res, reject: rej });
-        });
-
-        worker.postMessage({ id: idx, filePath: relPath, absolutePath: f.absolutePath });
-
-        try {
-          results[idx] = await promise;
-        } catch {
-          results[idx] = { symbols: [], references: [], errors: [{ message: `Worker failed for ${relPath}` }] };
-        }
-      }
-
-      await worker.terminate();
-    };
-
-    const workerCount = Math.min(this.concurrency, files.length, files.length < 8 ? 2 : this.concurrency);
-    await Promise.all(Array.from({ length: workerCount }, () => createWorker()));
-
-    return results;
+    return this.parseOnMainThread(files, workspaceRoot);
   }
 
   private async parseOnMainThread(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
     const results: ParseResult[] = new Array(files.length);
 
+    // Read all files concurrently first (I/O bound, cheap to parallelize)
     const sources = await Promise.all(
       files.map(async (f) => {
         try {
@@ -511,66 +436,98 @@ export class Scanner {
       }),
     );
 
-    for (let i = 0; i < files.length && !this.aborted; i++) {
-      const fileInfo = files[i];
-      const relPath = relative(workspaceRoot, fileInfo.absolutePath).replace(/\\/g, '/');
+    // Parse with bounded concurrency: run up to CONCURRENCY parses simultaneously.
+    // Each parse() is async and yields around WASM I/O points, so multiple can
+    // interleave without blocking the event loop.
+    const CONCURRENCY = this.concurrency;
+    let nextIdx = 0;
 
-      if (sources[i] === null) {
-        results[i] = { symbols: [], references: [], errors: [{ message: `Failed to read ${relPath}` }] };
-        continue;
-      }
+    const runWorker = async () => {
+      while (!this.aborted) {
+        const i = nextIdx++;
+        if (i >= files.length) break;
 
-      try {
-        const parser = getParserForFile(relPath, this.config.getResolvedUserLanguages());
-        results[i] = await parser.parse(relPath, sources[i]!);
-      } catch {
-        results[i] = { symbols: [], references: [], errors: [{ message: `Failed to parse ${relPath}` }] };
+        const fileInfo = files[i];
+        const relPath = relative(workspaceRoot, fileInfo.absolutePath).replace(/\\/g, '/');
+
+        if (sources[i] === null) {
+          results[i] = { symbols: [], references: [], errors: [{ message: `Failed to read ${relPath}` }] };
+          continue;
+        }
+
+        try {
+          const parser = getParserForFile(relPath, this.config.getResolvedUserLanguages());
+          results[i] = await parser.parse(relPath, sources[i]!);
+        } catch {
+          results[i] = { symbols: [], references: [], errors: [{ message: `Failed to parse ${relPath}` }] };
+        }
       }
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, runWorker));
 
     return results;
   }
 
   private writeParseResult(relativePath: string, result: ParseResult, repoName: string): void {
+    const allFiles = this.store.getAllFiles(repoName);
+    const fileMap = new Map<string, string>();
+    for (const f of allFiles) fileMap.set(f.path as string, f.path as string);
     this.store.inTransaction(() => {
-      this.store.deleteSymbolsForFile(relativePath);
-
-      for (const sym of result.symbols) {
-        this.graph.addSymbolNode(
-          sym.name, relativePath, sym.name, sym.kind,
-          sym.startLine, sym.endLine, sym.scope,
-        );
-
-        this.store.insertSymbol({
-          filePath: relativePath,
-          repo: repoName,
-          name: sym.name,
-          kind: sym.kind,
-          scope: sym.scope,
-          signature: sym.signature,
-          startLine: sym.startLine,
-          endLine: sym.endLine,
-          metadata: JSON.stringify(sym.metadata),
-        });
-      }
-
-      this.store.deleteEdgesForFile(relativePath);
-
-      const resolvedRefs = this.resolveReferences(result.references, relativePath, repoName);
-      for (const edge of resolvedRefs) {
-        this.graph.addDependencyEdge(edge);
-        this.store.insertEdge(edge);
-      }
+      this.writeParseResultWithMap(relativePath, result, repoName, fileMap);
     });
   }
 
+  private writeParseResultWithMap(
+    relativePath: string,
+    result: ParseResult,
+    repoName: string,
+    fileMap: Map<string, string>,
+  ): void {
+    this.store.deleteSymbolsForFile(relativePath);
+
+    for (const sym of result.symbols) {
+      this.graph.addSymbolNode(
+        sym.name, relativePath, sym.name, sym.kind,
+        sym.startLine, sym.endLine, sym.scope,
+      );
+
+      this.store.insertSymbol({
+        filePath: relativePath,
+        repo: repoName,
+        name: sym.name,
+        kind: sym.kind,
+        scope: sym.scope,
+        signature: sym.signature,
+        startLine: sym.startLine,
+        endLine: sym.endLine,
+        metadata: JSON.stringify(sym.metadata),
+      });
+    }
+
+    this.store.deleteEdgesForFile(relativePath);
+
+    const resolvedRefs = this.resolveReferencesWithMap(result.references, relativePath, repoName, fileMap);
+    for (const edge of resolvedRefs) {
+      this.graph.addDependencyEdge(edge);
+      this.store.insertEdge(edge);
+    }
+  }
+
   private resolveReferences(refs: ExtractedReference[], sourcePath: string, repoName: string): GraphEdge[] {
-    const edges: GraphEdge[] = [];
     const allFiles = this.store.getAllFiles(repoName);
     const fileMap = new Map<string, string>();
-    for (const f of allFiles) {
-      fileMap.set(f.path as string, f.path as string);
-    }
+    for (const f of allFiles) fileMap.set(f.path as string, f.path as string);
+    return this.resolveReferencesWithMap(refs, sourcePath, repoName, fileMap);
+  }
+
+  private resolveReferencesWithMap(
+    refs: ExtractedReference[],
+    sourcePath: string,
+    repoName: string,
+    fileMap: Map<string, string>,
+  ): GraphEdge[] {
+    const edges: GraphEdge[] = [];
 
     for (const ref of refs) {
       let targetFile: string | null = null;

@@ -59,7 +59,7 @@ function createProgressRenderer(): ProgressCallback {
       const frame = SPINNER_FRAMES[spinnerIdx++ % SPINNER_FRAMES.length];
       return `${frame} `;
     }
-    const filled = Math.round((current / total) * width);
+    const filled = Math.min(width, Math.max(0, Math.round((current / total) * width)));
     const empty = width - filled;
     const bar = '█'.repeat(filled) + '░'.repeat(empty);
     const pct = Math.round((current / total) * 100);

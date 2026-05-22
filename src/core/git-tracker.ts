@@ -14,26 +14,24 @@ export interface GitBlobHash {
 export function getGitBlobHashes(repoRoot: string): Map<string, string> {
   const hashes = new Map<string, string>();
   try {
-    const output = execSync('git ls-tree -r HEAD --name-only', {
+    // Single call: `git ls-tree -r HEAD` outputs lines like:
+    //   100644 blob <hash>\t<path>
+    const output = execSync('git ls-tree -r HEAD', {
       cwd: repoRoot,
       encoding: 'utf-8',
       maxBuffer: 50 * 1024 * 1024,
     });
 
-    const files = output.trim().split('\n').filter(Boolean);
-    for (const file of files) {
-      try {
-        const hashOutput = execSync(`git ls-tree HEAD -- "${file}"`, {
-          cwd: repoRoot,
-          encoding: 'utf-8',
-        });
-        const parts = hashOutput.trim().split(/\s+/);
-        if (parts.length >= 3) {
-          hashes.set(file, parts[2]);
-        }
-      } catch {
-        // skip files that can't be hashed
-      }
+    for (const line of output.split('\n')) {
+      if (!line) continue;
+      // Format: "<mode> <type> <hash>\t<path>"
+      const tab = line.indexOf('\t');
+      if (tab === -1) continue;
+      const parts = line.slice(0, tab).split(' ');
+      if (parts.length < 3) continue;
+      const hash = parts[2];
+      const filePath = line.slice(tab + 1);
+      if (hash && filePath) hashes.set(filePath, hash);
     }
   } catch {
     // not a git repo or no commits
