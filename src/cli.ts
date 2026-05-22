@@ -398,6 +398,7 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
 
   program
     .command('update')
+    .alias('sync')
     .description('Incremental scan: re-scan only changed files')
     .argument('[path]', 'Target directory')
     .option('--exclude <glob>', 'Exclude glob pattern(s)', collectPatterns, [])

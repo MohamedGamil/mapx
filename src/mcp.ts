@@ -109,6 +109,20 @@ export function buildServer(): Server {
         },
       },
       {
+        name: 'mapx_sync',
+        description: 'Incremental scan: re-scan only changed files in the codebase.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            exclude: { type: 'string', description: 'Comma-separated list of exclude glob patterns to append' },
+            include: { type: 'string', description: 'Comma-separated list of include glob patterns to append' },
+            repo: { type: 'string', description: 'Update/sync only a specific registered repository' },
+            all: { type: 'boolean', description: 'Update/sync all registered repositories' },
+            ...dirProperty,
+          },
+        },
+      },
+      {
         name: 'mapx_query',
         description: 'Search for symbols (classes, functions, methods) by name pattern. Returns definitions with file locations and signatures.',
         inputSchema: {
@@ -303,6 +317,40 @@ export function buildServer(): Server {
           };
         } catch (err: any) {
           return { content: [{ type: 'text', text: `Scan failed: ${err.message}` }] };
+        }
+      }
+      case 'mapx_sync': {
+        const resolved = resolveOrFail(args || {});
+        if ('error' in resolved) return { content: [{ type: 'text', text: resolved.error }] };
+        const dir = resolved.dir;
+        const ctx = await loadCtx(dir);
+        if ('error' in ctx) return { content: [{ type: 'text', text: ctx.error }] };
+
+        const excludeStr = (args as any)?.exclude;
+        const includeStr = (args as any)?.include;
+        const repo = (args as any)?.repo;
+        const all = !!(args as any)?.all;
+        const exclude = excludeStr ? excludeStr.split(',').map((s: string) => s.trim()) : [];
+        const include = includeStr ? includeStr.split(',').map((s: string) => s.trim()) : [];
+
+        let repoNames: string[] | undefined = undefined;
+        if (repo) {
+          repoNames = [repo];
+        } else if (all) {
+          repoNames = ['all'];
+        }
+
+        try {
+          const scanner = new Scanner(ctx.store, ctx.config, ctx.graph, undefined, { excludes: exclude, includes: include });
+          const result = await scanner.scanIncremental(repoNames);
+          return {
+            content: [{
+              type: 'text',
+              text: `Updated ${result.filesScanned} files in ${dir} (${Object.entries(result.languageBreakdown).map(([l, c]) => `${l}: ${c}`).join(', ')})\n${result.symbolsFound} symbols updated, ${result.edgesFound} edges updated in ${result.durationMs}ms`,
+            }],
+          };
+        } catch (err: any) {
+          return { content: [{ type: 'text', text: `Sync failed: ${err.message}` }] };
         }
       }
 
@@ -983,7 +1031,7 @@ function generateConfigs(dir: string, transport: 'stdio' | 'sse', port?: number)
 
   lines.push(
     '',
-    '  Available tools: mapx_scan, mapx_query, mapx_dependencies, mapx_export, mapx_status, mapx_metrics, mapx_edges',
+    '  Available tools: mapx_scan, mapx_sync, mapx_query, mapx_dependencies, mapx_export, mapx_status, mapx_metrics, mapx_edges',
     '',
   );
 

@@ -38,7 +38,7 @@ mapx -d /path/to/project scan
 
 - \`mapx init [path]\` - First-time setup
 - \`mapx scan [path]\` - Full scan
-- \`mapx update [path]\` - Incremental update (fast)
+- \`mapx update [path]\` (alias: \`sync\`) - Incremental update (fast)
 - \`mapx status [path]\` - Check what changed since last scan
 - \`mapx export [--dir path]\` - Export compact graph summary
 - \`mapx query <symbol> [--dir path]\` - Search for symbols
@@ -47,11 +47,13 @@ mapx -d /path/to/project scan
 - \`mapx clusters [--dir path]\` - List detected clusters/modules
 - \`mapx trace <symbol> [--dir path]\` - Trace data flow
 - \`mapx serve --dir /path\` - Start stdio MCP server
+- \`mapx workspaces\` - Manage workspaces (multi-repository support)
 
 ## MCP Tools
 
 When running as an MCP server, MapxGraph exposes these tools:
-- \`mapx_scan\` - Scan/update the code graph
+- \`mapx_scan\` - Scan the code graph (full scan)
+- \`mapx_sync\` - Sync changed files to update the graph (incremental scan)
 - \`mapx_query\` - Search symbols by name pattern
 - \`mapx_dependencies\` - Get deps and reverse-deps for a file
 - \`mapx_export\` - Export compact graph summary
@@ -60,13 +62,14 @@ When running as an MCP server, MapxGraph exposes these tools:
 - \`mapx_trace\` - Trace data flow paths from a starting symbol or file
 - \`mapx_sources\` - Find entry points (sources) in the codebase
 - \`mapx_sinks\` - Find terminal consumers (sinks) in the codebase
+- \`mapx_workspaces\` - Retrieve workspace configuration and repositories
 
 ## When to Use
 
 1. **Start of session**: Run \`mapx export\` to get a compact overview.
 2. **Need to find something**: Run \`mapx query <term>\` instead of grepping.
 3. **Need to understand a file**: Run \`mapx deps <file>\` to see relationships.
-4. **Files changed**: Run \`mapx update\` to incrementally update the graph.
+4. **Files changed**: Run \`mapx sync\` (or \`mapx update\`) to incrementally update the graph.
 5. **Major changes**: Run \`mapx scan\` for a full re-scan.
 6. **Need a visual overview**: Run \`mapx export --format=svg -o graph.svg\`.
 7. **Trace data flow**: Run \`mapx trace <symbol>\` to see where data comes from/goes.`
@@ -101,7 +104,8 @@ Add the following to your Claude Desktop configuration file (\`~/.config/Claude/
 
 ## MCP Tools Available
 
-- \`mapx_scan\`: Refresh/update the index.
+- \`mapx_scan\`: Re-scan files (full scan).
+- \`mapx_sync\`: Incrementally update the graph (changed files only).
 - \`mapx_query\`: Find classes, methods, or functions.
 - \`mapx_dependencies\`: Get imports and references of a file.
 - \`mapx_export\`: Export a compact text representation of the graph.
@@ -112,7 +116,7 @@ Add the following to your Claude Desktop configuration file (\`~/.config/Claude/
 
 1. Run \`mapx_export\` at the start of your session to gain context.
 2. Use \`mapx_query\` to search for symbols.
-3. If files are modified, call \`mapx_scan\` to update the graph.
+3. If files are modified, call \`mapx_sync\` to update the graph.
 4. Call \`mapx_trace\` to trace data flow.`
   },
   cursor: {
@@ -129,7 +133,8 @@ Use MapxGraph commands or MCP tools to understand code structure.
 
 ## Available MCP Tools
 
-- \`mapx_scan\` - Re-scan files to update the graph
+- \`mapx_scan\` - Re-scan files to update the graph (full scan)
+- \`mapx_sync\` - Incrementally update the graph (changed files only)
 - \`mapx_query\` - Search for classes/functions
 - \`mapx_dependencies\` - Map file imports/references
 - \`mapx_export\` - Get a token-efficient graph summary
@@ -139,7 +144,7 @@ Use MapxGraph commands or MCP tools to understand code structure.
 ## Workflow
 
 1. Always use \`mapx_export\` on startup rather than reading directories.
-2. Run \`mapx_scan\` after major file changes.
+2. Run \`mapx_sync\` (or \`mapx_scan\`) after file changes.
 3. Query via \`mapx_query\` to navigate symbols.`
   },
   copilot: {
@@ -168,7 +173,7 @@ Use the MapxGraph MCP tools or CLI commands to navigate:
 - \`mapx_export\` / \`mapx export\` on startup.
 - \`mapx_query\` / \`mapx query\` to locate definitions.
 - \`mapx_trace\` / \`mapx trace\` to analyze data flow.
-- \`mapx_scan\` after edits.`
+- \`mapx_sync\` / \`mapx sync\` after edits.`
   },
   cline: {
     filename: '.clinerules',
@@ -195,7 +200,7 @@ Use MapxGraph commands in this repository to analyze code.
 - \`mapx query <symbol>\`: Find locations and definitions.
 - \`mapx deps <file>\`: Show dependencies.
 - \`mapx trace <symbol>\`: Show data-flow traversal.
-- \`mapx update\`: Run after edits.`
+- \`mapx sync\` (or \`mapx update\`): Run after edits.`
   },
   gemini: {
     filename: 'GEMINI.md',
