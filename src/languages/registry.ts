@@ -1,4 +1,6 @@
 import type { SymbolKind } from '../types.js';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 export interface LanguageDefinition {
   name: string;
@@ -8,8 +10,8 @@ export interface LanguageDefinition {
     symbols: string;
     references: string;
   };
-  nodeMappings: Record<SymbolKind, string>;
-  tier: 'built-in' | 'installable' | 'user';
+  nodeMappings: Partial<Record<SymbolKind, string>>;
+  tier: 'built-in' | 'bundled' | 'installable' | 'user';
 }
 
 const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
@@ -75,6 +77,282 @@ const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
       trait: '',
     },
     tier: 'built-in',
+  },
+  python: {
+    name: 'python',
+    extensions: ['.py'],
+    grammarWasm: 'wasm/tree-sitter-python.wasm',
+    queries: {
+      symbols: 'queries/python/symbols.scm',
+      references: 'queries/python/references.scm',
+    },
+    nodeMappings: {
+      class: 'class_definition',
+      function: 'function_definition',
+      method: 'function_definition',
+    },
+    tier: 'bundled',
+  },
+  go: {
+    name: 'go',
+    extensions: ['.go'],
+    grammarWasm: 'wasm/tree-sitter-go.wasm',
+    queries: {
+      symbols: 'queries/go/symbols.scm',
+      references: 'queries/go/references.scm',
+    },
+    nodeMappings: {
+      struct: 'type_spec',
+      interface: 'type_spec',
+      function: 'function_declaration',
+      method: 'method_declaration',
+    },
+    tier: 'bundled',
+  },
+  rust: {
+    name: 'rust',
+    extensions: ['.rs'],
+    grammarWasm: 'wasm/tree-sitter-rust.wasm',
+    queries: {
+      symbols: 'queries/rust/symbols.scm',
+      references: 'queries/rust/references.scm',
+    },
+    nodeMappings: {
+      struct: 'struct_item',
+      interface: 'trait_item',
+      enum: 'enum_item',
+      function: 'function_item',
+      method: 'function_item',
+    },
+    tier: 'bundled',
+  },
+  java: {
+    name: 'java',
+    extensions: ['.java'],
+    grammarWasm: 'wasm/tree-sitter-java.wasm',
+    queries: {
+      symbols: 'queries/java/symbols.scm',
+      references: 'queries/java/references.scm',
+    },
+    nodeMappings: {
+      class: 'class_declaration',
+      interface: 'interface_declaration',
+      enum: 'enum_declaration',
+      method: 'method_declaration',
+    },
+    tier: 'bundled',
+  },
+  'c-sharp': {
+    name: 'c-sharp',
+    extensions: ['.cs'],
+    grammarWasm: 'wasm/tree-sitter-c_sharp.wasm',
+    queries: {
+      symbols: 'queries/c-sharp/symbols.scm',
+      references: 'queries/c-sharp/references.scm',
+    },
+    nodeMappings: {
+      class: 'class_declaration',
+      interface: 'interface_declaration',
+      enum: 'enum_declaration',
+      struct: 'struct_declaration',
+      method: 'method_declaration',
+    },
+    tier: 'bundled',
+  },
+  ruby: {
+    name: 'ruby',
+    extensions: ['.rb'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-ruby.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'ruby', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'ruby', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class',
+      method: 'method',
+    },
+    tier: 'installable',
+  },
+  c: {
+    name: 'c',
+    extensions: ['.c', '.h'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-c.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'c', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'c', 'references.scm'),
+    },
+    nodeMappings: {
+      struct: 'struct_specifier',
+      function: 'function_definition',
+    },
+    tier: 'installable',
+  },
+  cpp: {
+    name: 'cpp',
+    extensions: ['.cpp', '.hpp', '.cc', '.cxx', '.hh'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-cpp.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'cpp', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'cpp', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class_specifier',
+      struct: 'struct_specifier',
+      function: 'function_definition',
+    },
+    tier: 'installable',
+  },
+  swift: {
+    name: 'swift',
+    extensions: ['.swift'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-swift.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'swift', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'swift', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class_declaration',
+      struct: 'struct_declaration',
+      method: 'function_declaration',
+      function: 'function_declaration',
+    },
+    tier: 'installable',
+  },
+  kotlin: {
+    name: 'kotlin',
+    extensions: ['.kt', '.kts'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-kotlin.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'kotlin', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'kotlin', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class_declaration',
+      method: 'function_declaration',
+      function: 'function_declaration',
+    },
+    tier: 'installable',
+  },
+  svelte: {
+    name: 'svelte',
+    extensions: ['.svelte'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-svelte.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'svelte', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'svelte', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'function_declaration',
+    },
+    tier: 'installable',
+  },
+  vue: {
+    name: 'vue',
+    extensions: ['.vue'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-vue.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'vue', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'vue', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'function_declaration',
+    },
+    tier: 'installable',
+  },
+  lua: {
+    name: 'lua',
+    extensions: ['.lua'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-lua.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'lua', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'lua', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'function_definition',
+    },
+    tier: 'installable',
+  },
+  elixir: {
+    name: 'elixir',
+    extensions: ['.ex', '.exs'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-elixir.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'elixir', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'elixir', 'references.scm'),
+    },
+    nodeMappings: {
+      module: 'call',
+      function: 'call',
+    },
+    tier: 'installable',
+  },
+  zig: {
+    name: 'zig',
+    extensions: ['.zig'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-zig.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'zig', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'zig', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'fn_proto',
+    },
+    tier: 'installable',
+  },
+  bash: {
+    name: 'bash',
+    extensions: ['.sh', '.bash'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-bash.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'bash', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'bash', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'function_definition',
+    },
+    tier: 'installable',
+  },
+  pascal: {
+    name: 'pascal',
+    extensions: ['.pas', '.pp'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-pascal.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'pascal', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'pascal', 'references.scm'),
+    },
+    nodeMappings: {
+      function: 'function_declaration',
+    },
+    tier: 'installable',
+  },
+  dart: {
+    name: 'dart',
+    extensions: ['.dart'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-dart.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'dart', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'dart', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class_definition',
+      method: 'method_signature',
+      function: 'function_signature',
+    },
+    tier: 'installable',
+  },
+  scala: {
+    name: 'scala',
+    extensions: ['.scala', '.sc'],
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-scala.wasm'),
+    queries: {
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'scala', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'scala', 'references.scm'),
+    },
+    nodeMappings: {
+      class: 'class_definition',
+      function: 'function_definition',
+    },
+    tier: 'installable',
   },
 };
 

@@ -3,6 +3,7 @@ import type { ParseResult, ExtractedSymbol, ExtractedReference, SymbolKind } fro
 import type { LanguageDefinition } from '../../languages/registry.js';
 import { loadLanguage, loadQueryFile, parseWithQueries } from '../wasm-parser.js';
 import { COMMON_FRAMEWORK_METHODS } from '../common-methods.js';
+import { GenericWasmParser } from '../generic-wasm-parser.js';
 
 export const LARAVEL_FACADE_MAP: Record<string, string> = {
   App:           'Illuminate\\Foundation\\Application',
@@ -37,29 +38,9 @@ export const LARAVEL_FACADE_MAP: Record<string, string> = {
   View:          'Illuminate\\View\\Factory',
 };
 
-export class PhpParser implements LanguageParser {
-  readonly languageName = 'php';
-  readonly supportedExtensions = ['.php', '.phtml', '.php3', '.php4', '.php5', '.php7'];
-
-  private langDef: LanguageDefinition;
-  private language: any = null;
-  private symbolsQuery: string | null = null;
-  private referencesQuery: string | null = null;
-  private loadingPromise: Promise<void> | null = null;
-
+export class PhpParser extends GenericWasmParser {
   constructor(langDef: LanguageDefinition) {
-    this.langDef = langDef;
-  }
-
-  private ensureLoaded(): Promise<void> {
-    if (!this.loadingPromise) {
-      this.loadingPromise = (async () => {
-        this.language = await loadLanguage(this.langDef);
-        this.symbolsQuery = await loadQueryFile(this.langDef.queries.symbols);
-        this.referencesQuery = await loadQueryFile(this.langDef.queries.references);
-      })();
-    }
-    return this.loadingPromise;
+    super(langDef);
   }
 
   async parse(filePath: string, source: string, options?: any): Promise<ParseResult> {
@@ -966,7 +947,7 @@ export class PhpParser implements LanguageParser {
     return { symbols, references: finalReferences, errors, fileMetadata };
   }
 
-  private extractSignature(source: string, node: any, name: string, kind: string, startLine: number): string {
+  protected override extractSignature(source: string, node: any, name: string, kind: string, startLine: number): string {
     const lines = source.split('\n');
     const lineIdx = startLine - 1;
     if (lineIdx >= lines.length) return name;
@@ -999,7 +980,7 @@ export class PhpParser implements LanguageParser {
     return name;
   }
 
-  private mapRefType(refType: string): ExtractedReference['referenceType'] {
+  protected override mapRefType(refType: string): ExtractedReference['referenceType'] {
     const map: Record<string, ExtractedReference['referenceType']> = {
       import: 'import',
       require: 'require',

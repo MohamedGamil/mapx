@@ -18,6 +18,7 @@ import { SvgExporter } from './exporters/svg-exporter.js';
 import { calculateMetrics } from './core/metrics.js';
 import { getChangedFiles, isGitRepo } from './core/git-tracker.js';
 import { getBuiltinLanguages } from './languages/registry.js';
+import { isLanguageInstalled, installLanguage, uninstallLanguage } from './languages/installer.js';
 import type { ScanProgress, ProgressCallback } from './types.js';
 
 const dynamicRequire = createRequire(import.meta.url);
@@ -1325,20 +1326,49 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
       console.log(`Languages: ${Object.entries(breakdown).map(([l, c]) => `${l} (${c})`).join(', ')}`);
     });
 
-  program
+  const langCmd = program
     .command('lang')
-    .description('Language support commands')
-    .addCommand(
-      new Command('list')
-        .description('List available languages')
-        .action(() => {
-          const langs = getBuiltinLanguages();
-          console.log('Built-in languages:');
-          for (const [name, def] of Object.entries(langs)) {
-            console.log(`  ${name}: ${def.extensions.join(', ')} [${def.tier}]`);
-          }
-        })
-    );
+    .description('Manage language grammars and configuration');
+
+  langCmd
+    .command('list')
+    .description('List all supported languages, their extensions, tier, and status')
+    .action(() => {
+      const langs = getBuiltinLanguages();
+      console.log('Supported languages:');
+      for (const [name, def] of Object.entries(langs)) {
+        const installed = isLanguageInstalled(name) ? 'Installed' : 'Not Installed';
+        console.log(`  - ${name} (${def.extensions.join(', ')} | tier: ${def.tier} | status: ${installed})`);
+      }
+    });
+
+  langCmd
+    .command('install <lang>')
+    .description('Install grammar and query files for an installable language')
+    .action(async (lang: string) => {
+      try {
+        console.log(`Installing language '${lang}'...`);
+        await installLanguage(lang);
+        console.log(`Successfully installed language '${lang}'.`);
+      } catch (err: any) {
+        console.error(`Error installing language '${lang}':`, err.message);
+        process.exit(1);
+      }
+    });
+
+  langCmd
+    .command('uninstall <lang>')
+    .description('Uninstall grammar and query files for an installable language')
+    .action(async (lang: string) => {
+      try {
+        console.log(`Uninstalling language '${lang}'...`);
+        await uninstallLanguage(lang);
+        console.log(`Successfully uninstalled language '${lang}'.`);
+      } catch (err: any) {
+        console.error(`Error uninstalling language '${lang}':`, err.message);
+        process.exit(1);
+      }
+    });
 
   program
     .command('serve')

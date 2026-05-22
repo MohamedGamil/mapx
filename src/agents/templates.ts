@@ -52,6 +52,9 @@ mapx -d /path/to/project scan
 - \`mapx impact <symbol> [--dir path] [--depth depth]\` - Perform change impact analysis
 - \`mapx node <symbol> [--dir path] [--source]\` - Inspect a symbol node and optionally view its source code
 - \`mapx files [--dir path] [--path prefix] [--lang language] [--sort sort] [--limit limit]\` - List and filter files
+- \`mapx lang list\` - List supported languages and status
+- \`mapx lang install <lang>\` - Install dynamic language support
+- \`mapx lang uninstall <lang>\` - Uninstall dynamic language support
 - \`mapx serve --dir /path\` - Start stdio MCP server
 - \`mapx workspaces\` - Manage workspaces (multi-repository support)
 
@@ -76,6 +79,9 @@ When running as an MCP server, MapxGraph exposes these tools:
 - \`mapx_impact\` - Multi-depth blast radius and change risk analysis for a symbol
 - \`mapx_node\` - Deep inspection of a specific symbol and its source code
 - \`mapx_files\` - List and filter files by path, language, and size or line counts
+- \`mapx_lang_list\` - List supported languages and status
+- \`mapx_lang_install\` - Install dynamic language support
+- \`mapx_lang_uninstall\` - Uninstall dynamic language support
 
 ## When to Use
 

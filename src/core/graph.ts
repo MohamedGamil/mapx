@@ -1,5 +1,5 @@
 import Graph from 'graphology';
-import pagerank from 'graphology-metrics/centrality/pagerank';
+import pagerank from 'graphology-metrics/centrality/pagerank.js';
 import type { GraphEdge, SymbolKind } from '../types.js';
 
 export class MapxGraph {

@@ -9,6 +9,11 @@ const GRAMMARS = [
   { name: 'tree-sitter-php', files: ['tree-sitter-php.wasm'] },
   { name: 'tree-sitter-javascript', files: ['tree-sitter-javascript.wasm'] },
   { name: 'tree-sitter-typescript', files: ['tree-sitter-typescript.wasm', 'tree-sitter-tsx.wasm'] },
+  { name: 'tree-sitter-python', files: ['tree-sitter-python.wasm'] },
+  { name: 'tree-sitter-go', files: ['tree-sitter-go.wasm'] },
+  { name: 'tree-sitter-rust', files: ['tree-sitter-rust.wasm'] },
+  { name: 'tree-sitter-java', files: ['tree-sitter-java.wasm'] },
+  { name: 'tree-sitter-c-sharp', files: ['tree-sitter-c_sharp.wasm'] },
 ];
 
 function findWasmFiles(): Map<string, string> {

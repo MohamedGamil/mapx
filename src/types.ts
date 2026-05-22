@@ -28,7 +28,10 @@ export type SymbolKind =
   | 'constant'
   | 'enum'
   | 'property'
-  | 'namespace';
+  | 'namespace'
+  | 'struct'
+  | 'module'
+  | 'field';
 
 export interface ExtractedReference {
   sourceSymbol: string | null;

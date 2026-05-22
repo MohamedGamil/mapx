@@ -22,6 +22,8 @@ import { SvgExporter } from './exporters/svg-exporter.js';
 import { calculateMetrics } from './core/metrics.js';
 import { ContextBuilder } from './core/context-builder.js';
 import { getChangedFiles, isGitRepo } from './core/git-tracker.js';
+import { getBuiltinLanguages } from './languages/registry.js';
+import { isLanguageInstalled, installLanguage, uninstallLanguage } from './languages/installer.js';
 
 // defaultDir is set by startMcpServer(); null means not yet configured.
 let defaultDir: string | null = null;
@@ -362,6 +364,36 @@ export function buildServer(): Server {
             limit: { type: 'number', description: 'Max files to return', default: 50 },
             ...dirProperty,
           },
+        },
+      },
+      {
+        name: 'mapx_lang_list',
+        description: 'List all supported languages, their extensions, tier, and installation status.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'mapx_lang_install',
+        description: 'Install grammar and query files for a dynamically installable language.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            lang: { type: 'string', description: 'Name of the language (e.g. ruby, c, cpp, swift, kotlin, svelte, vue, lua, elixir, zig, bash, pascal, dart, scala)' }
+          },
+          required: ['lang'],
+        },
+      },
+      {
+        name: 'mapx_lang_uninstall',
+        description: 'Uninstall grammar and query files for a dynamically installable language.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            lang: { type: 'string', description: 'Name of the language to uninstall' }
+          },
+          required: ['lang'],
         },
       },
     ],
@@ -1421,6 +1453,43 @@ Callees: ${callees.length}`;
         }
 
         return { content: [{ type: 'text', text: results.join('\n') }] };
+      }
+
+      case 'mapx_lang_list': {
+        const langs = getBuiltinLanguages();
+        const listStr = Object.entries(langs)
+          .map(([name, def]) => {
+            const installed = isLanguageInstalled(name) ? 'Installed' : 'Not Installed';
+            return `- ${name} (${def.extensions.join(', ')} | tier: ${def.tier} | status: ${installed})`;
+          })
+          .join('\n');
+        return { content: [{ type: 'text', text: `Supported languages:\n${listStr}` }] };
+      }
+
+      case 'mapx_lang_install': {
+        const { lang } = args as { lang: string };
+        if (!lang) {
+          return { content: [{ type: 'text', text: 'Error: Missing "lang" parameter.' }] };
+        }
+        try {
+          await installLanguage(lang);
+          return { content: [{ type: 'text', text: `Successfully installed language '${lang}'.` }] };
+        } catch (err: any) {
+          return { content: [{ type: 'text', text: `Error installing language '${lang}': ${err.message}` }] };
+        }
+      }
+
+      case 'mapx_lang_uninstall': {
+        const { lang } = args as { lang: string };
+        if (!lang) {
+          return { content: [{ type: 'text', text: 'Error: Missing "lang" parameter.' }] };
+        }
+        try {
+          await uninstallLanguage(lang);
+          return { content: [{ type: 'text', text: `Successfully uninstalled language '${lang}'.` }] };
+        } catch (err: any) {
+          return { content: [{ type: 'text', text: `Error uninstalling language '${lang}': ${err.message}` }] };
+        }
       }
 
       default:

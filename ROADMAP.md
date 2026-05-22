@@ -91,14 +91,14 @@
 ## Phase 4 — Language Expansion (sub-phases)
 
 ### I12 · Language Expansion · F20 · Risk: HIGH · Requires: none
-- [ ] Add `LanguageTier.bundled` enum value to `src/languages/registry.ts` (currently missing)
-- [ ] Create `GenericWasmParser` base class with WASM fetch/cache in `~/.mapx/grammars/`
-- [ ] Add `mapx lang list` / `mapx lang install` / `mapx lang uninstall` commands
-- [ ] **Sub-phase 1**: Python, Go, Rust, Java, C# — built-in tier, WASM bundled in npm package
-- [ ] **Sub-phase 2**: Ruby, C, C++, Swift, Kotlin — bundled tier, enforce per-parser WASM size budget
-- [ ] **Sub-phase 3**: Svelte, Vue, Lua/Luau, Elixir, Zig, Bash, Pascal, Dart, Scala, Kotlin (via `mapx lang install`)
-- [ ] Create per-language test corpora; per-parser `queries/<lang>/symbols.scm` + `references.scm`
-- [ ] **Risk**: 19 parsers to maintain — prioritise languages with mature tree-sitter grammars
+- [x] Add `LanguageTier` / registry tier mappings to `src/languages/registry.ts`
+- [x] Create `GenericWasmParser` base class with WASM fetch/cache in `~/.mapx/grammars/`
+- [x] Add `mapx lang list` / `mapx lang install` / `mapx lang uninstall` commands
+- [x] **Sub-phase 1**: Python, Go, Rust, Java, C# — built-in tier, WASM bundled in npm package
+- [x] **Sub-phase 2**: Ruby, C, C++, Swift, Kotlin — bundled tier, enforce per-parser WASM size budget
+- [x] **Sub-phase 3**: Svelte, Vue, Lua/Luau, Elixir, Zig, Bash, Pascal, Dart, Scala, Kotlin (via `mapx lang install`)
+- [x] Create per-language test corpora; per-parser `queries/<lang>/symbols.scm` + `references.scm`
+- [x] **Risk**: 19 parsers to maintain — prioritise languages with mature tree-sitter grammars
 
 ---
 
