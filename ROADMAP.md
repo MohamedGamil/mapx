@@ -112,8 +112,8 @@
 - [ ] Add framework detection confidence scoring to suppress false positives
 - [x] Implement Python detectors: Django, Flask, FastAPI (F22)
 - [x] Implement Node.js detectors: Express, NestJS (F23)
-- [ ] Implement frontend detectors: React Router, Tanstack Router, Next.js, SvelteKit (F24)
-  - [ ] Mark all frontend route edges with `metadata.routeType = "client"` (distinct from server routes)
+- [x] Implement frontend detectors: React Router, Tanstack Router, Next.js, SvelteKit (F24)
+  - [x] Mark all frontend route edges with `metadata.routeType = "client"` (distinct from server routes)
 - [ ] Implement backend detectors: Rails, Spring Boot, Gin, chi, gorilla/mux, Axum, actix-web, Rocket, ASP.NET Core, Vapor; Laravel extended, Drupal (F25)
 - [ ] Implement PHP CMS detectors: Symfony, Yii2, Yii3, WordPress (F26)
 - [ ] **Risk**: frontend `route` edges must carry `routeType: "client"` to distinguish from server-side route edges

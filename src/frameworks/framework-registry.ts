@@ -5,6 +5,10 @@ import { FlaskDetector } from './detectors/flask.js';
 import { FastAPIDetector } from './detectors/fastapi.js';
 import { ExpressDetector } from './detectors/express.js';
 import { NestJSDetector } from './detectors/nestjs.js';
+import { ReactRouterDetector } from './detectors/react-router.js';
+import { TanstackRouterDetector } from './detectors/tanstack-router.js';
+import { NextJSDetector } from './detectors/nextjs.js';
+import { SvelteKitDetector } from './detectors/sveltekit.js';
 
 export class FrameworkRegistry {
   private static instance: FrameworkRegistry | null = null;
@@ -17,6 +21,10 @@ export class FrameworkRegistry {
     this.register(new FastAPIDetector());
     this.register(new ExpressDetector());
     this.register(new NestJSDetector());
+    this.register(new ReactRouterDetector());
+    this.register(new TanstackRouterDetector());
+    this.register(new NextJSDetector());
+    this.register(new SvelteKitDetector());
   }
 
   static getInstance(): FrameworkRegistry {
