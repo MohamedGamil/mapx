@@ -5,7 +5,7 @@
        build-mac-arm build-mac-x64 build-win \
        package package-linux package-mac-arm package-mac-x64 package-win \
        install install-local install-uninstall \
-       setup lint typecheck
+       setup version-sync lint typecheck
 
 .DEFAULT_GOAL := help
 
@@ -27,6 +27,9 @@ setup: ## Install dependencies and prepare WASM grammars
 	@echo ""
 	@echo "WASM grammars:"
 	@ls -lh wasm/*.wasm 2>/dev/null || echo "  Run 'make wasm' to prepare grammars"
+
+version-sync: ## Sync package.json version from root VERSION file
+	npx tsx scripts/sync-version.ts
 
 # ── Daily Usage ───────────────────────────────────────────────
 
@@ -167,7 +170,7 @@ build: build-linux ## Build for current platform (linux-x64 default)
 
 # ── Packaging ─────────────────────────────────────────────────
 
-VERSION := $(shell node -p "require('./package.json').version")
+VERSION := $(shell cat VERSION | tr -d '[:space:]')
 DIST_DIR := dist/release
 
 package-linux: build-linux ## Package linux-x64 binary as .tar.gz

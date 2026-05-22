@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-VERSION="$(node -p "require('$PROJECT_ROOT/package.json').version")"
+VERSION="$(cat "$PROJECT_ROOT/VERSION" | tr -d '[:space:]')"
 DIST_DIR="$PROJECT_ROOT/dist/release"
 
 RED='\033[0;31m'

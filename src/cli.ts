@@ -18,6 +18,16 @@ import type { ScanProgress, ProgressCallback } from './types.js';
 
 const dynamicRequire = createRequire(import.meta.url);
 
+function readVersion(): string {
+  const base = dirname(fileURLToPath(import.meta.url));
+  // Compiled binary: VERSION is in the same directory as the binary
+  // Development (tsx): VERSION is one level up from src/
+  for (const candidate of [join(base, 'VERSION'), join(base, '..', 'VERSION')]) {
+    if (existsSync(candidate)) return readFileSync(candidate, 'utf-8').trim();
+  }
+  return '0.1.0';
+}
+
 function resolveDir(cmdOpts: Record<string, unknown>, programOpts: Record<string, unknown>): string {
   const raw = (cmdOpts.dir as string) || (programOpts.dir as string) || process.cwd();
   return resolve(raw);
@@ -246,7 +256,7 @@ export function buildCLI(): Command {
   program
     .name('codegraph')
     .description('Multi-language code graph memory system for LLMs')
-    .version('0.1.3')
+    .version(readVersion())
     .option('-d, --dir <path>', 'Target project directory (default: current directory)');
 
   program
