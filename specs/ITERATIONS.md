@@ -386,3 +386,28 @@ _None yet._
 ### Blockers / notes
 
 Fully independent — can be merged at any time. The exporter uses a manual TOON encoder (no external runtime dependency). The reference TOON npm package (`@toon-format/toon`) is added as a `devDependency` only, for round-trip validation in tests.
+
+---
+
+## I15 — Bundled Web Dashboard
+
+| Field | Value |
+|-------|-------|
+| Status | `planned` |
+| Features | F28 |
+| Branch | `feat/i15-web-dashboard` |
+| PR | — |
+
+### Scope
+
+Adds a lightweight, self-contained web dashboard that can be optionally served alongside the existing MCP server or standalone via `mapx ui`. The dashboard provides six panels: an Overview/Status bar, a Graph Explorer (interactive force-directed graph of files and edges via Cytoscape.js), a Symbol Explorer (searchable/sortable table), a Tool Call Log (live SSE stream of MCP tool calls), a Metrics Panel (PageRank, coupling, edge-type charts via uPlot), and a Context Viewer (task-based context building powered by F19 when available). The server path uses Node.js built-ins only (no Express). The client bundle targets < 200 KB gzipped. MCP tool calls are intercepted by a thin timing shim in `src/mcp.ts` that emits to a shared `UiEventBus`; if no dashboard is active the events are silently dropped.
+
+New source files: `src/ui-server.ts`, `src/ui-events.ts`, `src/ui/` (client source), `scripts/build-ui.ts`. Dashboard assets are compiled to `dist/ui/` and shipped in the npm package. Set `MAPX_NO_UI=1` to skip the client build in CI.
+
+### Changes from original spec
+
+_None yet._
+
+### Blockers / notes
+
+Depends on I07 (F13) for npm packaging infrastructure. All other feature dependencies (F02, F14–F16, F18, F19, F21–F26) are optional — the dashboard degrades gracefully when their data is absent. The largest implementation risk is bundle size discipline: Cytoscape.js and layout plugins must be tree-shaken carefully to stay under the 200 KB target.

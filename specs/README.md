@@ -47,7 +47,8 @@ specs/
 │   ├── F24-frontend-routing.md      ← Feature 24: Frontend routing (React Router, Tanstack, Next.js, SvelteKit)
 │   ├── F25-backend-frameworks.md   ← Feature 25: Backend framework routes (Rails, Spring, Go, Rust, ASP.NET, Vapor, Drupal, Laravel extended)
 │   ├── F26-php-cms-frameworks.md   ← Feature 26: PHP CMS/frameworks (Symfony, Yii2, Yii3, WordPress)
-│   └── F27-toon-export.md           ← Feature 27: TOON (Token-Oriented Object Notation) export format
+│   ├── F27-toon-export.md           ← Feature 27: TOON (Token-Oriented Object Notation) export format
+│   └── F28-web-dashboard.md         ← Feature 28: Bundled lightweight web dashboard
 │
 └── iterations/
     ├── I01.md                        ← Iteration 1: schema + parser labelling
@@ -61,7 +62,11 @@ specs/
     ├── I09.md                        ← Iteration 9: LLM agent integration files
     ├── I10.md                        ← Iteration 10: git workspace & submodule awareness
     ├── I11.md                        ← Iteration 11: smart context & search tools
-    └── I12.md                        ← Iteration 12: language expansion (19 languages)│   └── I13.md                        ← Iteration 13: framework-aware parsing & route context```
+    ├── I12.md                        ← Iteration 12: language expansion (19 languages)
+    ├── I13.md                        ← Iteration 13: framework-aware parsing & route context
+    ├── I14.md                        ← Iteration 14: TOON export format
+    └── I15.md                        ← Iteration 15: bundled web dashboard
+```
 
 ---
 
@@ -96,6 +101,7 @@ specs/
 | F25 | Backend framework routes (Laravel extended, Drupal, Rails, Spring, Gin/chi/gorilla, Axum/actix/Rocket, ASP.NET Core, Vapor) | `planned` | I13 | [F25](features/F25-backend-frameworks.md) |
 | F26 | PHP CMS/framework routes (Symfony attribute + YAML routes, Yii2/Yii3, WordPress hooks/filters/shortcodes/REST/template hierarchy) | `planned` | I13 | [F26](features/F26-php-cms-frameworks.md) |
 | F27 | TOON export format (`mapx export --format=toon`) | `planned` | I14 | [F27](features/F27-toon-export.md) |
+| F28 | Bundled lightweight web dashboard (`mapx ui`) | `planned` | I15 | [F28](features/F28-web-dashboard.md) |
 
 **Status values:** `planned` · `in-progress` · `in-review` · `done` · `deferred` · `cancelled`
 
@@ -119,6 +125,7 @@ specs/
 | [I12](iterations/I12.md) | Language expansion (19 languages) | `planned` | F20 |
 | [I13](iterations/I13.md) | Framework-aware parsing & route context (21 frameworks) | `planned` | F21, F22, F23, F24, F25, F26 |
 | [I14](iterations/I14.md) | TOON export format | `planned` | F27 |
+| [I15](iterations/I15.md) | Bundled web dashboard (`mapx ui`) | `planned` | F28 |
 
 Iterations are intended to be **sequentially deliverable** but where features have no cross-dependency they can be parallelised. See each iteration doc for explicit dependency declarations.
 
@@ -210,4 +217,9 @@ I13 (F21–F26: framework-aware parsing)
 I14 (F27: TOON export)
  ├── FULLY INDEPENDENT — no dependency on any other iteration
  └── Benefits from I13 route/hook metadata in edges table (metadata JSON column from F21 schema v3) but works without it
+
+I15 (F28: web dashboard)
+ ├── Requires I07 (F13 npm dist) — dashboard assets must be shippable in the npm package
+ ├── Richer with I08 (clusters), I10 (git), I11 (smart context), I13 (routes) — degrades gracefully without each
+ └── MCP tool-call log requires mapx serve (any iteration) — standalone mapx ui still works without it
 ```
