@@ -269,3 +269,26 @@ _None yet._
 ### Blockers / notes
 
 Fully independent of all other iterations. Can be merged at any time. No schema changes required. No new MCP tools (deferred to avoid security surface of MCP tools writing files).
+
+---
+
+## I10 — Git Workspace & Submodule Awareness
+
+| Field | Value |
+|-------|-------|
+| Status | `planned` |
+| Features | F18 |
+| Branch | `feat/i10-git-workspace-awareness` |
+| PR | — |
+
+### Scope
+
+Fixes mapx's assumption that a project is always a single git repository. Adds `WorkspaceManager` — auto-discovers `.gitmodules`, VS Code `.code-workspace` folders, and optionally sibling git repos. Registers each as an independent `RepoConfig` entry. Scanner is updated to iterate repos independently, calling `getGitBlobHashes()` with each repo's own git root (fixing incremental scan accuracy for submodules). Adds `mapx workspaces` CLI command group, `--all` flags on `scan`/`update`/`status`/`export`, and `mapx_workspaces` MCP tool. Cross-repo edges stored with `target_repo` field via a schema migration.
+
+### Changes from original spec
+
+_None yet._
+
+### Blockers / notes
+
+Independent of all other iterations. Cross-repo FQN edge resolution is richer when I04/I05 (PHP namespace resolution) are merged, but F18 functions correctly without them. Schema version coordination needed with I08 (F14): whichever iteration merges first claims v3; the other uses v4.
