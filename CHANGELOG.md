@@ -10,6 +10,43 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ---
 
+## [0.2.1] — 2026-05-23
+
+### Added
+
+- **`mapx uninit` command** — Fully reverse a `mapx init`: removes `.mapx/` directory, reverts LLM agent integration files (sentinel-block cleanup in AGENTS.md, .cursor/rules/mapx.mdc, etc.), removes `.mapx/` from `.gitignore`, and cleans up empty directories
+  - `-f, --force` flag to skip confirmation prompt
+  - Added `uninit` to package.json scripts and Makefile targets
+- **Agentic MCP auto-configuration** — `mapx init` now auto-detects installed agent tools and generates MCP server config files so mapx is immediately discoverable as an MCP server with all 25 tools:
+  - **opencode** → `opencode.json` (detected via `opencode.json` or `opencode.jsonc`)
+  - **Gemini CLI** → `.gemini/settings.json` (detected via `.gemini/` directory)
+  - **Cursor** → `.cursor/mcp.json` (detected via `.cursor/` directory)
+  - **VS Code** → `.vscode/mcp.json` (detected via `.vscode/` directory)
+  - **Antigravity** → `.agents/mcp.json` + `.agents/rules/mapx.md` (detected via `.agents/` directory)
+- **`mapx agents mcp` subcommand** — Manual control over MCP config generation:
+  - `--detect` — Show detected agent tools without writing files
+  - `--all` — Generate configs for all supported tools
+  - `--tools <list>` — Target specific tools (e.g. `--tools opencode,gemini-cli`)
+  - `--dry-run` — Preview actions without writing
+- **Smart JSON config merging** — When a config file already exists (e.g. `.vscode/mcp.json` with other settings), mapx merges its MCP entry without overwriting existing config. On `uninit`, only the mapx entry is removed; if the file becomes empty, it is deleted entirely
+- **`--no-mcp-configs` flag on `mapx init`** — Skip MCP config auto-generation if not desired
+- **Antigravity provider template** (`antigravity`) — Generates `.agents/rules/mapx.md` with pre-planning initialization rules following the Antigravity `.agents/rules/` pattern:
+  - Forces `mapx_sync` + `mapx_export` before any planning or reasoning
+  - Pre-modification impact analysis via `mapx_impact` and `mapx_callers`
+  - Post-modification re-indexing via `mapx_sync`
+  - Fail-safe halt on MCP initialization errors
+- **`mapx uninit` MCP cleanup** — Removes mapx entries from all MCP config files during uninit, with smart handling: deletes files that only contained mapx, or surgically removes just the mapx entry from shared configs
+
+### Changed
+
+- Updated `mapx agents list` to show the new `antigravity` provider (`.agents/rules/mapx.md`)
+- Updated `mapx init` interactive provider selection to include `antigravity` as an option
+- Updated README "Agentic Integration" section with auto-detection table and usage examples
+- Updated CLI reference docs with `--no-mcp-configs`, `agents mcp` command, and Antigravity target
+- Updated MCP integration docs with Antigravity configuration example
+
+---
+
 ## [0.2.0] — 2026-05-23
 
 ### Added
@@ -128,7 +165,8 @@ _Changelog entries not yet backfilled. See git log for history._
 ---
 
 <!-- Links (keep at the bottom) -->
-[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/MohamedGamil/mapx/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MohamedGamil/mapx/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/MohamedGamil/mapx/compare/v0.1.6...v0.1.9
 [0.1.6]: https://github.com/MohamedGamil/mapx/compare/v0.1.5...v0.1.6
