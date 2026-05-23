@@ -1,5 +1,5 @@
 {
-  "name": "mapx",
+  "name": "@mgamil/mapx",
   "version": "0.2.3",
   "license": "Apache-2.0",
   "description": "Multi-language code graph memory system for LLMs",
@@ -8,7 +8,25 @@
     "name": "Mohamed Gamil",
     "url": "https://gamil.io"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MohamedGamil/mapx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MohamedGamil/mapx/issues"
+  },
+  "homepage": "https://github.com/MohamedGamil/mapx",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "mapx": "./dist/main.js"
   },
@@ -21,7 +39,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.18.0"
   },
   "scripts": {
     "version-sync": "tsx scripts/sync-version.ts",
@@ -34,7 +52,7 @@
     "build:win": "bun build --compile --minify --bytecode --target=bun-windows-x64 ./src/main.ts --outfile dist/mapx-windows-x64.exe",
     "build:all": "tsx scripts/build-all.ts",
     "build:npm": "tsup && tsx scripts/build-ui.ts",
-    "prepublishOnly": "npm run build:npm",
+    "prepare": "npm run build:npm",
     "init": "tsx src/main.ts init",
     "uninit": "tsx src/main.ts uninit",
     "scan": "tsx src/main.ts scan",
@@ -92,11 +110,10 @@
     "tree-sitter-typescript": "^0.23.2",
     "uplot": "^1.6.32",
     "web-tree-sitter": "^0.26.9",
-    "zod": "^3.25.0"
-  },
-  "optionalDependencies": {
+    "zod": "^3.25.0",
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
+  "optionalDependencies": {},
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",
@@ -114,5 +131,49 @@
     "tsup": "^8.5.1",
     "tsx": "^4.20.0",
     "typescript": "^5.8.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "mapx",
+    "ai",
+    "llm",
+    "agent",
+    "mcp",
+    "mcp-server",
+    "agentic",
+    "code-memory",
+    "code-graph",
+    "code-understanding",
+    "code-knowledge",
+    "code-intelligence",
+    "code-analysis",
+    "multi-language",
+    "llm-tool",
+    "semantic-analysis",
+    "dependency-graph",
+    "code-navigation",
+    "refactoring",
+    "code-search",
+    "typescript",
+    "python",
+    "javascript",
+    "java",
+    "go",
+    "c#",
+    "c++",
+    "kotlin",
+    "swift",
+    "rust",
+    "php",
+    "vue",
+    "react",
+    "flask",
+    "django",
+    "laravel",
+    "ai-coding",
+    "tree-sitter"
+  ]
 }

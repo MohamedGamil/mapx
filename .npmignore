@@ -13,3 +13,5 @@ Makefile
 *.sh
 *.ps1
 
+# Ignore local compiled binary builds
+dist/mapx-*

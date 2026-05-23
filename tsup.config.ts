@@ -3,11 +3,12 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
 export default defineConfig({
-  entry: ['src/**/*.ts'],
+  entry: ['src/**/*.ts', '!src/ui/**/*.ts'],
   format: ['esm'],
   outDir: 'dist',
   bundle: false,
   clean: true,
+  dts: true,
   onSuccess: async () => {
     const mainJsPath = join(process.cwd(), 'dist', 'main.js');
     try {
