@@ -344,6 +344,19 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
           }
         }
       }
+      // Auto-add .mapx/ to .gitignore
+      const gitignorePath = join(dir, '.gitignore');
+      const hasGitignore = existsSync(gitignorePath);
+      const isGit = isGitRepo(dir);
+      if (hasGitignore || isGit) {
+        const content = hasGitignore ? readFileSync(gitignorePath, 'utf-8') : '';
+        const lines = content.split('\n').map(l => l.trim());
+        if (!lines.includes('.mapx/') && !lines.includes('.mapx')) {
+          const entry = content.length > 0 && !content.endsWith('\n') ? '\n.mapx/\n' : '.mapx/\n';
+          writeFileSync(gitignorePath, content + entry);
+          console.log(`  ✓ Added .mapx/ to .gitignore`);
+        }
+      }
       console.log(`Initialized mapx in ${dir}/.mapx/`);
       console.log(`Repo: ${config.repo.name}`);
     });
