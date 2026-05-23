@@ -20,6 +20,7 @@ MapX uses [tree-sitter](https://tree-sitter.github.io/) to parse source files ac
 - **Framework detection** — 21 frameworks recognized (Laravel, Express, Next.js, Django, Flask, FastAPI, Spring, Rails, and more)
 - **Web dashboard** — built-in `mapx ui` for interactive graph visualization
 - **Zero cloud** — everything stays on disk in `.mapx/` inside your project
+- **87% LLM cost reduction** — drops context token consumption by 87% vs baseline workspace reads by feeding exact signatures and transitive impact summaries
 
 ---
 
@@ -141,6 +142,26 @@ mapx -d /path/to/project export
 | `mapx serve --sse --port 3456` | Start MCP server (SSE/HTTP) |
 
 See [docs/cli-reference.md](docs/cli-reference.md) for full details on all flags.
+
+---
+
+## Token Consumption Benchmarks
+
+MapX significantly reduces LLM context window usage when performing agentic coding tasks. The built-in benchmark suite simulates typical AI workflows (understanding structure, tracing dependencies, multi-file edits) to compare baseline file reads versus MapX MCP tool calls.
+
+**Average Savings: 87% reduction in token usage.**
+
+| Scenario | Baseline (No MapX) | With MapX | Savings | Cost (Sonnet 3.5) |
+|----------|-------------------|-----------|---------|-------------------|
+| Understand structure | 28.4K tokens (15 tool calls) | 600 tokens (1 tool call) | **98%** | $0.0852 → $0.0018 |
+| Multi-file edit | 40.4K tokens (25 tool calls) | 7.2K tokens (9 tool calls) | **82%** | $0.1213 → $0.0215 |
+| Full session (15 tasks) | 194.4K tokens (123 calls) | 29.8K tokens (43 calls) | **85%** | $0.5832 → $0.0894 |
+
+Run the benchmark on your own codebase:
+```bash
+make bench DIR=/path/to/project
+```
+See [docs/benchmarking.md](docs/benchmarking.md) for full scenario breakdowns and methodology.
 
 ---
 

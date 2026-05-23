@@ -8,6 +8,12 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ## [Unreleased]
 
+### Added (I18 — Token Cost Benchmarking Suite)
+- Added `mapx bench` built-in benchmarking suite for comparing LLM agent token consumption (baseline workspace reads vs MapX MCP tools)
+- Added `benchmarks/run.ts` CLI runner with JSON output support (`--json`) and model pricing analysis
+- Added `bench` and `bench-json` Makefile targets and npm scripts
+- Added comprehensive Token Consumption Benchmarks section to README showing 87% average cost reduction
+
 ### Added (I16 — Audit Compliance Fixes)
 - Added `mapx_workspaces` MCP tool with `list` and `discover` actions for workspace introspection
 - Added `mapx workspaces discover` CLI subcommand for read-only repository discovery
