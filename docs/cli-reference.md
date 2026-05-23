@@ -37,6 +37,23 @@ The init command also:
 - Prompts for LLM provider selection (generic, Claude, Cursor, VS Code, opencode)
 - Auto-adds `.mapx/` to `.gitignore` if a `.gitignore` file exists or the project is a git repository
 
+## `mapx uninit`
+
+Remove mapx configurations, the `.mapx/` directory, and reverse integration changes (reverting files like `AGENTS.md` and custom provider instructions).
+
+```bash
+mapx uninit [/path] [--force]
+```
+
+Options:
+- `[path]` — Target directory (positional)
+- `-f, --force` — Skip confirmation prompt
+
+The uninit command will:
+- Revert LLM integration files (deleting files created solely by mapx, or removing sentinel blocks from files that were appended to)
+- Remove `.mapx/` directory from `.gitignore`
+- Delete `.mapx/` directory completely
+
 ## `mapx scan`
 
 Perform a full scan of all source files. Builds the graph from scratch.

@@ -110,6 +110,7 @@ mapx -d /path/to/project export
 | Command | Description |
 |---------|-------------|
 | `mapx init [path]` | Initialise mapx; create `.mapx/`, `AGENTS.md`, update `.gitignore` |
+| `mapx uninit [path]` | Remove mapx; delete `.mapx/`, reverse LLM integration changes, update `.gitignore` |
 | `mapx scan [path]` | Full scan — builds the graph from scratch |
 | `mapx update [path]` | Incremental scan — only re-parses changed files |
 | `mapx status [path]` | Show graph metrics, language breakdown, PageRank rankings, git changes |

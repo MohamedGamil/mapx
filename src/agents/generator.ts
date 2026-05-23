@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, readdirSync, rmdirSync } from 'node:fs';
 import { join, dirname, basename, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TEMPLATES, ProviderTemplate } from './templates.js';
@@ -183,6 +183,51 @@ export class AgentGenerator {
       mkdirSync(parentDir, { recursive: true });
     }
     writeFileSync(action.filepath, action.newContent, 'utf-8');
+  }
+
+  public revert(options: { dir: string }): void {
+    const dir = options.dir;
+    for (const provider of Object.keys(TEMPLATES)) {
+      const template = TEMPLATES[provider];
+      if (!template) continue;
+
+      const filepath = join(dir, template.filename);
+      if (!existsSync(filepath)) continue;
+
+      try {
+        const content = readFileSync(filepath, 'utf-8');
+        const markers = getSentinelMarkers(template.filename);
+        const match = content.match(markers.regex);
+
+        if (match) {
+          // Found our sentinel block, let's remove it
+          const cleaned = content.replace(markers.regex, '').trim();
+          if (cleaned.length === 0) {
+            // Delete the file
+            unlinkSync(filepath);
+            console.log(`  ✓ Removed ${template.filename}`);
+            
+            // Optionally remove parent directory if empty (like .cursor/rules, .windsurf/rules, .continue, .zed)
+            let parentDir = dirname(filepath);
+            const resolvedDir = resolve(dir);
+            while (parentDir !== resolvedDir && parentDir !== '/' && parentDir !== '.') {
+              if (existsSync(parentDir) && readdirSync(parentDir).length === 0) {
+                rmdirSync(parentDir);
+                parentDir = dirname(parentDir);
+              } else {
+                break;
+              }
+            }
+          } else {
+            // Write cleaned content back
+            writeFileSync(filepath, cleaned, 'utf-8');
+            console.log(`  ✓ Cleaned mapx integration from ${template.filename}`);
+          }
+        }
+      } catch (err: any) {
+        console.error(`  ✗ Failed to revert agent file ${template.filename}: ${err.message}`);
+      }
+    }
   }
 
   public diff(oldStr: string, newStr: string): string {

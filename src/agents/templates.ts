@@ -37,6 +37,7 @@ mapx -d /path/to/project scan
 ### Available Commands
 
 - \`mapx init [path]\` - First-time setup (auto-adds .mapx/ to .gitignore)
+- \`mapx uninit [path]\` - Remove .mapx/ and reverse integration changes
 - \`mapx scan [path]\` - Full scan
 - \`mapx update [path]\` (alias: \`sync\`) - Incremental update (fast)
 - \`mapx status [path]\` - Check what changed since last scan

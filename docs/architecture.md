@@ -200,7 +200,7 @@ Visual progress for scan operations:
 
 ## Data Flow
 
-1. `init` → Creates `.mapx/` + `AGENTS.md` (with `<!-- mapx -->` markers) + auto-adds `.mapx/` to `.gitignore`
+1. `init` / `uninit` → `init` creates `.mapx/` + `AGENTS.md` (with `<!-- mapx -->` markers) + auto-adds `.mapx/` to `.gitignore`. `uninit` reverses this, deleting `.mapx/`, removing entries from `.gitignore`, and cleaning up agent integrations.
 2. `scan` → Scanner walks files → Parser extracts symbols/refs via tree-sitter queries → Store persists to SQLite → Graph builds in-memory
 3. `export` → Store loads data → Graph computes PageRank → Exporter renders output (to stdout or file)
 4. `update` → GitTracker detects changes → Scanner re-parses changed files → Store updates

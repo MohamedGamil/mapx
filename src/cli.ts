@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { resolve, join, dirname, relative, basename } from 'node:path';
-import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
@@ -140,6 +140,7 @@ function readStubContent(): string {
       '',
       '```bash',
       'mapx init [/path]                                # First-time setup',
+      'mapx uninit [/path]                              # Reverse installation',
       'mapx scan [/path]                                # Full scan (survives Ctrl+C)',
       'mapx update [/path]                              # Incremental update',
       'mapx export [--dir /path]                        # LLM summary (8K tokens)',
@@ -360,6 +361,65 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
       console.log(`Initialized mapx in ${dir}/.mapx/`);
       console.log(`Repo: ${config.repo.name}`);
     });
+
+  program
+    .command('uninit')
+    .description('Remove .mapx/ directory and reverse project integration changes')
+    .argument('[path]', 'Target directory')
+    .option('-f, --force', 'Skip confirmation prompt')
+    .action(async (path: string | undefined, opts: Record<string, unknown>) => {
+      const dir = path ? resolve(path) : resolveDir(opts, program.opts());
+      const hasMapx = existsSync(join(dir, '.mapx'));
+
+      if (!opts.force && process.stdin.isTTY) {
+        const answer = await askQuestion(`Are you sure you want to remove .mapx/ and reverse all mapx integrations in ${dir}? [y/N] `);
+        if (answer.trim().toLowerCase() !== 'y') {
+          console.log('Aborted.');
+          return;
+        }
+      }
+
+      // 1. Revert LLM agent integrations
+      const generator = new AgentGenerator();
+      generator.revert({ dir });
+
+      // 2. Remove .mapx/ from .gitignore
+      const gitignorePath = join(dir, '.gitignore');
+      if (existsSync(gitignorePath)) {
+        try {
+          const content = readFileSync(gitignorePath, 'utf-8');
+          const lines = content.split('\n');
+          let removed = false;
+          const filteredLines = lines.filter(line => {
+            const trimmed = line.trim();
+            if (trimmed === '.mapx' || trimmed === '.mapx/') {
+              removed = true;
+              return false;
+            }
+            return true;
+          });
+          if (removed) {
+            writeFileSync(gitignorePath, filteredLines.join('\n'), 'utf-8');
+            console.log(`  ✓ Removed .mapx/ from .gitignore`);
+          }
+        } catch (err: any) {
+          console.error(`  ✗ Failed to update .gitignore: ${err.message}`);
+        }
+      }
+
+      // 3. Delete .mapx/ directory
+      if (hasMapx) {
+        try {
+          rmSync(join(dir, '.mapx'), { recursive: true, force: true });
+          console.log(`  ✓ Removed .mapx/ directory`);
+        } catch (err: any) {
+          console.error(`  ✗ Failed to remove .mapx/ directory: ${err.message}`);
+        }
+      }
+
+      console.log(`Successfully uninitialized mapx for project: ${dir}`);
+    });
+
 
   program
     .command('scan')

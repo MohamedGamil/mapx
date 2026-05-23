@@ -75,6 +75,14 @@ AGENTS.md             # MapxGraph documentation for LLMs (auto-generated)
 
 `.mapx/` is automatically added to `.gitignore` during init (if `.gitignore` exists or the project is a git repository).
 
+## Reversing Installation
+
+If you want to completely remove MapxGraph configurations, delete `.mapx/`, and reverse LLM integration changes (like `AGENTS.md` and custom provider instructions) in your project, run:
+
+```bash
+mapx uninit
+```
+
 ## AGENTS.md
 
 During `init`, MapxGraph creates or updates an `AGENTS.md` file in the project root. This file contains documentation that helps LLM tools discover and use MapxGraph's CLI and MCP tools.
