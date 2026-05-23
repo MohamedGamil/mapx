@@ -179,6 +179,19 @@ export class MapxGraph {
     return count;
   }
 
+  dropFrameworkEdgesForRepo(repoName: string): void {
+    const toDrop: string[] = [];
+    for (const edge of this.graph.edges()) {
+      const attrs = this.graph.getEdgeAttributes(edge);
+      if (attrs.repo === repoName && ['route', 'middleware', 'hook', 'graphql_resolver', 'message_handler', 'websocket_handler'].includes(attrs.type)) {
+        toDrop.push(edge);
+      }
+    }
+    for (const edge of toDrop) {
+      this.graph.dropEdge(edge);
+    }
+  }
+
   toJSON(): object {
     return this.graph.toJSON();
   }

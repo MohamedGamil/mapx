@@ -911,8 +911,13 @@ export class Scanner {
     const activeNames = activeDetectors.map(d => d.name);
     await writeFile(frameworksPath, JSON.stringify(activeNames, null, 2), 'utf-8');
 
+    // Clear all existing framework edges for this repo in the DB and Graph
+    this.store.deleteFrameworkEdgesForRepo(repo.name);
+    this.graph.dropFrameworkEdgesForRepo(repo.name);
+
     const routeRegistry = new RouteRegistry();
     await routeRegistry.load(workspaceRoot);
+    routeRegistry.clearRepo(repo.name, new Set(filePaths));
 
     // Context for symbol resolution
     const ctx: ScanContext = {
@@ -947,6 +952,10 @@ export class Scanner {
               console.warn(`[mapx] Suppressing route edge due to low confidence (${conf}): ${route.method} ${route.path} -> ${route.handlerFile}`);
               continue;
             }
+
+            if (!route.metadata) route.metadata = {};
+            route.metadata.repo = repo.name;
+            route.metadata.sourceFile = relPath;
 
             routeRegistry.addRoute(route);
 
@@ -1002,6 +1011,10 @@ export class Scanner {
                 console.warn(`[mapx] Suppressing hook edge due to low confidence (${conf}): ${hook.hookName} -> ${hook.handlerFile}`);
                 continue;
               }
+
+              if (!hook.metadata) hook.metadata = {};
+              hook.metadata.repo = repo.name;
+              hook.metadata.sourceFile = relPath;
 
               routeRegistry.addHook(hook);
 

@@ -28,6 +28,25 @@ export class RouteRegistry {
     this.hooks = [];
   }
 
+  clearRepo(repoName: string, filePaths?: Set<string>): void {
+    this.routes = this.routes.filter(r => {
+      if (r.metadata && r.metadata.repo === repoName) return false;
+      if (filePaths) {
+        if (filePaths.has(r.handlerFile)) return false;
+        if (r.metadata && r.metadata.sourceFile && filePaths.has(r.metadata.sourceFile)) return false;
+      }
+      return true;
+    });
+    this.hooks = this.hooks.filter(h => {
+      if (h.metadata && h.metadata.repo === repoName) return false;
+      if (filePaths) {
+        if (filePaths.has(h.handlerFile)) return false;
+        if (h.metadata && h.metadata.sourceFile && filePaths.has(h.metadata.sourceFile)) return false;
+      }
+      return true;
+    });
+  }
+
   async load(workspaceRoot: string): Promise<void> {
     const routesPath = join(workspaceRoot, '.mapx', 'routes.json');
     if (existsSync(routesPath)) {
