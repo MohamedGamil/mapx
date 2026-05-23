@@ -140,6 +140,10 @@ function setupSSE() {
   });
 }
 
+let lastFileCount = 0;
+let lastSymbolCount = 0;
+let lastEdgeCount = 0;
+
 // Fetch general workspace status and populate stats
 async function loadStatus() {
   try {
@@ -147,10 +151,14 @@ async function loadStatus() {
     if (!res.ok) return;
     const status = await res.json();
     
+    lastFileCount = status.fileCount || 0;
+    lastSymbolCount = status.symbolCount || 0;
+    lastEdgeCount = status.edgeCount || 0;
+    
     document.getElementById('repo-name')!.textContent = status.repoName || 'MapX Project';
-    document.getElementById('stat-files')!.textContent = status.fileCount || '0';
-    document.getElementById('stat-symbols')!.textContent = status.symbolCount || '0';
-    document.getElementById('stat-edges')!.textContent = status.edgeCount || '0';
+    document.getElementById('stat-files')!.textContent = String(lastFileCount);
+    document.getElementById('stat-symbols')!.textContent = String(lastSymbolCount);
+    document.getElementById('stat-edges')!.textContent = String(lastEdgeCount);
 
     // Populate language filters in graph panel
     const filterSelect = document.getElementById('filter-lang') as HTMLSelectElement;
@@ -1070,6 +1078,91 @@ async function loadMetrics() {
       `;
     }
 
+    const languagesDiv = document.getElementById('metrics-languages');
+    if (languagesDiv && metrics.languages) {
+      const langs = Object.entries(metrics.languages).sort((a: any, b: any) => b[1] - a[1]);
+      if (langs.length > 0) {
+        languagesDiv.innerHTML = `
+          <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+            ${langs.map(([lang, cnt]) => `
+              <li><strong style="text-transform: capitalize;">${lang}:</strong> ${cnt} files</li>
+            `).join('')}
+          </ul>
+        `;
+      } else {
+        languagesDiv.innerHTML = '<div style="color: var(--text-muted);">No language files found.</div>';
+      }
+    }
+
+    const kindsDiv = document.getElementById('metrics-kinds');
+    if (kindsDiv && metrics.symbolKinds) {
+      if (metrics.symbolKinds.length > 0) {
+        kindsDiv.innerHTML = `
+          <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+            ${metrics.symbolKinds.map((row: any) => `
+              <li><strong style="text-transform: capitalize;">${row.kind}:</strong> ${row.cnt}</li>
+            `).join('')}
+          </ul>
+        `;
+      } else {
+        kindsDiv.innerHTML = '<div style="color: var(--text-muted);">No symbols found.</div>';
+      }
+    }
+
+    const edgesDiv = document.getElementById('metrics-edges');
+    if (edgesDiv) {
+      const edgeTypesList = metrics.edgeTypes && metrics.edgeTypes.length > 0
+        ? metrics.edgeTypes.map((row: any) => `<li><strong>${row.edge_type}:</strong> ${row.cnt}</li>`).join('')
+        : '<li style="color: var(--text-muted); list-style-type: none;">None</li>';
+
+      edgesDiv.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div><strong>Total Edges:</strong> ${metrics.totalEdges || 0}</div>
+          <div><strong>Relation Density:</strong> ${metrics.density || '0%'}</div>
+          <div><strong>Avg Edges/File:</strong> ${metrics.avgEdgesPerFile || 0}</div>
+          <div><strong>Verified Edges:</strong> ${metrics.verifiedEdges || 0} | <strong>Inferred Edges:</strong> ${metrics.inferredEdges || 0}</div>
+          <div style="margin-top: 5px;">
+            <strong>Edge Types Breakdown:</strong>
+            <ul style="padding-left: 20px; margin-top: 5px; display: flex; flex-direction: column; gap: 4px;">
+              ${edgeTypesList}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+    const gitStorageDiv = document.getElementById('metrics-git-storage');
+    if (gitStorageDiv) {
+      const dbSizeKB = metrics.dbSize != null ? (metrics.dbSize / 1024).toFixed(1) : '0';
+      const git = metrics.git || {};
+      
+      let gitStatusHTML = '';
+      if (!git.isGit) {
+        gitStatusHTML = '<div><strong>Git Repository:</strong> No git repository detected</div>';
+      } else if (git.changesCount === 0) {
+        gitStatusHTML = '<div><strong>Git Status:</strong> ✓ Index up-to-date (no changes since last scan)</div>';
+      } else {
+        const changesList = git.changes.map((c: any) => `
+          <li><span style="font-family: monospace;">[${c.status}]</span> ${c.path}</li>
+        `).join('');
+        gitStatusHTML = `
+          <div>
+            <strong>Git Status:</strong> ⚠ Stale (${git.changesCount} changed files since last scan)
+            <ul style="padding-left: 20px; margin-top: 5px; max-height: 100px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+              ${changesList}
+            </ul>
+          </div>
+        `;
+      }
+
+      gitStorageDiv.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div><strong>Database Size:</strong> ${dbSizeKB} KB</div>
+          ${gitStatusHTML}
+        </div>
+      `;
+    }
+
     const topFilesList = document.getElementById('top-files-list');
     if (topFilesList) {
       if (metrics.topFiles && metrics.topFiles.length > 0) {
@@ -1169,6 +1262,78 @@ function setupContextBuilder() {
   });
 }
 
+// Poll endpoints periodically to keep the UI up-to-date in near-real-time (fallback/sync)
+function startPeriodicPolling() {
+  setInterval(async () => {
+    // 1. Poll tool calls
+    const logContainer = document.getElementById('tool-log-container');
+    if (logContainer) {
+      try {
+        const res = await fetch('/api/tool-calls');
+        if (res.ok) {
+          const events = await res.json();
+          if (events.length > 0) {
+            const placeholder = logContainer.querySelector('.log-placeholder');
+            const reversedEvents = [...events].reverse();
+            for (const data of reversedEvents) {
+              const id = toolCallId(data);
+              if (seenToolCallIds.has(id)) continue;
+              seenToolCallIds.add(id);
+              if (placeholder) placeholder.remove();
+              logContainer.prepend(renderToolCallEntry(data));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to poll tool calls:', err);
+      }
+    }
+
+    // 2. Poll workspace status
+    try {
+      const res = await fetch('/api/status');
+      if (res.ok) {
+        const status = await res.json();
+        const fileCount = status.fileCount || 0;
+        const symbolCount = status.symbolCount || 0;
+        const edgeCount = status.edgeCount || 0;
+        
+        if (fileCount !== lastFileCount || symbolCount !== lastSymbolCount || edgeCount !== lastEdgeCount) {
+          lastFileCount = fileCount;
+          lastSymbolCount = symbolCount;
+          lastEdgeCount = edgeCount;
+          
+          document.getElementById('repo-name')!.textContent = status.repoName || 'MapX Project';
+          document.getElementById('stat-files')!.textContent = String(fileCount);
+          document.getElementById('stat-symbols')!.textContent = String(symbolCount);
+          document.getElementById('stat-edges')!.textContent = String(edgeCount);
+          
+          const filterSelect = document.getElementById('filter-lang') as HTMLSelectElement;
+          if (filterSelect && status.languages) {
+            const currentVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="">All Languages</option>';
+            Object.keys(status.languages).forEach(lang => {
+              const opt = document.createElement('option');
+              opt.value = lang;
+              opt.textContent = lang.toUpperCase();
+              filterSelect.appendChild(opt);
+            });
+            filterSelect.value = currentVal;
+          }
+          
+          // Reload graph and Explorer components to reflect changes
+          loadGraph();
+          loadSymbols();
+          loadRoutes();
+          loadMetrics();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to poll status:', err);
+    }
+  }, 2000);
+}
+
 // Initialise everything
 document.addEventListener('DOMContentLoaded', () => {
   loadStatus();
@@ -1179,6 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadToolCallHistory();
   setupSSE();
   setupContextBuilder();
+  startPeriodicPolling();
 
   // Search input listener for Symbol Explorer
   const symbolSearch = document.getElementById('symbol-search');

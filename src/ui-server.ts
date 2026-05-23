@@ -9,6 +9,7 @@ import { calculateMetrics, calculateGraphMetrics } from './core/metrics.js';
 import { ContextBuilder } from './core/context-builder.js';
 import { RouteRegistry } from './frameworks/route-registry.js';
 import { UiEventBus, getToolCallsLogPath } from './ui-events.js';
+import { getChangedFiles, isGitRepo } from './core/git-tracker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, '..');
@@ -269,17 +270,57 @@ export function startUiServer(opts: ServerOpts) {
             });
           }
 
+          const fileCount = store.getFileCount();
+          const symbolCount = store.getSymbolCount();
+          const edgeCount = store.getEdgeCount();
+
           const fileMetrics = calculateMetrics(store, { repo: config.repo.name });
           const graphMetrics = calculateGraphMetrics(store, config.repo.name);
-          const topFiles = store.getTopFilesByPageRank(graph, 5);
-          const topSymbols = store.getTopSymbolsByPageRank(graph, 5);
+          const topFiles = store.getTopFilesByPageRank(graph, 10);
+          const topSymbols = store.getTopSymbolsByPageRank(graph, 10);
+
+          // Get extra metrics matching CLI status
+          const verifiedEdges = (store.raw.prepare("SELECT COUNT(*) as cnt FROM edges WHERE verifiability = 'verified'").get() as any)?.cnt || 0;
+          const inferredEdges = (store.raw.prepare("SELECT COUNT(*) as cnt FROM edges WHERE verifiability = 'inferred'").get() as any)?.cnt || 0;
+          const languages = store.getLanguageBreakdown();
+
+          const symbolKinds = store.raw.prepare(
+            'SELECT kind, COUNT(*) as cnt FROM symbols GROUP BY kind ORDER BY cnt DESC'
+          ).all() as Array<{ kind: string; cnt: number }>;
+
+          const edgeTypes = store.raw.prepare(
+            'SELECT edge_type, COUNT(*) as cnt FROM edges GROUP BY edge_type ORDER BY cnt DESC'
+          ).all() as Array<{ edge_type: string; cnt: number }>;
+
+          let dbSize = 0;
+          try {
+            dbSize = statSync(dbPath).size;
+          } catch {}
+
+          const repoRoot = resolve(dir, config.repo.path);
+          const isGit = isGitRepo(repoRoot);
+          const lastCommit = store.getMeta('last_scan_commit:' + config.repo.name) || store.getMeta('last_scan_commit');
+          const gitChanges = isGit ? getChangedFiles(repoRoot, lastCommit || undefined) : [];
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            totalFiles: store.getFileCount(),
-            totalSymbols: store.getSymbolCount(),
+            totalFiles: fileCount,
+            totalSymbols: symbolCount,
+            totalEdges: edgeCount,
+            verifiedEdges,
+            inferredEdges,
+            languages,
+            symbolKinds,
+            edgeTypes,
+            avgEdgesPerFile: fileCount > 0 ? (edgeCount / fileCount).toFixed(2) : '0',
+            dbSize,
             density: `${(graphMetrics.density * 100).toFixed(4)}%`,
             transitivity: graphMetrics.transitivity.toFixed(4),
+            git: {
+              isGit,
+              changesCount: gitChanges.length,
+              changes: gitChanges
+            },
             fileMetrics,
             topFiles,
             topSymbols
@@ -433,13 +474,29 @@ export function startUiServer(opts: ServerOpts) {
           } catch { /* ignore */ }
         };
 
-        // Poll every 2 seconds for new log entries
-        const pollInterval = setInterval(pollLogFile, 2000);
+        // Watch log file for immediate near-real-time updates
+        let logWatcher: any = null;
+        try {
+          if (existsSync(logPath)) {
+            const { watch } = require('node:fs');
+            logWatcher = watch(logPath, (eventType: string) => {
+              if (eventType === 'change') {
+                pollLogFile();
+              }
+            });
+          }
+        } catch { /* ignore watch issues */ }
+
+        // Poll every 500ms for backup/creation checks
+        const pollInterval = setInterval(pollLogFile, 500);
 
         req.on('close', () => {
           eventBus.off('tool-call', onToolCall);
           eventBus.off('scan-progress', onScanProgress);
           eventBus.off('scan-complete', onScanComplete);
+          if (logWatcher) {
+            try { logWatcher.close(); } catch { /* ignore */ }
+          }
           clearInterval(pollInterval);
         });
         return;

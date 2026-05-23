@@ -123,7 +123,7 @@ summary: ## Show project summary (make summary DIR=/path)
 	$(CLI) summary $(DIR)
 
 serve: ## Start MCP server — stdio (make serve DIR=/path)
-	$(CLI) serve --dir=$(DIR)
+	$(CLI) serve --dir=$(DIR) --debug
 
 serve-sse: ## Start MCP server — SSE/HTTP (make serve-sse [PORT=3456] DIR=/path)
 	$(CLI) serve --sse --port $(or $(PORT),45123) --dir=$(DIR)

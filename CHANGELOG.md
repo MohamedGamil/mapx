@@ -14,6 +14,10 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+- **Extended UI Metrics Dashboard** — The Web UI Metrics page is now fully aligned with the CLI `status` command, rendering detailed, harmonized cards.
+  - `/api/metrics` JSON payload extended to return `totalEdges`, `verifiedEdges`, `inferredEdges`, `languages` breakdown, `symbolKinds` aggregation, `edgeTypes` aggregation, `avgEdgesPerFile`, `dbSize`, and a detailed `git` status object.
+  - Metrics view updated with new dedicated cards for **Language Breakdown**, **Symbol Kinds Breakdown**, **Dependency & Edges**, and **Storage & Git Status** (complete with icons and status colors).
+- **Expanded PageRank Lists** — Increased the number of returned items for Top Files (PageRank) and Top Symbols (PageRank) from 5 to 10 in both the API response and web dashboard.
 - **Framework-aware ignored symbols** — Parsers now automatically skip noisy framework-specific symbols (e.g. Vue's `ref`, `computed`, `watch`, `defineComponent`, `useRouter`, `t`, etc.) when the project is detected as using that framework. This prevents low-value super-nodes from polluting the code graph, skewing PageRank, and creating noise in impact analysis
   - Centralized `IGNORED_SYMBOLS_BY_FRAMEWORK` registry in `src/parsers/ignored-symbols.ts` — keyed by `FrameworkDetector.name`, making it trivial to add ignored sets for React, Laravel, Angular, or any other framework
   - `buildIgnoredSymbols()` helper merges active framework sets into a single `Set<string>` passed once per scan pass via parser options
@@ -40,6 +44,11 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 - Scanner's `parseFilesParallel` / `parseOnMainThread` now accept an optional `ignoredSymbols` set instead of framework-specific boolean flags
 - Graph node selection in the Web UI preserves dynamic size instead of resetting to a hardcoded size.
 - Improved graph interaction with optimized wheel sensitivity (`3.2`) and degree capping.
+- Enhanced tool call log tailing in the UI server: added `fs.watch` for instant, near-real-time updates, and reduced fallback polling interval to 500ms for robust periodic checks.
+
+### Fixed
+
+- **SVG Exporter Type-Safety** — Resolved outstanding typecast compilation errors in `src/exporters/svg-exporter.ts` to make the workspace compile cleanly and remain 100% type-safe.
 
 ---
 

@@ -139,7 +139,7 @@ export class SvgExporter {
       const groups: ClusterGroup[] = [];
       for (const [cName, fList] of clusterMap.entries()) {
         const clusterInfo = clusters.find(c => c.name === cName);
-        const label = clusterInfo?.label || cName;
+        const label = String(clusterInfo?.label || cName);
         fList.sort((a, b) => {
           const prA = rankMap.get(a.path as string) || 0;
           const prB = rankMap.get(b.path as string) || 0;
@@ -314,11 +314,12 @@ export class SvgExporter {
       const isHighRank = pr > maxPr * 0.5;
       const strokeAttr = isHighRank ? ` stroke="#60a5fa" stroke-width="1.5"` : ` stroke="#1e293b" stroke-width="1"`;
 
+      const filePath = String(n.file.path || '');
       nodeLines.push(
         `  <g class="node-group">`,
         `    <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${ITEM_H}" rx="6" fill="${color}" opacity="${opacity.toFixed(2)}"${strokeAttr} class="node-rect"/>`,
-        `    <text x="${n.x + n.w / 2}" y="${textY}" text-anchor="middle" fill="${textColor}" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500">${this.escXml(n.file.path.split('/').pop() || n.file.path)}</text>`,
-        `    <title>${this.escXml(n.file.path)} (PageRank: ${pr.toFixed(4)})</title>`,
+        `    <text x="${n.x + n.w / 2}" y="${textY}" text-anchor="middle" fill="${textColor}" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500">${this.escXml(filePath.split('/').pop() || filePath)}</text>`,
+        `    <title>${this.escXml(filePath)} (PageRank: ${pr.toFixed(4)})</title>`,
         `  </g>`,
       );
     }
