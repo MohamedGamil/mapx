@@ -400,8 +400,16 @@ async function loadGraph() {
             'font-weight': '600',
             'background-color': '#5c6370',
             'shape': 'ellipse',
-            'width': '32px',
-            'height': '32px',
+            'width': (node: any) => {
+              if (node.isParent && node.isParent()) return 'auto';
+              const deg = node.degree ? node.degree() : 0;
+              return (32 + Math.min(deg * 2, 64)) + 'px';
+            },
+            'height': (node: any) => {
+              if (node.isParent && node.isParent()) return 'auto';
+              const deg = node.degree ? node.degree() : 0;
+              return (32 + Math.min(deg * 2, 64)) + 'px';
+            },
             'text-valign': 'bottom',
             'text-margin-y': 6,
             'overlay-color': '#61afef',

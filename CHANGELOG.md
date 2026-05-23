@@ -27,6 +27,10 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
   - `lang-install` / `lang-uninstall` — Install/remove language support (`make lang-install l=ruby`)
   - `workspaces-add` / `workspaces-remove` — Register/remove repos (`make workspaces-add p=/path`)
   - `agents-update` — Update existing agent integration files
+- **Cross-process Tool Call Logging in Web UI** — Persistent logging of MCP tool calls to `.mapx/tool-calls.jsonl` enables the Tool Call Log tab in the Web UI dashboard to correctly capture and display MCP tool calls even when the MCP server and Web UI are running in separate processes
+  - UI server reads/serves historical logs via `/api/tool-calls` endpoint and tails new logs for real-time pushing via SSE
+  - UI client renders status badges, execution durations, parameters, and error details with robust client-side deduplication
+- **Dynamic Graph Node Sizing** — Graph nodes in the Graph Explorer are now dynamically sized based on their degree (count of dependencies, references, and edges), making code architecture hot-spots immediately visible (scaling from `32px` baseline up to `56px`)
 
 ### Changed
 
