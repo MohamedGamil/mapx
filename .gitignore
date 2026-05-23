@@ -6,7 +6,6 @@
 # Ignore NodeJS app artifacts
 node_modules/
 dist/
-package-lock.json
 coverage
 .env
 .idea
