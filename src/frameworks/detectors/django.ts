@@ -67,12 +67,15 @@ export class DjangoDetector implements FrameworkDetector {
       if (includeMatch) {
         const includedModule = includeMatch[1];
         const resolvedPath = this.resolveModulePath(includedModule);
-        if (resolvedPath && existsSync(resolvedPath)) {
-          try {
-            const subContent = await readFile(resolvedPath, 'utf-8');
-            await this.parseUrlsFile(resolvedPath, subContent, fullPath, ctx, routes, visitedFiles);
-          } catch {
-            // Ignored
+        if (resolvedPath) {
+          const absResolvedPath = join(ctx.workspaceRoot, resolvedPath);
+          if (existsSync(absResolvedPath)) {
+            try {
+              const subContent = await readFile(absResolvedPath, 'utf-8');
+              await this.parseUrlsFile(resolvedPath, subContent, fullPath, ctx, routes, visitedFiles);
+            } catch {
+              // Ignored
+            }
           }
         }
       } else {

@@ -5,11 +5,7 @@
   (type_identifier) @symbol.name) @symbol.kind_class
 
 ; Interfaces
-(class_declaration
-  (type_identifier) @symbol.name
-  (#match? @symbol.name ".*")
-  ) @symbol.kind_interface
-
+; TODO: Add an interface-specific pattern for tree-sitter-kotlin. The previous query matched all class_declaration nodes and produced duplicates.
 ; Object declarations (singletons)
 (object_declaration
   (type_identifier) @symbol.name) @symbol.kind_class

@@ -5,9 +5,7 @@
   name: (identifier) @symbol.name) @symbol.kind_class
 
 ; Case classes
-(class_definition
-  name: (identifier) @symbol.name) @symbol.kind_class
-
+; TODO: Add a case-class-specific pattern (the previous query duplicated the generic class_definition capture).
 ; Objects (singletons)
 (object_definition
   name: (identifier) @symbol.name) @symbol.kind_class
