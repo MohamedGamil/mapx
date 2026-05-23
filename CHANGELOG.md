@@ -10,6 +10,31 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ---
 
+## [0.2.2] — 2026-05-23
+
+### Added
+
+- **Framework-aware ignored symbols** — Parsers now automatically skip noisy framework-specific symbols (e.g. Vue's `ref`, `computed`, `watch`, `defineComponent`, `useRouter`, `t`, etc.) when the project is detected as using that framework. This prevents low-value super-nodes from polluting the code graph, skewing PageRank, and creating noise in impact analysis
+  - Centralized `IGNORED_SYMBOLS_BY_FRAMEWORK` registry in `src/parsers/ignored-symbols.ts` — keyed by `FrameworkDetector.name`, making it trivial to add ignored sets for React, Laravel, Angular, or any other framework
+  - `buildIgnoredSymbols()` helper merges active framework sets into a single `Set<string>` passed once per scan pass via parser options
+  - Integrates with existing `FrameworkRegistry.detectActiveFrameworks()` — no ad-hoc detection, frameworks are detected before the parsing loop using the same detector infrastructure used for routes/hooks
+  - Both symbol extraction and reference/edge creation respect the ignored set, preventing orphaned inferred edges
+  - Vue ecosystem coverage includes: Composition API, Vue Router, Pinia, Vue I18n (`t`, `te`, `tm`, etc.), and Nuxt/VueUse utilities
+- **Makefile completeness** — Added missing targets to align with all CLI commands:
+  - `sync` — Alias for `update` (incremental scan)
+  - `metrics` — Show coupling/instability metrics (`make metrics [l=lang]`)
+  - `edges` — Query dependency edges (`make edges [from=file] [to=file]`)
+  - `lang-install` / `lang-uninstall` — Install/remove language support (`make lang-install l=ruby`)
+  - `workspaces-add` / `workspaces-remove` — Register/remove repos (`make workspaces-add p=/path`)
+  - `agents-update` — Update existing agent integration files
+
+### Changed
+
+- `GenericWasmParser.parse()` now checks `options.ignoredSymbols` (a `Set<string>`) to filter symbols and references — fully data-driven, no per-parser subclass overrides needed
+- Scanner's `parseFilesParallel` / `parseOnMainThread` now accept an optional `ignoredSymbols` set instead of framework-specific boolean flags
+
+---
+
 ## [0.2.1] — 2026-05-23
 
 ### Added
@@ -165,7 +190,8 @@ _Changelog entries not yet backfilled. See git log for history._
 ---
 
 <!-- Links (keep at the bottom) -->
-[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/MohamedGamil/mapx/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/MohamedGamil/mapx/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MohamedGamil/mapx/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/MohamedGamil/mapx/compare/v0.1.6...v0.1.9
