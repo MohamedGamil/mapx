@@ -109,7 +109,10 @@ export class GenericWasmParser implements LanguageParser {
         if (captureName.startsWith('ref.target_')) {
           const refType = captureName.replace('ref.target_', '');
           for (const capture of captures) {
-            const targetName = this.cleanTarget(capture.node.text, refType);
+            const targetText = capture.node.text;
+            if (!targetText || typeof targetText !== 'string') continue;
+            const targetName = this.cleanTarget(targetText, refType);
+            if (!targetName || typeof targetName !== 'string') continue;
             const startLine = capture.node.startPosition.row + 1;
             const referenceType = this.mapRefType(refType);
 

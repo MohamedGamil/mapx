@@ -186,6 +186,7 @@ export class PhpParser extends GenericWasmParser {
           const refType = captureName.replace('ref.target_', '');
           for (const capture of captures) {
             const targetName = capture.node.text;
+            if (!targetName || typeof targetName !== 'string') continue;
             const startLine = capture.node.startPosition.row + 1;
             const cleaned = this.cleanTargetName(targetName, refType);
             const referenceType = this.mapRefType(refType);
@@ -689,6 +690,7 @@ export class PhpParser extends GenericWasmParser {
     };
 
     for (const ref of finalReferences) {
+      if (!ref.targetName || typeof ref.targetName !== 'string') continue;
       if (ref.referenceType === 'call' || ref.referenceType === 'instantiation') {
         const shortName = ref.targetName.split('\\').at(-1) ?? ref.targetName;
         if (shortName !== 'Route') {

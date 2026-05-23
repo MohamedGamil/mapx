@@ -808,6 +808,7 @@ export class Scanner {
     const edges: GraphEdge[] = [];
 
     for (const ref of refs) {
+      if (!ref.targetName || typeof ref.targetName !== 'string') continue;
       let targetFile: string | null = null;
 
       if (ref.referenceType === 'require') {
@@ -858,6 +859,7 @@ export class Scanner {
   }
 
   private resolveRequirePath(target: string, sourcePath: string, fileMap: Map<string, string>): string | null {
+    if (!target || typeof target !== 'string') return null;
     const dir = sourcePath.includes('/') ? sourcePath.substring(0, sourcePath.lastIndexOf('/')) : '';
     const candidates = [
       target.startsWith('./') ? join(dir, target) : target,
@@ -873,6 +875,7 @@ export class Scanner {
   }
 
   private resolveImportPath(target: string, sourcePath: string, fileMap: Map<string, string>): string | null {
+    if (!target || typeof target !== 'string') return null;
     let resolvedTarget = target;
     if (sourcePath.endsWith('.vue') && target.startsWith('@/')) {
       resolvedTarget = 'src/' + target.substring(2);
@@ -901,6 +904,7 @@ export class Scanner {
   }
 
   private resolveSymbolToFile(symbolName: string, fileMap: Map<string, string>): string | null {
+    if (!symbolName || typeof symbolName !== 'string') return null;
     let matches = this.store.searchSymbols(symbolName);
     if (matches.length > 0) {
       const exactMatch = matches.find(m => m.name === symbolName);
