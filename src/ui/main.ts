@@ -353,7 +353,7 @@ async function loadGraph() {
             'overlay-color': '#61afef',
             'overlay-opacity': 0.08,
             'text-outline-color': '#1e222b',
-            'text-outline-width': '2.5px',
+            'text-outline-width': '1px',
             'transition-property': 'opacity, width, height, border-color, border-width, background-color',
             'transition-duration': 0.2
           }
@@ -362,7 +362,7 @@ async function loadGraph() {
           selector: 'node[type="file"]',
           style: {
             'shape': 'ellipse',
-            'border-width': '2.5px',
+            'border-width': '1px',
             'border-color': '#282c34'
           }
         },
@@ -370,7 +370,7 @@ async function loadGraph() {
           selector: 'node[type="symbol"]',
           style: {
             'shape': 'ellipse',
-            'border-width': '2.5px',
+            'border-width': '1px',
             'border-color': '#282c34'
           }
         },
@@ -378,7 +378,7 @@ async function loadGraph() {
           selector: ':parent',
           style: {
             'background-color': 'rgba(40, 44, 52, 0.4)',
-            'border-width': '2px',
+            'border-width': '1px',
             'border-color': '#3e4452',
             'border-style': 'dashed',
             'label': 'data(label)',
@@ -388,7 +388,7 @@ async function loadGraph() {
             'font-weight': 'bold',
             'text-valign': 'top',
             'text-halign': 'center',
-            'text-outline-width': '2.5px',
+            'text-outline-width': '1px',
             'text-outline-color': '#1e222b',
             'padding': '20px'
           }
@@ -413,7 +413,7 @@ async function loadGraph() {
         {
           selector: 'edge',
           style: {
-            'width': 2,
+            'width': 1,
             'line-color': 'rgba(92, 99, 112, 0.18)',
             'target-arrow-color': 'rgba(92, 99, 112, 0.18)',
             'target-arrow-shape': 'triangle',
@@ -434,7 +434,7 @@ async function loadGraph() {
         {
           selector: 'edge[type="cluster-dependency"]',
           style: {
-            'width': '3px',
+            'width': '2px',
             'line-color': '#61afef',
             'target-arrow-color': '#61afef',
             'target-arrow-shape': 'triangle',
@@ -453,7 +453,7 @@ async function loadGraph() {
         {
           selector: 'node:selected',
           style: {
-            'border-width': '3px',
+            'border-width': '1.5px',
             'border-color': '#61afef'
           }
         },
@@ -469,7 +469,7 @@ async function loadGraph() {
           style: {
             'width': '45px',
             'height': '45px',
-            'border-width': '4px',
+            'border-width': '1.8px',
             'border-color': '#61afef',
             'overlay-opacity': 0.15,
             'z-index': 9999,
@@ -482,7 +482,7 @@ async function loadGraph() {
           style: {
             'line-color': '#98c379',
             'target-arrow-color': '#98c379',
-            'width': 4,
+            'width': 2,
             'z-index': 9998,
             'opacity': 1
           }
@@ -490,7 +490,7 @@ async function loadGraph() {
         {
           selector: '.highlighted-outgoing-node',
           style: {
-            'border-width': '3px',
+            'border-width': '1.5px',
             'border-color': '#98c379',
             'z-index': 9997,
             'opacity': 1,
@@ -502,7 +502,7 @@ async function loadGraph() {
           style: {
             'line-color': '#c678dd',
             'target-arrow-color': '#c678dd',
-            'width': 4,
+            'width': 2,
             'z-index': 9998,
             'opacity': 1
           }
@@ -510,7 +510,7 @@ async function loadGraph() {
         {
           selector: '.highlighted-incoming-node',
           style: {
-            'border-width': '3px',
+            'border-width': '1.5px',
             'border-color': '#c678dd',
             'z-index': 9997,
             'opacity': 1,
@@ -537,11 +537,27 @@ async function loadGraph() {
       showClusters = !showClusters;
       const btn = e.currentTarget as HTMLButtonElement;
       if (showClusters) {
-        btn.textContent = '📂 Hide Clusters';
+        btn.innerHTML = `
+          <svg class="nav-svg-icon" style="width: 16px; height: 16px; stroke: currentColor;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9"></rect>
+            <rect x="14" y="3" width="7" height="5"></rect>
+            <rect x="14" y="12" width="7" height="9"></rect>
+            <rect x="3" y="16" width="7" height="5"></rect>
+          </svg>
+          <span>Hide Clusters</span>
+        `;
         btn.classList.add('btn-primary');
         btn.classList.remove('btn-secondary');
       } else {
-        btn.textContent = '📂 Show Clusters';
+        btn.innerHTML = `
+          <svg class="nav-svg-icon" style="width: 16px; height: 16px; stroke: currentColor;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9"></rect>
+            <rect x="14" y="3" width="7" height="5"></rect>
+            <rect x="14" y="12" width="7" height="9"></rect>
+            <rect x="3" y="16" width="7" height="5"></rect>
+          </svg>
+          <span>Show Clusters</span>
+        `;
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-secondary');
       }
@@ -577,34 +593,34 @@ async function loadGraph() {
         if (data.type === 'parent') {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Type</span>
-                <span style="color: #10b981; font-weight: bold;">DIRECTORY CLUSTER</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Type</span>
+                <span style="color: #98c379; font-weight: bold; text-align: right; word-break: break-all;">DIRECTORY CLUSTER</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Path</span>
-                <span style="word-break: break-all; text-align: justify;">${data.id.replace('dir:', '')}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Path</span>
+                <span style="word-break: break-all; text-align: right;">${data.id.replace('dir:', '')}</span>
               </div>
             </div>
           `;
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Path</span>
-                <span style="word-break: break-all; text-align: justify;">${data.id}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Path</span>
+                <span style="word-break: break-all; text-align: right;">${data.id}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Language</span>
-                <span>${data.language ? data.language.toUpperCase() : 'UNKNOWN'}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Language</span>
+                <span style="text-align: right; word-break: break-all;">${data.language ? data.language.toUpperCase() : 'UNKNOWN'}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Lines</span>
-                <span>${data.lines || 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Lines</span>
+                <span style="text-align: right; word-break: break-all;">${data.lines || 'N/A'}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Size</span>
-                <span>${data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A'}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Size</span>
+                <span style="text-align: right; word-break: break-all;">${data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A'}</span>
               </div>
             </div>
           `;
@@ -653,50 +669,50 @@ async function loadGraph() {
         if (data.type === 'cluster-dependency') {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Edge ID</span>
-                <span style="word-break: break-all; text-align: justify;">${data.id}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge ID</span>
+                <span style="word-break: break-all; text-align: right;">${data.id}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Source</span>
-                <span style="word-break: break-all; text-align: justify;">${data.source.replace('dir:', '')}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Source</span>
+                <span style="word-break: break-all; text-align: right;">${data.source.replace('dir:', '')}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Target</span>
-                <span style="word-break: break-all; text-align: justify;">${data.target.replace('dir:', '')}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Target</span>
+                <span style="word-break: break-all; text-align: right;">${data.target.replace('dir:', '')}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Edge Type</span>
-                <span><span class="badge" style="background:#2563eb; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">CLUSTER DEPENDENCY</span></span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge Type</span>
+                <span style="text-align: right;"><span class="badge" style="background:#2563eb; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">CLUSTER DEPENDENCY</span></span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Count</span>
-                <span style="color: #60a5fa; font-weight: bold;">${data.count} file-level dependency edge(s)</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Count</span>
+                <span style="color: #61afef; font-weight: bold; text-align: right;">${data.count} file-level edge(s)</span>
               </div>
             </div>
           `;
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Edge ID</span>
-                <span style="word-break: break-all; text-align: justify;">${data.id}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge ID</span>
+                <span style="word-break: break-all; text-align: right;">${data.id}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Source</span>
-                <span style="word-break: break-all; text-align: justify;">${data.source}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Source</span>
+                <span style="word-break: break-all; text-align: right;">${data.source}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Target</span>
-                <span style="word-break: break-all; text-align: justify;">${data.target}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Target</span>
+                <span style="word-break: break-all; text-align: right;">${data.target}</span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Edge Type</span>
-                <span><span class="badge" style="background:#8b5cf6; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">${data.type}</span></span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge Type</span>
+                <span style="text-align: right;"><span class="badge" style="background:#8b5cf6; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">${data.type}</span></span>
               </div>
-              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Verify</span>
-                <span>${data.verifiability}</span>
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Verify</span>
+                <span style="text-align: right; word-break: break-all;">${data.verifiability}</span>
               </div>
             </div>
           `;
