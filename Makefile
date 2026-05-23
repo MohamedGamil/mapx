@@ -1,4 +1,4 @@
-.PHONY: help init scan update status export export-wide export-json export-dot export-svg export-svg-grid export-toon \
+.PHONY: help init uninit scan update status export export-wide export-json export-dot export-svg export-svg-grid export-toon \
        query search deps summary trace callers callees impact node files clusters \
        serve serve-sse ui workspaces-list workspaces-discover lang-list \
        bench bench-json \
@@ -37,6 +37,9 @@ version-sync: ## Sync package.json version from root VERSION file
 
 init: ## Initialize mapx in a project (make init DIR=/path)
 	$(CLI) init $(DIR)
+
+uninit: ## Remove .mapx/ directory and reverse integrations (make uninit DIR=/path)
+	$(CLI) uninit $(DIR) --force
 
 scan: ## Full scan of all source files (make scan DIR=/path)
 	$(CLI) scan $(DIR)

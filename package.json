@@ -36,6 +36,7 @@
     "build:npm": "tsup && tsx scripts/build-ui.ts",
     "prepublishOnly": "npm run build:npm",
     "init": "tsx src/main.ts init",
+    "uninit": "tsx src/main.ts uninit",
     "scan": "tsx src/main.ts scan",
     "update": "tsx src/main.ts update",
     "status": "tsx src/main.ts status",
