@@ -1,8 +1,8 @@
-.PHONY: help init uninit scan update status export export-wide export-json export-dot export-svg export-svg-grid export-toon \
-       query search deps summary trace callers callees impact node files clusters \
+.PHONY: help init uninit scan update sync status export export-wide export-json export-dot export-svg export-svg-grid export-toon \
+       query search deps summary trace callers callees impact node files clusters metrics edges \
        routes hooks \
-       agents-list agents-generate agents-mcp agents-mcp-detect \
-       serve serve-sse ui workspaces-list workspaces-discover workspaces-sync lang-list \
+       agents-list agents-generate agents-update agents-mcp agents-mcp-detect \
+       serve serve-sse ui workspaces-list workspaces-discover workspaces-sync workspaces-add workspaces-remove lang-list lang-install lang-uninstall \
        bench bench-json \
        test test-full test-clean clean clean-all \
        wasm build build-all build-linux build-linux-arm \
@@ -48,6 +48,8 @@ scan: ## Full scan of all source files (make scan DIR=/path)
 
 update: ## Incremental scan (only changed files) (make update DIR=/path)
 	$(CLI) update $(DIR)
+
+sync: update ## Alias for update (make sync DIR=/path)
 
 status: ## Show changed files since last scan (make status DIR=/path)
 	$(CLI) status $(DIR)
@@ -111,6 +113,12 @@ files: ## List files: make files [p=prefix] [l=lang] DIR=/path
 clusters: ## List code clusters (make clusters DIR=/path)
 	$(CLI) clusters --dir=$(DIR)
 
+metrics: ## Show coupling/instability metrics (make metrics [l=lang] DIR=/path)
+	$(CLI) metrics $(if $(l),--lang $(l),) --dir=$(DIR)
+
+edges: ## Query dependency edges (make edges [from=file] [to=file] DIR=/path)
+	$(CLI) edges $(if $(from),--from $(from),) $(if $(to),--to $(to),) --dir=$(DIR)
+
 summary: ## Show project summary (make summary DIR=/path)
 	$(CLI) summary $(DIR)
 
@@ -132,8 +140,24 @@ workspaces-discover: ## Discover unregistered repos
 workspaces-sync: ## Auto-register discovered repos
 	$(CLI) workspaces sync --dir=$(DIR)
 
+workspaces-add: ## Register a new repo (make workspaces-add p=/path/to/repo)
+	@test -n "$(p)" || (echo "Usage: make workspaces-add p=/path/to/repo" && exit 1)
+	$(CLI) workspaces add $(p) --dir=$(DIR)
+
+workspaces-remove: ## Remove a registered repo (make workspaces-remove n=repo-name)
+	@test -n "$(n)" || (echo "Usage: make workspaces-remove n=repo-name" && exit 1)
+	$(CLI) workspaces remove $(n) --dir=$(DIR)
+
 lang-list: ## List supported languages
 	$(CLI) lang list
+
+lang-install: ## Install language support (make lang-install l=ruby)
+	@test -n "$(l)" || (echo "Usage: make lang-install l=language" && exit 1)
+	$(CLI) lang install $(l)
+
+lang-uninstall: ## Uninstall language support (make lang-uninstall l=ruby)
+	@test -n "$(l)" || (echo "Usage: make lang-uninstall l=language" && exit 1)
+	$(CLI) lang uninstall $(l)
 
 routes: ## Show detected framework routes (make routes DIR=/path)
 	$(CLI) routes $(DIR)
@@ -148,6 +172,9 @@ agents-list: ## List all supported LLM integration providers
 
 agents-generate: ## Generate LLM integration files (make agents-generate [p=antigravity] DIR=/path)
 	$(CLI) agents generate $(if $(p),--providers $(p),--all) --dir=$(DIR)
+
+agents-update: ## Update existing agent integration files (make agents-update DIR=/path)
+	$(CLI) agents update --dir=$(DIR)
 
 agents-mcp: ## Auto-detect agent tools and generate MCP config files (make agents-mcp DIR=/path)
 	$(CLI) agents mcp --dir=$(DIR)
