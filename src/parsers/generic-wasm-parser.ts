@@ -88,6 +88,10 @@ export class GenericWasmParser implements LanguageParser {
             const explicitScope = scopeByNodeId.get(capture.node.id) || extractedScope;
             const resolvedScope = explicitScope || (this.isMemberKind(kind) ? currentScope : null);
 
+            if (options?.ignoredSymbols?.has(name)) {
+              continue;
+            }
+
             symbols.push({
               name,
               kind,
@@ -114,6 +118,10 @@ export class GenericWasmParser implements LanguageParser {
               verifiability = 'inferred';
             }
 
+            if (options?.ignoredSymbols?.has(targetName)) {
+              continue;
+            }
+
             references.push({
               sourceSymbol: null,
               targetName,
@@ -138,6 +146,8 @@ export class GenericWasmParser implements LanguageParser {
   protected isMemberKind(kind: SymbolKind): boolean {
     return kind === 'method' || kind === 'property' || kind === 'constant' || kind === 'field';
   }
+
+
 
   protected extractSignature(source: string, node: any, name: string, kind: string, startLine: number): string {
     const lines = source.split('\n');

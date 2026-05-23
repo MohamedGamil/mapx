@@ -15,6 +15,7 @@ import { minimatch } from 'minimatch';
 import type { ScanResult, GraphEdge, ParseResult, ExtractedReference, ExtractedSymbol, ProgressCallback, RepoConfig, ScanContext, RouteBinding, HookBinding } from '../types.js';
 import { FrameworkRegistry } from '../frameworks/framework-registry.js';
 import { RouteRegistry } from '../frameworks/route-registry.js';
+import { buildIgnoredSymbols } from '../parsers/ignored-symbols.js';
 
 const DEFAULT_CONCURRENCY = Math.min(cpus().length || 4, 8);
 
@@ -286,7 +287,14 @@ export class Scanner {
         totalEdges,
       });
 
-      const parseResults = await this.parseFilesParallel(toParse, workspaceRoot);
+      // Detect active frameworks early so we can build ignored symbols for parsing
+      const registry = FrameworkRegistry.getInstance();
+      const filePaths = discovered.map(f => f.relativePath);
+      const activeDetectors = await registry.detectActiveFrameworks(repoRoot, filePaths);
+      const activeFrameworks = activeDetectors.map(d => d.name);
+      const ignoredSymbols = buildIgnoredSymbols(activeFrameworks);
+
+      const parseResults = await this.parseFilesParallel(toParse, workspaceRoot, ignoredSymbols);
 
       const fileMap = this.workspaceFileMap.size > 0 ? this.workspaceFileMap : (() => {
         const allTrackedFiles = this.store.getAllFiles();
@@ -505,9 +513,17 @@ export class Scanner {
       }
     });
 
+    // Detect active frameworks early so we can build ignored symbols for parsing
+    const registry = FrameworkRegistry.getInstance();
+    const allFilePaths = this.store.getAllFiles(repo.name).map(f => f.path as string);
+    const activeDetectors = await registry.detectActiveFrameworks(repoRoot, allFilePaths);
+    const activeFrameworks = activeDetectors.map(d => d.name);
+    const ignoredSymbols = buildIgnoredSymbols(activeFrameworks);
+
     const parseResults = await this.parseFilesParallel(
       toReindex.map(r => r.fileInfo),
       workspaceRoot,
+      ignoredSymbols
     );
 
     let totalSymbols = 0;
@@ -655,16 +671,16 @@ export class Scanner {
     return deleted;
   }
 
-  private async parseFilesParallel(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
+  private async parseFilesParallel(files: FileInfo[], workspaceRoot: string, ignoredSymbols?: Set<string>): Promise<ParseResult[]> {
     if (files.length === 0) return [];
-    return this.parseOnMainThread(files, workspaceRoot);
+    return this.parseOnMainThread(files, workspaceRoot, ignoredSymbols);
   }
 
-  private async parseWithWorkers(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
-    return this.parseOnMainThread(files, workspaceRoot);
+  private async parseWithWorkers(files: FileInfo[], workspaceRoot: string, ignoredSymbols?: Set<string>): Promise<ParseResult[]> {
+    return this.parseOnMainThread(files, workspaceRoot, ignoredSymbols);
   }
 
-  private async parseOnMainThread(files: FileInfo[], workspaceRoot: string): Promise<ParseResult[]> {
+  private async parseOnMainThread(files: FileInfo[], workspaceRoot: string, ignoredSymbols?: Set<string>): Promise<ParseResult[]> {
     const results: ParseResult[] = new Array(files.length);
 
     // Read all files concurrently first (I/O bound, cheap to parallelize)
@@ -701,6 +717,7 @@ export class Scanner {
           const parser = getParserForFile(relPath, this.config.getResolvedUserLanguages());
           results[i] = await parser.parse(relPath, sources[i]!, {
             facadeMap: this.config.settings.php?.facadeMap,
+            ignoredSymbols,
           });
         } catch {
           results[i] = { symbols: [], references: [], errors: [{ message: `Failed to parse ${relPath}` }] };
