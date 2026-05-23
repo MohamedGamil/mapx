@@ -873,8 +873,13 @@ export class Scanner {
   }
 
   private resolveImportPath(target: string, sourcePath: string, fileMap: Map<string, string>): string | null {
-    const dir = sourcePath.includes('/') ? sourcePath.substring(0, sourcePath.lastIndexOf('/')) : '';
-    const resolvedTarget = target.startsWith('.') ? join(dir, target) : target;
+    let resolvedTarget = target;
+    if (sourcePath.endsWith('.vue') && target.startsWith('@/')) {
+      resolvedTarget = 'src/' + target.substring(2);
+    } else {
+      const dir = sourcePath.includes('/') ? sourcePath.substring(0, sourcePath.lastIndexOf('/')) : '';
+      resolvedTarget = target.startsWith('.') ? join(dir, target) : target;
+    }
     const normalizedTarget = resolvedTarget.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\//, '');
 
     const candidates = [

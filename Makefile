@@ -302,10 +302,15 @@ endif
 
 build: build-linux ## Build for current platform (linux-x64 default)
 
+build-ui: ## Build the Dashboard UI & NPM package
+	bun run build:npm
+
 # ── Packaging ─────────────────────────────────────────────────
 
 VERSION := $(shell cat VERSION | tr -d '[:space:]')
 DIST_DIR := dist/release
+
+pre-package: build-ui version-sync ## Pre-package for release (build UI + sync version)
 
 package-linux: build-linux ## Package linux-x64 binary as .tar.gz + installer
 	bash scripts/package.sh --skip-build linux-x64
@@ -322,7 +327,7 @@ package-mac-x64: build-mac-x64 ## Package macOS x64 binary as .tar.gz + installe
 package-win: build-win ## Package Windows binary as .zip + installer
 	bash scripts/package.sh --skip-build windows-x64
 
-package: package-linux ## Package for current platform
+package: pre-package package-linux ## Package for current platform
 
 package-all: build-all ## Package all platforms
 	bash scripts/package.sh --skip-build all
@@ -392,6 +397,12 @@ installer-win: package-win ## Self-extracting installer for Windows x64
 		$(DIST_DIR)/mapx-$(VERSION)-windows-x64.zip \
 		$(DIST_DIR)/mapx-$(VERSION)-windows-x64-installer.ps1 \
 		$(VERSION)
+
+installer: pre-package installer-linux ## Install for current platform
+	bash scripts/make-installer.sh sh \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-x64.tar.gz \
+		$(DIST_DIR)/mapx-$(VERSION)-linux-x64-installer.sh \
+		$(VERSION) linux-x64
 
 installer-all: installer-linux installer-linux-arm installer-mac-arm installer-mac-x64 installer-win ## Build all self-extracting installers
 	@echo ""
