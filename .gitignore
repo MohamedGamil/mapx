@@ -10,7 +10,6 @@ package-lock.json
 coverage
 .env
 .idea
-.vscode
 *.log
 *.tsbuildinfo
 
@@ -37,5 +36,12 @@ Desktop.ini
 *.swp
 *_walkthrough.md
 scratch/
+
+# Agents & IDEs
+.vscode/
+.agents/
+.cursor/
+.gemini/
+.continue/
 
 .mapx/
