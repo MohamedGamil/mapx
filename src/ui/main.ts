@@ -50,6 +50,9 @@ function setupSSE() {
     try {
       const data = JSON.parse(event.data);
       if (logContainer) {
+        const placeholder = logContainer.querySelector('.log-placeholder');
+        if (placeholder) placeholder.remove();
+
         const entry = document.createElement('div');
         entry.className = 'log-entry';
         
@@ -330,6 +333,13 @@ async function loadGraph() {
     if (!container) return;
 
     const initialElements = buildGraphElements(rawGraphElements, showClusters);
+
+    if (initialElements.length === 0) {
+      container.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; font-size: 15px; color: var(--text-muted); text-align: center; gap: 8px; padding: 20px;"><div style="font-size: 24px;">🕸️</div><div>No codebase graph elements found.</div><div style="font-size: 12px; opacity: 0.8;">Run a scan using the mapx CLI/MCP to index files and generate the graph.</div></div>';
+      return;
+    }
+
+    container.innerHTML = '';
 
     cyInstance = cytoscape({
       container: container,
@@ -823,6 +833,17 @@ async function loadSymbols(query: string = '') {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    if (symbols.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 30px; font-style: italic;">
+          No symbols found matching "${query || ''}"
+        </td>
+      `;
+      tbody.appendChild(tr);
+      return;
+    }
+
     symbols.forEach((s: any) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -923,31 +944,51 @@ async function loadRoutes() {
     const routesTbody = document.querySelector('#table-routes tbody');
     if (routesTbody) {
       routesTbody.innerHTML = '';
-      data.routes.forEach((r: any) => {
+      if (!data.routes || data.routes.length === 0) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${r.framework}</strong></td>
-          <td><span style="background:#10b981; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${r.method}</span></td>
-          <td><code>${r.path}</code></td>
-          <td style="color:#60a5fa;">${r.handlerSymbol || r.handlerFile}</td>
+          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px; font-style: italic;">
+            No framework routes detected in this project.
+          </td>
         `;
         routesTbody.appendChild(tr);
-      });
+      } else {
+        data.routes.forEach((r: any) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${r.framework}</strong></td>
+            <td><span style="background:#10b981; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${r.method}</span></td>
+            <td><code>${r.path}</code></td>
+            <td style="color:#60a5fa;">${r.handlerSymbol || r.handlerFile}</td>
+          `;
+          routesTbody.appendChild(tr);
+        });
+      }
     }
 
     const hooksTbody = document.querySelector('#table-hooks tbody');
     if (hooksTbody) {
       hooksTbody.innerHTML = '';
-      data.hooks.forEach((h: any) => {
+      if (!data.hooks || data.hooks.length === 0) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${h.framework}</strong></td>
-          <td><span style="background:#8b5cf6; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${h.hookType}</span></td>
-          <td><code>${h.hookName}</code></td>
-          <td style="color:#60a5fa;">${h.handlerSymbol || h.handlerFile}</td>
+          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px; font-style: italic;">
+            No framework hooks/events detected in this project.
+          </td>
         `;
         hooksTbody.appendChild(tr);
-      });
+      } else {
+        data.hooks.forEach((h: any) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${h.framework}</strong></td>
+            <td><span style="background:#8b5cf6; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${h.hookType}</span></td>
+            <td><code>${h.hookName}</code></td>
+            <td style="color:#60a5fa;">${h.handlerSymbol || h.handlerFile}</td>
+          `;
+          hooksTbody.appendChild(tr);
+        });
+      }
     }
   } catch (err) {
     console.error(err);
@@ -972,17 +1013,25 @@ async function loadMetrics() {
     }
 
     const topFilesList = document.getElementById('top-files-list');
-    if (topFilesList && metrics.topFiles) {
-      topFilesList.innerHTML = metrics.topFiles.map((f: any) => `
-        <li>${f.path} (PageRank: ${(f.pagerank || 0).toFixed(4)})</li>
-      `).join('');
+    if (topFilesList) {
+      if (metrics.topFiles && metrics.topFiles.length > 0) {
+        topFilesList.innerHTML = metrics.topFiles.map((f: any) => `
+          <li>${f.path} (PageRank: ${(f.pagerank || 0).toFixed(4)})</li>
+        `).join('');
+      } else {
+        topFilesList.innerHTML = '<li style="color: var(--text-muted); list-style-type: none;">No files available in metrics</li>';
+      }
     }
 
     const topSymbolsList = document.getElementById('top-symbols-list');
-    if (topSymbolsList && metrics.topSymbols) {
-      topSymbolsList.innerHTML = metrics.topSymbols.map((s: any) => `
-        <li>${s.name} (PageRank: ${(s.pagerank || 0).toFixed(4)})</li>
-      `).join('');
+    if (topSymbolsList) {
+      if (metrics.topSymbols && metrics.topSymbols.length > 0) {
+        topSymbolsList.innerHTML = metrics.topSymbols.map((s: any) => `
+          <li>${s.name} (PageRank: ${(s.pagerank || 0).toFixed(4)})</li>
+        `).join('');
+      } else {
+        topSymbolsList.innerHTML = '<li style="color: var(--text-muted); list-style-type: none;">No symbols available in metrics</li>';
+      }
     }
 
   } catch (err) {
@@ -1024,13 +1073,13 @@ function setupContextBuilder() {
             <div>
               <strong>Key Context Files:</strong>
               <ul style="padding-left:20px; margin-top:5px;">
-                ${context.files?.map((f: any) => `<li><code>${f.path || f}</code></li>`).join('') || '<li>None</li>'}
+                ${context.files && context.files.length > 0 ? context.files.map((f: any) => `<li><code>${f.path || f}</code></li>`).join('') : '<li style="color: var(--text-muted); list-style-type: none; margin-left: -20px;">None found</li>'}
               </ul>
             </div>
             <div>
               <strong>Relevant Entry Symbols:</strong>
               <ul style="padding-left:20px; margin-top:5px;">
-                ${context.symbols?.map((s: any) => `<li><code>${s.name || s}</code></li>`).join('') || '<li>None</li>'}
+                ${context.symbols && context.symbols.length > 0 ? context.symbols.map((s: any) => `<li><code>${s.name || s}</code></li>`).join('') : '<li style="color: var(--text-muted); list-style-type: none; margin-left: -20px;">None found</li>'}
               </ul>
             </div>
           </div>
