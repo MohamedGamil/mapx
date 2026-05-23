@@ -19,6 +19,11 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 - **Line number offsetting** — Remapped all symbol and reference line numbers within Vue files relative to their original SFC offsets.
 - **`@/` alias resolution in Vue components** — Added support for `import "@/..."` target paths pointing to the `src/` directory within Vue Single File Components (SFCs).
 - **Force scan option (`--force`)** — Added a `--force` option to the `scan` command to bypass the incremental parse caching and force re-parsing of all files (useful when parser or import resolver logic changes).
+- **Web Dashboard UI integration** — Bundled and served compiled Web Dashboard UI assets directly from packaged native binaries. Updated local/system installation targets and the release packaging workflow to ensure the `ui` assets folder is correctly bundled and placed in share directories.
+
+### Fixed
+
+- **Type-safe Reference Resolution** — Added type-checking guards for target and symbol names inside reference resolution helpers (`resolveRequirePath`, `resolveImportPath`, `resolveSymbolToFile`) and language parser engines (PHP, generic WASM parser) to prevent crashes when encountering null, undefined, or non-string reference targets during database scans.
 
 ---
 
