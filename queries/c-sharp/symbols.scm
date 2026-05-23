@@ -28,11 +28,13 @@
     (variable_declarator
       (identifier) @symbol.name))) @symbol.kind_property
 
-; Constant declarations
+; Constant declarations (const fields)
 (field_declaration
+  (modifier) @_const
   (variable_declaration
     (variable_declarator
-      (identifier) @symbol.name))) @symbol.kind_constant
+      (identifier) @symbol.name))
+  (#eq? @_const "const")) @symbol.kind_constant
 
 ; Namespace declarations
 (namespace_declaration

@@ -23,9 +23,10 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / ratio);
 }
 
+import { readFileSync } from 'node:fs';
+
 /** Count tokens in a file (reads from disk) */
 export function estimateFileTokens(filePath: string): number {
-  const { readFileSync } = require('node:fs');
   try {
     const content = readFileSync(filePath, 'utf-8');
     return estimateTokens(content);

@@ -14,7 +14,8 @@
 ; Module-level constants (UPPER_CASE assignments)
 (expression_statement
   (assignment
-    left: (identifier) @symbol.name)) @symbol.kind_constant
+    left: (identifier) @symbol.name
+    (#match? @symbol.name "^[A-Z][A-Z0-9_]*$"))) @symbol.kind_constant
 
 ; Property definitions via @property decorator are auto-promoted from function
 ; to method by GenericWasmParser when inside a class scope

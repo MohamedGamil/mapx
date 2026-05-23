@@ -11,7 +11,7 @@ export class DotExporter {
   }
 
   export(repo?: string, filesFilter?: string[], opts?: { cluster?: 'none' | 'auto'; depth?: number }): string {
-    const clusterMode = opts?.cluster ?? 'auto';
+    const clusterMode = opts?.cluster ?? 'none';
     const maxClusterDepth = opts?.depth ?? Infinity;
     let files = this.store.getAllFiles(repo);
     let edges = this.store.getAllEdges(repo);
