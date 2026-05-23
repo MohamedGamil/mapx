@@ -1,4 +1,4 @@
-.PHONY: help init scan update status export export-wide export-json export-dot export-svg export-toon \
+.PHONY: help init scan update status export export-wide export-json export-dot export-svg export-svg-grid export-toon \
        query search deps summary trace callers callees impact node files clusters \
        serve serve-sse ui workspaces-list workspaces-discover lang-list \
        bench bench-json \
@@ -61,6 +61,9 @@ export-dot: ## Export in DOT format (make export-dot DIR=/path)
 
 export-svg: ## Export in SVG format (make export-svg DIR=/path)
 	$(CLI) export --format=svg --dir=$(DIR) -o graph.svg --cluster=auto
+
+export-svg-grid: ## Export in SVG format with grid layout (make export-svg DIR=/path)
+	$(CLI) export --format=svg --dir=$(DIR) -o graph-grid.svg --cluster=auto --fallback-grid
 
 export-toon: ## Export in TOON format (make export-toon DIR=/path)
 	$(CLI) export --format=toon --dir=$(DIR)

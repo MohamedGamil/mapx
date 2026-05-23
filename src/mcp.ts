@@ -164,6 +164,9 @@ export function buildServer(): Server {
             repo: { type: 'string', description: 'Filter by repo name' },
             exclude: { type: 'string', description: 'Comma-separated list of exclude glob patterns to append' },
             include: { type: 'string', description: 'Comma-separated list of include glob patterns to append' },
+            cluster: { type: 'string', enum: ['none', 'auto'], description: 'Cluster rendering mode for DOT/SVG', default: 'none' },
+            depth: { type: 'number', description: 'Maximum cluster nesting depth for DOT/SVG export', default: 3 },
+            fallback_grid: { type: 'boolean', description: 'Force using fallback grid SVG export', default: false },
             ...dirProperty,
           },
         },
@@ -608,6 +611,11 @@ export function buildServer(): Server {
         const allFiles = ctx.store.getAllFiles(repo).map(f => f.path as string);
         const filteredFiles = allFiles.filter(f => matcher(f));
 
+        const clusterMode = (args as any)?.cluster === 'none' ? 'none' as const : 'auto' as const;
+        const clusterDepth = (args as any)?.depth !== undefined ? parseInt((args as any).depth, 10) : 3;
+        const fallbackGrid = !!(args as any)?.fallback_grid;
+        const clusterOpts = { cluster: clusterMode, depth: clusterDepth, forceFallback: fallbackGrid };
+
         if (format === 'json') {
           const exporter = new GraphExporter(ctx.store, ctx.graph);
           return { content: [{ type: 'text', text: exporter.exportAsJSONString(repo, filteredFiles) }] };
@@ -615,12 +623,12 @@ export function buildServer(): Server {
 
         if (format === 'dot') {
           const exporter = new DotExporter(ctx.store, ctx.graph);
-          return { content: [{ type: 'text', text: exporter.export(repo, filteredFiles) }] };
+          return { content: [{ type: 'text', text: exporter.export(repo, filteredFiles, clusterOpts) }] };
         }
 
         if (format === 'svg') {
           const exporter = new SvgExporter(ctx.store, ctx.graph);
-          return { content: [{ type: 'text', text: exporter.export(repo, filteredFiles) }] };
+          return { content: [{ type: 'text', text: exporter.export(repo, filteredFiles, clusterOpts) }] };
         }
 
         const exporter = new LLMExporter(ctx.store, ctx.graph);

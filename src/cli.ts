@@ -1256,6 +1256,7 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
     .option('--key-folding', 'Collapse single-key chains into dotted paths for TOON', false)
     .option('--cluster <mode>', 'Cluster rendering mode for DOT/SVG: none, auto', 'none')
     .option('--depth <n>', 'Maximum cluster nesting depth for DOT/SVG export', '3')
+    .option('--fallback-grid', 'Force using fallback grid SVG export', false)
     .action(async (opts: Record<string, unknown>) => {
       const dir = resolveDir(opts, program.opts());
       const { config, store, graph } = await loadContext(dir);
@@ -1267,7 +1268,8 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
       const keyFolding = !!opts.keyFolding;
       const clusterMode = (opts.cluster as string) === 'none' ? 'none' as const : 'auto' as const;
       const clusterDepth = opts.depth ? parseInt(opts.depth as string, 10) : 3;
-      const clusterOpts = { cluster: clusterMode, depth: clusterDepth };
+      const fallbackGrid = !!opts.fallbackGrid;
+      const clusterOpts = { cluster: clusterMode, depth: clusterDepth, forceFallback: fallbackGrid };
 
       if (outputPath) {
         const outputDir = resolve(outputPath, '..');
