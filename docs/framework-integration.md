@@ -10,7 +10,7 @@ During a codebase scan (via `mapx scan` or `mapx update`), MapxGraph executes fr
 3. **Extract Hooks & Events**: Maps event listener bindings (e.g., WordPress actions/filters, Laravel event listeners) to their respective handler functions.
 4. **Persist Registry**: Saves findings to `.mapx/routes.json` and `.mapx/hooks.json` to keep them queryable.
 
-![Framework & Routing Integration](./images/05-frameworks.png)
+<!-- ![Framework & Routing Integration](./images/05-frameworks.png) -->
 
 ```mermaid
 graph TD

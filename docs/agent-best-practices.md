@@ -10,7 +10,7 @@ MapxGraph reduces agent token consumption by **up to 87%** while improving searc
 
 To ensure agents solve tasks with high reliability and low token cost, instruct them to follow this four-phase workflow:
 
-![Agent Workflow](./images/04-agent.png)
+<!-- ![Agent Workflow](./images/04-agent.png) -->
 
 ```mermaid
 graph TD

@@ -291,7 +291,7 @@ mapx stores everything locally inside your project:
 
 ## Architecture
 
-![Architecture Diagram](./docs/images/01-arch.png)
+<!-- ![Architecture Diagram](./docs/images/01-arch.png) -->
 
 ```mermaid
 graph TD

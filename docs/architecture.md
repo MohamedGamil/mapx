@@ -5,7 +5,7 @@
 MapxGraph is a local code graph memory system that provides persistent, structured understanding of codebases for LLMs. It supports **22 languages** across three tiers (built-in, bundled, installable) and provides **25 MCP tools** for LLM integration.
 
 
-![Architecture Diagram](./images/01-arch.png)
+<!-- ![Architecture Diagram](./images/01-arch.png) -->
 
 ```mermaid
 graph TD
@@ -216,7 +216,7 @@ Visual progress for scan operations:
 ### 1. Scanning & Indexing Sequence Flow
 This diagram illustrates the step-by-step lifecycle of a project scan, from Git diff analysis to parallel parsing and SQLite persistence.
 
-![Scanning & Indexing Sequence Flow](./images/02-seq.png)
+<!-- ![Scanning & Indexing Sequence Flow](./images/02-seq.png) -->
 
 ```mermaid
 sequenceDiagram
@@ -252,7 +252,7 @@ sequenceDiagram
 ### 2. Flow Tracing & Change Impact Blast Radius
 This diagram details how FlowTracer traverses the graph to resolve callers, callees, data flow, and change risk scores.
 
-![Flow Tracing & Change Impact Blast Radius](./images/03-flow.png)
+<!-- ![Flow Tracing & Change Impact Blast Radius](./images/03-flow.png) -->
 
 ```mermaid
 graph LR
