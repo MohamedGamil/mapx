@@ -26,6 +26,7 @@ export class DotExporter {
 
     const lines: string[] = [];
     lines.push('digraph Mapx {');
+    lines.push('  newrank=true;');
     lines.push('  rankdir=LR;');
     lines.push('  node [shape=box, style=filled];');
     lines.push('');
