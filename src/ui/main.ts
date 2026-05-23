@@ -41,6 +41,57 @@ subtabs.forEach(sub => {
   });
 });
 
+// Track seen tool call IDs to avoid duplicates from SSE + history
+const seenToolCallIds = new Set<string>();
+
+function toolCallId(data: any): string {
+  return `${data.tool}:${data.timestamp}:${data.durationMs || 0}`;
+}
+
+function renderToolCallEntry(data: any): HTMLElement {
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  
+  const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+  const durationStr = data.durationMs != null ? ` <span class="log-duration">${data.durationMs}ms</span>` : '';
+  const statusIcon = data.success === false ? '❌' : '✅';
+  
+  entry.innerHTML = `
+    <span class="log-time">[${timeStr}]</span>
+    <span class="log-status">${statusIcon}</span>
+    <span class="log-name">${data.tool}</span>
+    <span class="log-input">(${JSON.stringify(data.input)})</span>${durationStr}
+    ${data.error ? `<div class="log-result" style="color: #ef4444;">Error: ${data.error}</div>` : ''}
+  `;
+  return entry;
+}
+
+// Load historical tool calls from persistent log
+async function loadToolCallHistory() {
+  const logContainer = document.getElementById('tool-log-container');
+  if (!logContainer) return;
+  
+  try {
+    const res = await fetch('/api/tool-calls');
+    if (!res.ok) return;
+    const events = await res.json();
+    
+    if (events.length > 0) {
+      const placeholder = logContainer.querySelector('.log-placeholder');
+      if (placeholder) placeholder.remove();
+      
+      for (const data of events) {
+        const id = toolCallId(data);
+        if (seenToolCallIds.has(id)) continue;
+        seenToolCallIds.add(id);
+        logContainer.appendChild(renderToolCallEntry(data));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load tool call history:', err);
+  }
+}
+
 // Setup Server Event Source (SSE)
 function setupSSE() {
   const eventSource = new EventSource('/events');
@@ -49,21 +100,14 @@ function setupSSE() {
   eventSource.addEventListener('tool-call', (event: any) => {
     try {
       const data = JSON.parse(event.data);
+      const id = toolCallId(data);
+      if (seenToolCallIds.has(id)) return; // Skip duplicates
+      seenToolCallIds.add(id);
+      
       if (logContainer) {
         const placeholder = logContainer.querySelector('.log-placeholder');
         if (placeholder) placeholder.remove();
-
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        
-        const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
-        entry.innerHTML = `
-          <span class="log-time">[${timeStr}]</span>
-          <span class="log-name">${data.tool}</span>
-          <span class="log-input">(${JSON.stringify(data.input)})</span>
-          ${data.error ? `<div class="log-result" style="color: #ef4444;">Error: ${data.error}</div>` : ''}
-        `;
-        logContainer.prepend(entry);
+        logContainer.prepend(renderToolCallEntry(data));
       }
     } catch (err) {
       console.error('Failed to parse SSE event:', err);
@@ -1118,6 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSymbols();
   loadRoutes();
   loadMetrics();
+  loadToolCallHistory();
   setupSSE();
   setupContextBuilder();
 

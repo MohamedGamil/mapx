@@ -1,5 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, watchFile, unwatchFile } from 'node:fs';
 import { resolve, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Config } from './core/config.js';
@@ -8,7 +8,7 @@ import { MapxGraph } from './core/graph.js';
 import { calculateMetrics, calculateGraphMetrics } from './core/metrics.js';
 import { ContextBuilder } from './core/context-builder.js';
 import { RouteRegistry } from './frameworks/route-registry.js';
-import { UiEventBus } from './ui-events.js';
+import { UiEventBus, getToolCallsLogPath } from './ui-events.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, '..');
@@ -360,6 +360,26 @@ export function startUiServer(opts: ServerOpts) {
         return;
       }
 
+      if (pathname === '/api/tool-calls') {
+        const mapxDir = resolve(dir, '.mapx');
+        const logPath = getToolCallsLogPath(mapxDir);
+        const events: any[] = [];
+        if (existsSync(logPath)) {
+          try {
+            const content = readFileSync(logPath, 'utf-8');
+            const lines = content.split('\n').filter(Boolean);
+            // Return most recent 100 entries, newest first
+            const recent = lines.slice(-100).reverse();
+            for (const line of recent) {
+              try { events.push(JSON.parse(line)); } catch { /* skip malformed */ }
+            }
+          } catch { /* ignore read errors */ }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(events));
+        return;
+      }
+
       if (pathname === '/events') {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
@@ -372,6 +392,7 @@ export function startUiServer(opts: ServerOpts) {
           res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
         };
 
+        // In-process event listeners (for when MCP server runs in same process)
         const onToolCall = (event: any) => sendEvent('tool-call', event);
         const onScanProgress = (event: any) => sendEvent('scan-progress', event);
         const onScanComplete = (event: any) => sendEvent('scan-complete', event);
@@ -380,10 +401,46 @@ export function startUiServer(opts: ServerOpts) {
         eventBus.on('scan-progress', onScanProgress);
         eventBus.on('scan-complete', onScanComplete);
 
+        // Cross-process: tail the shared tool-calls.jsonl log file
+        const mapxDir = resolve(dir, '.mapx');
+        const logPath = getToolCallsLogPath(mapxDir);
+        let lastSize = 0;
+        try { lastSize = existsSync(logPath) ? statSync(logPath).size : 0; } catch { /* ignore */ }
+
+        const pollLogFile = () => {
+          try {
+            if (!existsSync(logPath)) return;
+            const currentSize = statSync(logPath).size;
+            if (currentSize <= lastSize) {
+              if (currentSize < lastSize) lastSize = currentSize; // file was truncated
+              return;
+            }
+            // Read only the new bytes
+            const { openSync, readSync, closeSync } = require('node:fs');
+            const fd = openSync(logPath, 'r');
+            const buf = Buffer.alloc(currentSize - lastSize);
+            readSync(fd, buf, 0, buf.length, lastSize);
+            closeSync(fd);
+            lastSize = currentSize;
+
+            const newLines = buf.toString('utf-8').split('\n').filter(Boolean);
+            for (const line of newLines) {
+              try {
+                const event = JSON.parse(line);
+                sendEvent('tool-call', event);
+              } catch { /* skip malformed */ }
+            }
+          } catch { /* ignore */ }
+        };
+
+        // Poll every 2 seconds for new log entries
+        const pollInterval = setInterval(pollLogFile, 2000);
+
         req.on('close', () => {
           eventBus.off('tool-call', onToolCall);
           eventBus.off('scan-progress', onScanProgress);
           eventBus.off('scan-complete', onScanComplete);
+          clearInterval(pollInterval);
         });
         return;
       }

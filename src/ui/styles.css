@@ -72,7 +72,7 @@ body {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* gap: 8px; */
 }
 
 .logo-accent {
@@ -507,6 +507,18 @@ body {
   border-left: 2px solid var(--border-color);
   margin-top: 4px;
   white-space: pre-wrap;
+}
+
+.log-duration {
+  color: var(--syntax-orange);
+  font-size: 11px;
+  margin-left: 6px;
+  opacity: 0.8;
+}
+
+.log-status {
+  margin-right: 4px;
+  font-size: 12px;
 }
 
 .context-input-group {

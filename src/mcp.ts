@@ -454,6 +454,9 @@ export function buildServer(): Server {
     const resolveOrFail = (a: Record<string, unknown>): { dir: string } | { error: string } => {
       const dir = resolveDir(a);
       if (!dir) return { error: 'No project directory set. Either pass a "dir" argument or start the server with --dir /path/to/project.' };
+      // Lazily enable cross-process tool call logging if not already set
+      const eventBus = UiEventBus.getInstance();
+      if (!(eventBus as any).mapxDir) eventBus.setMapxDir(dir);
       return { dir };
     };
     const loadCtx = async (dir: string) => {
@@ -1816,6 +1819,8 @@ export async function startMcpServer(dir?: string, options?: ServeOptions): Prom
 
   if (defaultDir) {
     process.stderr.write(`[mapx] Default project directory: ${defaultDir}\n`);
+    // Enable cross-process tool call logging for the UI dashboard
+    UiEventBus.getInstance().setMapxDir(defaultDir);
   } else {
     process.stderr.write(`[mapx] No default project directory set. Pass --dir /path/to/project or include "dir" in each tool call.\n`);
   }
