@@ -106,6 +106,7 @@ specs/
 | F30 | Language tier alignment (built-in / bundled / installable) | `done` | I16 | [F30](features/F30-language-tier-alignment.md) |
 | F31 | Cluster-aware export flags (`--cluster`, `--depth`) | `done` | I16 | [F31](features/F31-cluster-export-flags.md) |
 | F32 | `mapx workspaces discover` CLI subcommand | `done` | I16 | [F32](features/F32-workspaces-discover.md) |
+| F33 | Comprehensive language syntax coverage (14 languages) | `done` | I17 | [F33](features/F33-language-syntax-coverage.md) |
 
 **Status values:** `planned` · `in-progress` · `in-review` · `done` · `deferred` · `cancelled`
 
@@ -131,6 +132,7 @@ specs/
 | [I14](iterations/I14.md) | TOON export format | `done` | F27 |
 | [I15](iterations/I15.md) | Bundled web dashboard (`mapx ui`) | `done` | F28 |
 | [I16](iterations/I16.md) | Audit compliance fixes | `done` | F29, F30, F31, F32 |
+| [I17](iterations/I17.md) | Comprehensive language syntax coverage | `done` | F33 |
 
 Iterations are intended to be **sequentially deliverable** but where features have no cross-dependency they can be parallelised. See each iteration doc for explicit dependency declarations.
 

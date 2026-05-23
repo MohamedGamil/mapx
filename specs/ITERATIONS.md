@@ -450,3 +450,28 @@ _N/A — this is a new corrective iteration._
 ### Blockers / notes
 
 No blockers. All prerequisite infrastructure already exists. This is purely a wiring/alignment iteration.
+
+---
+
+## I17 — Comprehensive Language Syntax Coverage
+
+| Field | Value |
+|-------|-------|
+| Status | `done` |
+| Started | 2026-05-23 |
+| Completed | 2026-05-23 |
+| Features | F33 |
+| Branch | `feat/i17-language-syntax-coverage` |
+| PR | — |
+
+### Scope
+
+Brings all 14 built-in and bundled languages to comprehensive symbol and reference coverage. PHP/JS/TS serve as the baseline (~9 symbol kinds, full import/call/extends/implements/instantiation references). Each of the remaining 11 languages (Python, Go, Rust, Java, C#, Ruby, C, C++, Swift, Kotlin, Dart, Scala, Vue) has its `symbols.scm` and `references.scm` query files expanded to capture all applicable SymbolKind constructs and reference types, and `nodeMappings` in `registry.ts` updated to match.
+
+### Changes from original spec
+
+_None yet._
+
+### Blockers / notes
+
+No blockers. All tree-sitter grammars are available. The `GenericWasmParser` already handles `symbol.kind_*` and `ref.target_*` capture names generically — no parser code changes needed.

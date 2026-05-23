@@ -1,6 +1,6 @@
 # MapxGraph — Implementation Checklist
 
-> 32 features · 16 iterations · schema v2 → v6 · ~37 CLI commands · 21 MCP tools  
+> 33 features · 17 iterations · schema v2 → v6 · ~37 CLI commands · 21 MCP tools  
 > Specs: [specs/README.md](specs/README.md) · Decisions: [specs/DECISIONS.md](specs/DECISIONS.md)
 
 ---
@@ -151,6 +151,26 @@
 - [x] Add `mapx workspaces discover` standalone CLI subcommand (read-only discovery) (F32)
 - [x] Add `toon` to `mapx_export` MCP format enum
 - [x] Update `generateConfigs()` available tools list in `mcp.ts`
+
+---
+
+## Phase 8 — Language Depth (I17)
+
+### I17 · Comprehensive Language Syntax Coverage · F33 · Risk: Medium · Requires: I12
+- [x] **Python**: Add method, decorator, constant, property symbols; add instantiation, decorator refs
+- [x] **Go**: Add constant, type alias, package, var symbols; add interface embedding refs
+- [x] **Rust**: Add impl, const, static, type, module, macro, enum variant symbols; add trait impl, macro, path refs
+- [x] **Java**: Add field, constant, annotation, namespace, enum constant symbols; add extends, implements, annotation refs
+- [x] **C#**: Add property, constant, namespace, record, delegate, event symbols; add extends, attribute refs
+- [x] **Ruby**: Add module, constant, property (attr_*) symbols; add require, include, extends, instantiation refs
+- [x] **C**: Add enum, typedef, macro, union symbols; add #include refs
+- [x] **C++**: Add namespace, enum, template, alias symbols; add #include, extends, instantiation refs
+- [x] **Swift**: Add protocol, enum, extension, property, typealias symbols; add import, conformance, instantiation refs
+- [x] **Kotlin**: Add interface, object, enum, property symbols; add import, extends, implements, instantiation refs
+- [x] **Dart**: Add enum, mixin, extension, constant symbols; add extends, implements, with, instantiation refs
+- [x] **Scala**: Add trait, val, var, type alias, package symbols; add extends, instantiation refs
+- [x] **Vue**: Add class, method, property, arrow function symbols; add import, method call refs
+- [x] Update `nodeMappings` in `registry.ts` for all 14 languages
 
 ---
 
