@@ -380,10 +380,10 @@ const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
   dart: {
     name: 'dart',
     extensions: ['.dart'],
-    grammarWasm: 'wasm/tree-sitter-dart.wasm',
+    grammarWasm: join(homedir(), '.mapx', 'grammars', 'tree-sitter-dart.wasm'),
     queries: {
-      symbols: 'queries/dart/symbols.scm',
-      references: 'queries/dart/references.scm',
+      symbols: join(homedir(), '.mapx', 'grammars', 'queries', 'dart', 'symbols.scm'),
+      references: join(homedir(), '.mapx', 'grammars', 'queries', 'dart', 'references.scm'),
     },
     nodeMappings: {
       class: 'class_definition',
@@ -393,7 +393,7 @@ const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
       trait: 'mixin_declaration',
       constant: 'top_level_definition',
     },
-    tier: 'bundled',
+    tier: 'installable',
   },
   scala: {
     name: 'scala',

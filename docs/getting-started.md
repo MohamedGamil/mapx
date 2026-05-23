@@ -115,7 +115,6 @@ The content is wrapped in markers:
 | C++ | `.cpp`, `.hpp`, `.cc` | classes, structs, functions, namespaces, enums, templates |
 | Swift | `.swift` | classes, structs, protocols, enums, functions, properties, extensions |
 | Kotlin | `.kt`, `.kts` | classes, objects, functions, interfaces, properties, enum entries |
-| Dart | `.dart` | classes, functions, methods, enums, mixins, extensions, constants |
 | Scala | `.scala`, `.sc` | classes, objects, traits, functions, vals, vars, packages |
 | Vue | `.vue` | functions, classes, methods, properties (SFC script blocks) |
 
@@ -129,6 +128,7 @@ The content is wrapped in markers:
 | Zig | `.zig` | functions, structs, constants, tests, error sets |
 | Bash | `.sh`, `.bash` | functions, variables, aliases |
 | Pascal | `.pas`, `.pp` | procedures, functions, classes, records, interfaces, methods, constants, units |
+| Dart | `.dart` | classes, functions, methods, enums, mixins, extensions, constants |
 
 ## Dependencies Tracked
 

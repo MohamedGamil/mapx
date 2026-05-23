@@ -8,7 +8,7 @@ MapX uses [tree-sitter](https://tree-sitter.github.io/) to parse source files ac
 
 ## Features
 
-- **22 languages** — 8 built-in (PHP, JS, TS, Python, Go, Rust, Java, C#), 8 bundled (Ruby, C, C++, Swift, Kotlin, Dart, Scala, Vue), 6 installable (Svelte, Lua, Elixir, Zig, Bash, Pascal)
+- **22 languages** — 8 built-in (PHP, JS, TS, Python, Go, Rust, Java, C#), 7 bundled (Ruby, C, C++, Swift, Kotlin, Scala, Vue), 7 installable (Svelte, Lua, Elixir, Zig, Bash, Pascal, Dart)
 - **Deep symbol extraction** — classes, methods, functions, interfaces, traits, enums, structs, modules, constants, properties, namespaces — with full import/inheritance/instantiation reference tracking
 - **Incremental scans** — git-aware change detection; only re-parses files that changed
 - **Fast** — parallelised file reads, bounded WASM concurrency, batched SQLite writes
@@ -241,7 +241,6 @@ See [docs/mcp-integration.md](docs/mcp-integration.md) for full tool parameters 
 | C++ | `.cpp`, `.hpp`, `.cc` | classes, structs, functions, namespaces, enums, templates |
 | Swift | `.swift` | classes, structs, protocols, enums, functions, properties |
 | Kotlin | `.kt`, `.kts` | classes, objects, functions, interfaces, properties |
-| Dart | `.dart` | classes, functions, enums, mixins, extensions |
 | Scala | `.scala`, `.sc` | classes, objects, traits, functions, vals |
 | Vue | `.vue` | functions, classes, methods, properties |
 
@@ -255,6 +254,7 @@ See [docs/mcp-integration.md](docs/mcp-integration.md) for full tool parameters 
 | Zig | `.zig` | functions, structs, constants, tests |
 | Bash | `.sh`, `.bash` | functions, variables, aliases |
 | Pascal | `.pas`, `.pp` | classes, records, interfaces, methods, functions, constants, units |
+| Dart | `.dart` | classes, functions, enums, mixins, extensions |
 
 All languages track **imports**, **inheritance/implementation**, **instantiation**, and **calls** where applicable. See [docs/adding-languages.md](docs/adding-languages.md) to add your own.
 
