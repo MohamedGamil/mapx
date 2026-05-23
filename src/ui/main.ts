@@ -237,7 +237,7 @@ function buildGraphElements(rawElements: any[], useClusters: boolean): any[] {
       if (M === 1) {
         files[0].position = { x: cx, y: cy };
       } else if (M <= 8) {
-        const R = 75;
+        const R = 110;
         for (let j = 0; j < M; j++) {
           const angle = (j * 2 * Math.PI) / M;
           files[j].position = {
@@ -248,8 +248,8 @@ function buildGraphElements(rawElements: any[], useClusters: boolean): any[] {
       } else if (M <= 16) {
         const innerCount = 6;
         const outerCount = M - innerCount;
-        const R1 = 60;
-        const R2 = 120;
+        const R1 = 90;
+        const R2 = 180;
         for (let j = 0; j < innerCount; j++) {
           const angle = (j * 2 * Math.PI) / innerCount;
           files[j].position = {
@@ -268,9 +268,9 @@ function buildGraphElements(rawElements: any[], useClusters: boolean): any[] {
         const innerCount = 5;
         const midCount = 10;
         const outerCount = M - 15;
-        const R1 = 45;
-        const R2 = 100;
-        const R3 = 150;
+        const R1 = 80;
+        const R2 = 160;
+        const R3 = 240;
         for (let j = 0; j < innerCount; j++) {
           const angle = (j * 2 * Math.PI) / innerCount;
           files[j].position = {
@@ -352,8 +352,18 @@ function getLayoutOptions(useClusters: boolean, animate = true) {
       name: 'cose',
       animate: animate,
       nodeDimensionsIncludeLabels: true,
-      nodeRepulsion: 75000,
-      idealEdgeLength: 120,
+      nodeRepulsion: (node: any) => {
+        const deg = node.degree ? node.degree() : 0;
+        return 75000 + (deg * 15000);
+      },
+      idealEdgeLength: (edge: any) => {
+        const source = edge.source();
+        const target = edge.target();
+        const srcDeg = source.degree ? source.degree() : 0;
+        const tgtDeg = target.degree ? target.degree() : 0;
+        const maxDeg = Math.max(srcDeg, tgtDeg);
+        return 120 + (maxDeg * 8);
+      },
       gravity: 0.1,
       nodeOverlap: 40,
       nestingFactor: 1.2,
@@ -388,7 +398,7 @@ async function loadGraph() {
     cyInstance = cytoscape({
       container: container,
       elements: initialElements,
-      wheelSensitivity: 4.2,
+      wheelSensitivity: 3.2,
       style: [
         {
           selector: 'node',
@@ -403,15 +413,16 @@ async function loadGraph() {
             'width': (node: any) => {
               if (node.isParent && node.isParent()) return 'auto';
               const deg = node.degree ? node.degree() : 0;
-              return (32 + Math.min(deg * 2, 64)) + 'px';
+              return (32 + Math.min(deg * 2, 48)) + 'px';
             },
             'height': (node: any) => {
               if (node.isParent && node.isParent()) return 'auto';
               const deg = node.degree ? node.degree() : 0;
-              return (32 + Math.min(deg * 2, 64)) + 'px';
+              return (32 + Math.min(deg * 2, 48)) + 'px';
             },
-            'text-valign': 'bottom',
-            'text-margin-y': 6,
+            'text-valign': 'top',
+            'text-margin-y': -6,
+            'z-index': 10,
             'overlay-color': '#61afef',
             'overlay-opacity': 0.08,
             'text-outline-color': '#1e222b',
@@ -482,6 +493,7 @@ async function loadGraph() {
             'curve-style': 'bezier',
             'overlay-color': '#61afef',
             'overlay-opacity': 0.05,
+            'z-index': 1,
             'transition-property': 'opacity, width, line-color, target-arrow-color',
             'transition-duration': 0.2
           }
@@ -529,8 +541,6 @@ async function loadGraph() {
         {
           selector: '.highlighted-center',
           style: {
-            'width': '45px',
-            'height': '45px',
             'border-width': '2px',
             'border-color': '#61afef',
             'overlay-opacity': 0.15,
@@ -552,8 +562,6 @@ async function loadGraph() {
         {
           selector: '.highlighted-outgoing-node',
           style: {
-            'width': '38px',
-            'height': '38px',
             'font-size': '11.5px',
             'border-width': '1.8px',
             'border-color': '#98c379',
@@ -575,8 +583,6 @@ async function loadGraph() {
         {
           selector: '.highlighted-incoming-node',
           style: {
-            'width': '38px',
-            'height': '38px',
             'font-size': '11.5px',
             'border-width': '1.8px',
             'border-color': '#c678dd',
