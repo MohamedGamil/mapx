@@ -21,16 +21,41 @@ interface ServerOpts {
   dir: string;
 }
 
-export function startUiServer(opts: ServerOpts) {
-  const { port, host, token, dir } = opts;
-  let uiDir = resolve(__dirname, 'ui');
-  // Fallback to dist/ui if running from src in development
-  if (__dirname.endsWith('/src') || !existsSync(join(uiDir, 'main.js'))) {
-    const fallbackDir = resolve(__dirname, '../dist/ui');
-    if (existsSync(join(fallbackDir, 'main.js'))) {
-      uiDir = fallbackDir;
+function findUiDir(): string {
+  // 1. Check if running from source/dev/npm-installed:
+  if (existsSync(__filename)) {
+    const root = resolve(__dirname, '..');
+    // If in src/ development mode:
+    if (existsSync(join(root, 'dist/ui/main.js'))) {
+      return join(root, 'dist/ui');
+    }
+    // If in dist/ mode:
+    if (existsSync(join(root, 'ui/main.js'))) {
+      return join(root, 'ui');
     }
   }
+
+  // 2. Running as compiled binary: check XDG directories and next to binary
+  const binDir = resolve(process.execPath, '..');
+  const candidates = [
+    join(binDir, 'ui'),                                          // next to binary
+    resolve(binDir, '..', 'share', 'mapx', 'ui'),               // XDG system
+    join(process.env['HOME'] ?? '', '.local', 'share', 'mapx', 'ui'), // XDG user
+  ];
+
+  for (const dir of candidates) {
+    if (existsSync(join(dir, 'main.js'))) {
+      return dir;
+    }
+  }
+
+  // Fallback to the default relative lookup
+  return join(__dirname, 'ui');
+}
+
+export function startUiServer(opts: ServerOpts) {
+  const { port, host, token, dir } = opts;
+  const uiDir = findUiDir();
 
   // Simple in-memory rate-limiter: IP -> timestamp[]
   const rateLimitMap = new Map<string, number[]>();

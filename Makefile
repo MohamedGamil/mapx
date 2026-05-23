@@ -6,9 +6,10 @@
        bench bench-json \
        test test-full test-clean clean clean-all \
        wasm build build-all build-linux build-linux-arm \
-       build-mac-arm build-mac-x64 build-win \
+       build-mac-arm build-mac-x64 build-win build-ui \
        package package-linux package-mac-arm package-mac-x64 package-win \
        install install-local install-uninstall \
+	   installer installer-linux installer-linux-arm installer-mac-arm installer-mac-x64 installer-win \
        setup version-sync lint typecheck
 
 .DEFAULT_GOAL := help
@@ -302,7 +303,9 @@ endif
 
 build: build-linux ## Build for current platform (linux-x64 default)
 
-build-ui: ## Build the Dashboard UI & NPM package
+build-ui: dist/ui/main.js ## Build the Dashboard UI & NPM package
+
+dist/ui/main.js: $(shell find src/ui -type f 2>/dev/null)
 	bun run build:npm
 
 # ── Packaging ─────────────────────────────────────────────────
@@ -312,24 +315,24 @@ DIST_DIR := dist/release
 
 pre-package: build-ui version-sync ## Pre-package for release (build UI + sync version)
 
-package-linux: build-linux ## Package linux-x64 binary as .tar.gz + installer
+package-linux: build-ui build-linux ## Package linux-x64 binary as .tar.gz + installer
 	bash scripts/package.sh --skip-build linux-x64
 
-package-linux-arm: build-linux-arm ## Package linux-arm64 binary as .tar.gz + installer
+package-linux-arm: build-ui build-linux-arm ## Package linux-arm64 binary as .tar.gz + installer
 	bash scripts/package.sh --skip-build linux-arm64
 
-package-mac-arm: build-mac-arm ## Package macOS ARM binary as .tar.gz + installer
+package-mac-arm: build-ui build-mac-arm ## Package macOS ARM binary as .tar.gz + installer
 	bash scripts/package.sh --skip-build darwin-arm64
 
-package-mac-x64: build-mac-x64 ## Package macOS x64 binary as .tar.gz + installer
+package-mac-x64: build-ui build-mac-x64 ## Package macOS x64 binary as .tar.gz + installer
 	bash scripts/package.sh --skip-build darwin-x64
 
-package-win: build-win ## Package Windows binary as .zip + installer
+package-win: build-ui build-win ## Package Windows binary as .zip + installer
 	bash scripts/package.sh --skip-build windows-x64
 
 package: pre-package package-linux ## Package for current platform
 
-package-all: build-all ## Package all platforms
+package-all: build-ui build-all ## Package all platforms
 	bash scripts/package.sh --skip-build all
 	@echo ""
 	@echo "All packages created in $(DIST_DIR)/:"
@@ -339,25 +342,27 @@ package-all: build-all ## Package all platforms
 
 PREFIX ?= /usr/local/bin
 
-install-local: build-linux ## Install to ~/.local/bin (user scope, no sudo needed)
+install-local: build-ui build-linux ## Install to ~/.local/bin (user scope, no sudo needed)
 	@LOCAL_SHARE="$(HOME)/.local/share/mapx"; \
-	  mkdir -p ~/.local/bin "$$LOCAL_SHARE/wasm" "$$LOCAL_SHARE/queries" && \
+	  mkdir -p ~/.local/bin "$$LOCAL_SHARE/wasm" "$$LOCAL_SHARE/queries" "$$LOCAL_SHARE/ui" && \
 	  cp dist/mapx-linux-x64 ~/.local/bin/mapx && \
 	  chmod +x ~/.local/bin/mapx && \
 	  cp -r wasm/. "$$LOCAL_SHARE/wasm/" && \
 	  cp -r queries/. "$$LOCAL_SHARE/queries/" && \
+	  cp -r dist/ui/. "$$LOCAL_SHARE/ui/" && \
 	  echo "Installed to ~/.local/bin/mapx" && \
 	  echo "Data:    $$LOCAL_SHARE/" && \
 	  echo "" && \
 	  echo "Ensure ~/.local/bin is in your PATH"
 
-install: build-linux ## Install system-wide to $(PREFIX) (may need sudo)
+install: build-ui build-linux ## Install system-wide to $(PREFIX) (may need sudo)
 	@SHARE_DIR="$(shell dirname $(PREFIX))/share/mapx"; \
-	  mkdir -p $(PREFIX) "$$SHARE_DIR/wasm" "$$SHARE_DIR/queries" && \
+	  mkdir -p $(PREFIX) "$$SHARE_DIR/wasm" "$$SHARE_DIR/queries" "$$SHARE_DIR/ui" && \
 	  cp dist/mapx-linux-x64 $(PREFIX)/mapx && \
 	  chmod +x $(PREFIX)/mapx && \
 	  cp -r wasm/. "$$SHARE_DIR/wasm/" && \
 	  cp -r queries/. "$$SHARE_DIR/queries/" && \
+	  cp -r dist/ui/. "$$SHARE_DIR/ui/" && \
 	  echo "Installed to $(PREFIX)/mapx" && \
 	  echo "Data:    $$SHARE_DIR/"
 
