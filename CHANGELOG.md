@@ -8,6 +8,20 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] — 2026-05-23
+
+### Added
+- Added built-in network density and transitivity metric calculations in Metrics tab and `/api/metrics` API endpoint.
+- Redesigned Context Builder with task-relevance BFS shortest-path distance scoring, filename keyword boosts, symbol name keyword boosts, and a PageRank fallback mechanism.
+- Added styled fallback placeholders for empty layouts across all UI pages (Graph, Symbols, Routes/Hooks, Metrics, and Tool Log).
+
+### Changed
+- Rebuilt Symbol Explorer with a sticky right panel layout (`position: sticky`) and confined pre-formatted code blocks with custom scrollbars.
+- Updated Symbol Explorer search filter to match against both symbol name and partial file paths.
+- Fixed a routes & hooks subtab toggle bug that caused panels to blank out during navigation.
+
 ### Added (I18 — Token Cost Benchmarking Suite)
 - Added `mapx bench` built-in benchmarking suite for comparing LLM agent token consumption (baseline workspace reads vs MapX MCP tools)
 - Added `benchmarks/run.ts` CLI runner with JSON output support (`--json`) and model pricing analysis
@@ -114,7 +128,9 @@ _Changelog entries not yet backfilled. See git log for history._
 ---
 
 <!-- Links (keep at the bottom) -->
-[Unreleased]: https://github.com/<owner>/mapx/compare/v0.1.6...HEAD
-[0.1.6]: https://github.com/<owner>/mapx/compare/v0.1.5...v0.1.6
-[0.1.5]: https://github.com/<owner>/mapx/compare/v0.1.4...v0.1.5
-[0.1.4]: https://github.com/<owner>/mapx/releases/tag/v0.1.4
+[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/MohamedGamil/mapx/compare/v0.1.9...v0.2.0
+[0.1.9]: https://github.com/MohamedGamil/mapx/compare/v0.1.6...v0.1.9
+[0.1.6]: https://github.com/MohamedGamil/mapx/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/MohamedGamil/mapx/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/MohamedGamil/mapx/releases/tag/v0.1.4
