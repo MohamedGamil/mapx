@@ -114,6 +114,9 @@
     "web-tree-sitter": "^0.26.9",
     "zod": "^3.25.0"
   },
+  "overrides": {
+    "prebuild-install": "github:prebuild/prebuild-install#v7.1.3"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",

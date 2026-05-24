@@ -8,6 +8,11 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ## [Unreleased]
 
+## Changed
+
+- **Silence prebuild-install Deprecation Warning** — Resolved the NPM deprecation warning for `prebuild-install` (transitive dependency of `better-sqlite3`) by adding a package-level override pointing directly to the tagged GitHub repository release. This preserves SQLite query/transaction integrity and prevents terminal noise during installation.
+- **Fix Bun SQLite Require Compilation Warning** — Replaced direct Node-style `require('bun:sqlite')` with dynamically constructed `createRequire` in `src/core/store-bun.ts`. This silences the compiler warning during ESM builds while preserving native Bun SQLite loader capability.
+
 ---
 
 ## [0.2.6] — 2026-05-24
@@ -17,6 +22,7 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 - **Interactive CLI Revamp with Clack** — Integrated `@clack/prompts` to replace old readline-based console prompts with beautiful, interactive terminal widgets. Revamped confirmation prompts, LLM tool multi-select setups (`selectProvidersInteractive`), and converted the text-based scanner progress rendering to premium animated spinner sequences.
 - **Default Exclude Patterns Expansion** — Significantly expanded the default file exclusion patterns in `src/core/config.ts` to automatically ignore build directories (`dist`, `build`, `.next`), virtual environments (`.venv`, `__pycache__`), package lockfiles (`yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `go.sum`, etc.), package manifests, system/log files (`DS_Store`, `*.log`), and large third-party assets (Monaco editor files, Bootstrap scripts, React/Vue production builds). This drastically reduces token consumption and database size during scans by default.
 - **PULL_REQUEST_TEMPLATE.md Updates** — Updated the checklist to verify NPM dependency lock synchronization via `make version-sync`, local prebuilt packaging builds (e.g. `make package-linux`), and agentic integration rules (`.agents/rules/mapx.md`). Included testing guidelines for both native CLI running and zero-installation `npx` calls.
+
 
 ---
 
