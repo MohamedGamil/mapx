@@ -571,3 +571,197 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.15);
 }
+
+/* Related Flows in Selection Details Panel */
+.flows-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 15px;
+}
+
+.flows-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.flow-group {
+  margin-bottom: 12px;
+}
+
+.flow-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flow-group-title.outgoing {
+  color: var(--syntax-green);
+}
+
+.flow-group-title.incoming {
+  color: var(--syntax-purple);
+}
+
+.flow-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  background: rgba(33, 37, 43, 0.6);
+  border: 1px solid rgba(62, 68, 82, 0.8);
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  line-height: 1.5;
+}
+
+.flow-item:hover {
+  background: rgba(33, 37, 43, 0.9);
+  border-color: rgba(97, 175, 239, 0.4);
+}
+
+.flow-clickable-node {
+  background: rgba(152, 195, 121, 0.16);
+  border: 1px solid rgba(152, 195, 121, 0.35);
+  color: #98c379;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  word-break: break-all;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.flow-clickable-node:hover {
+  background: rgba(152, 195, 121, 0.28);
+  border-color: rgba(152, 195, 121, 0.6);
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.flow-clickable-node.incoming-node {
+  background: rgba(198, 120, 221, 0.16);
+  border-color: rgba(198, 120, 221, 0.35);
+  color: #c678dd;
+}
+
+.flow-clickable-node.incoming-node:hover {
+  background: rgba(198, 120, 221, 0.28);
+  border-color: rgba(198, 120, 221, 0.6);
+  color: #ffffff;
+}
+
+.flow-clickable-edge {
+  background: rgba(97, 175, 239, 0.16);
+  border: 1px solid rgba(97, 175, 239, 0.35);
+  color: #61afef;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.flow-clickable-edge:hover {
+  background: rgba(97, 175, 239, 0.28);
+  border-color: rgba(97, 175, 239, 0.6);
+  color: #ffffff;
+}
+
+.flow-arrow {
+  color: var(--text-muted);
+  font-weight: bold;
+}
+
+.flow-current {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-style: normal;
+}
+
+.flow-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding-left: 12px;
+}
+
+/* Collapsible Details styling */
+.flow-details-el {
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(33, 37, 43, 0.3);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.flow-details-el:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.flow-details-el[open] {
+  background: rgba(33, 37, 43, 0.5);
+  border-color: rgba(97, 175, 239, 0.3);
+}
+
+.flow-summary-el {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  list-style: none; /* Hide default list marker */
+}
+
+.flow-summary-el::-webkit-details-marker {
+  display: none; /* Hide Safari default marker */
+}
+
+.flow-summary-el .flow-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.25s ease;
+  stroke: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.flow-details-el[open] .flow-summary-el .flow-chevron {
+  transform: rotate(90deg);
+  stroke: var(--text-white);
+}
+
+.flow-content-el {
+  padding: 0 14px 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+
+

@@ -420,7 +420,7 @@ async function loadGraph() {
     cyInstance = cytoscape({
       container: container,
       elements: initialElements,
-      wheelSensitivity: 3.2,
+      wheelSensitivity: 2.2,
       style: [
         {
           selector: 'node',
@@ -713,6 +713,117 @@ async function loadGraph() {
       }
     });
 
+    // Helper to build organized related flows for a node
+    function buildRelatedFlowsHTML(node: any): string {
+      const id = node.id();
+      const isCluster = node.data('type') === 'parent';
+      const label = isCluster ? id.replace('dir:', '') : id;
+      
+      const outgoingEdges = node.outgoers('edge');
+      const incomingEdges = node.incomers('edge');
+      
+      let html = `<div class="flows-section">`;
+      html += `<div class="flows-title">Related Flows</div>`;
+      
+      // Outgoing Group (Collapsible details, collapsed by default)
+      html += `<details class="flow-details-el">`;
+      html += `<summary class="flow-summary-el">`;
+      html += `<svg class="flow-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      html += `<span class="flow-group-title outgoing" style="margin: 0; display: inline-flex;">Outgoing (Dependencies)</span>`;
+      html += `</summary>`;
+      html += `<div class="flow-content-el">`;
+      
+      if (outgoingEdges && outgoingEdges.length > 0) {
+        html += `<ul class="flow-list">`;
+        outgoingEdges.forEach((edge: any) => {
+          const edgeId = edge.id();
+          const edgeType = edge.data('type') || 'dependency';
+          const targetNode = edge.target();
+          const targetId = targetNode.id();
+          const targetLabel = targetNode.data('type') === 'parent' ? targetId.replace('dir:', '') : targetId;
+          
+          html += `
+            <li class="flow-item">
+              <span class="flow-current">${label}</span>
+              <button type="button" class="flow-clickable-edge" data-go-id="${edgeId}">${edgeType.toUpperCase()}</button>
+              <span class="flow-arrow">&rarr;</span>
+              <button type="button" class="flow-clickable-node" data-go-id="${targetId}">${targetLabel}</button>
+            </li>
+          `;
+        });
+        html += `</ul>`;
+      } else {
+        html += `<div class="flow-empty">No outgoing dependencies</div>`;
+      }
+      html += `</div>`;
+      html += `</details>`;
+      
+      // Incoming Group (Collapsible details, collapsed by default)
+      html += `<details class="flow-details-el">`;
+      html += `<summary class="flow-summary-el">`;
+      html += `<svg class="flow-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      html += `<span class="flow-group-title incoming" style="margin: 0; display: inline-flex;">Incoming (Dependents)</span>`;
+      html += `</summary>`;
+      html += `<div class="flow-content-el">`;
+      
+      if (incomingEdges && incomingEdges.length > 0) {
+        html += `<ul class="flow-list">`;
+        incomingEdges.forEach((edge: any) => {
+          const edgeId = edge.id();
+          const edgeType = edge.data('type') || 'dependency';
+          const sourceNode = edge.source();
+          const sourceId = sourceNode.id();
+          const sourceLabel = sourceNode.data('type') === 'parent' ? sourceId.replace('dir:', '') : sourceId;
+          
+          html += `
+            <li class="flow-item">
+              <button type="button" class="flow-clickable-node incoming-node" data-go-id="${sourceId}">${sourceLabel}</button>
+              <span class="flow-arrow">&rarr;</span>
+              <button type="button" class="flow-clickable-edge" data-go-id="${edgeId}">${edgeType.toUpperCase()}</button>
+              <span class="flow-arrow">&rarr;</span>
+              <span class="flow-current">${label}</span>
+            </li>
+          `;
+        });
+        html += `</ul>`;
+      } else {
+        html += `<div class="flow-empty">No incoming dependents</div>`;
+      }
+      html += `</div>`;
+      html += `</details>`;
+      
+      html += `</div>`;
+      return html;
+    }
+
+    // Helper to build source & destination nodes list for an edge
+    function buildRelatedNodesForEdgeHTML(edge: any): string {
+      const sourceNode = edge.source();
+      const targetNode = edge.target();
+      const sourceId = sourceNode.id();
+      const targetId = targetNode.id();
+      const sourceLabel = sourceNode.data('type') === 'parent' ? sourceId.replace('dir:', '') : sourceId;
+      const targetLabel = targetNode.data('type') === 'parent' ? targetId.replace('dir:', '') : targetId;
+
+      return `
+        <div class="flows-section">
+          <div class="flows-title">Related Nodes</div>
+          <div class="flow-group" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Source Node</div>
+            <button type="button" class="flow-clickable-node" data-go-id="${sourceId}">
+              ${sourceLabel}
+            </button>
+          </div>
+          <div class="flow-group" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Destination Node</div>
+            <button type="button" class="flow-clickable-node" data-go-id="${targetId}" style="background: rgba(97, 175, 239, 0.16); color: #61afef; border-color: rgba(97, 175, 239, 0.35);">
+              ${targetLabel}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     // Node & Edge selection details panel and highlighting
     cyInstance.on('tap', 'node', (evt: any) => {
       const node = evt.target;
@@ -731,7 +842,7 @@ async function loadGraph() {
                 <span style="word-break: break-all; text-align: right;">${data.id.replace('dir:', '')}</span>
               </div>
             </div>
-          `;
+          ` + buildRelatedFlowsHTML(node);
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
@@ -752,7 +863,7 @@ async function loadGraph() {
                 <span style="text-align: right; word-break: break-all;">${data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A'}</span>
               </div>
             </div>
-          `;
+          ` + buildRelatedFlowsHTML(node);
         }
       }
 
@@ -835,7 +946,7 @@ async function loadGraph() {
                 <span style="color: #61afef; font-weight: bold; text-align: right;">${data.count} file-level edge(s)</span>
               </div>
             </div>
-          `;
+          ` + buildRelatedNodesForEdgeHTML(edge);
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
@@ -860,7 +971,7 @@ async function loadGraph() {
                 <span style="text-align: right; word-break: break-all;">${data.verifiability}</span>
               </div>
             </div>
-          `;
+          ` + buildRelatedNodesForEdgeHTML(edge);
         }
       }
 
@@ -1376,6 +1487,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const symName = target.getAttribute('data-symbol');
       if (symName) {
         loadSymbolDetails(symName);
+      }
+    }
+  });
+
+  // Click delegation for selection details panel related items
+  const detailsContent = document.getElementById('details-content');
+  detailsContent?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const clickable = target.closest('[data-go-id]');
+    if (clickable && cyInstance) {
+      e.preventDefault();
+      const id = clickable.getAttribute('data-go-id');
+      if (id) {
+        const ele = cyInstance.getElementById(id);
+        if (ele && ele.length > 0) {
+          ele.trigger('tap');
+          
+          // Focus/center the graph on the clicked element
+          cyInstance.animate({
+            center: { eles: ele }
+          }, {
+            duration: 350
+          });
+        }
       }
     }
   });

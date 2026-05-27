@@ -10,6 +10,7 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+- **UI Graph Selection Related Flows** — Added an interactive selection details panel component displaying related nodes and edges, organized by incoming/outgoing flow directions. Incoming and outgoing flows are wrapped in native details/summary collapsible elements (collapsed by default). Button elements use high-contrast color highlights to optimize legibility. Clicking an edge displays its source and destination nodes only, left-aligned to the start of the line. Clicking any element in the list triggers programmatic graph centering, selection highlighting, and detail panel updates.
 - **CLI Command Alignment (Sources, Sinks, Context)** — Added top-level CLI commands `mapx sources`, `mapx sinks`, and `mapx context <task>` to achieve feature parity and align the CLI toolset with the MCP server tools and documentation.
 - **Automatic MCP Instructions Generation** — Integrated `instructions.md` (`.agents/rules/instructions.md`) into the central templates registry, so that it is automatically generated and updated during `mapx init`, `mapx agents generate`, and `mapx agents update` setups (while remaining hidden from CLI multiselect provider prompts).
 - **Detailed MCP Guide** — Created `.agents/rules/instructions.md` containing a comprehensive usage guide for MapX MCP server tools, schemas, query parameters, and best practices.
