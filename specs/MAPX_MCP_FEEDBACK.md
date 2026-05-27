@@ -66,7 +66,7 @@ import LinksPage from './pages/dashboard/LinksPage';
 **Severity**: 🔴 Critical — primary backend framework not supported for route detection
 
 ```
-mapx_routes dir=/Users/gamil/Projects/l3 → []
+mapx_routes dir=~/Projects/l3 → []
 ```
 
 This project is a NestJS application with 10+ controllers using `@Controller()`, `@Get()`, `@Post()`, `@Patch()`, `@Delete()` decorators. The route detection engine returned zero results. NestJS is one of the most popular Node.js frameworks and decorator-based routing should be parseable.
@@ -78,7 +78,7 @@ This project is a NestJS application with 10+ controllers using `@Controller()`,
 **Severity**: 🟠 High
 
 ```
-mapx_hooks dir=/Users/gamil/Projects/l3 → []
+mapx_hooks dir=~/Projects/l3 → []
 ```
 
 NestJS has well-defined lifecycle hooks (`OnModuleInit`, `OnApplicationBootstrap`, `OnModuleDestroy`), guards (`CanActivate`), interceptors, and pipes. None were detected. Similarly, React hooks (`useEffect`, `useState`, `useCallback`) in the dashboard app were not detected.
@@ -177,7 +177,7 @@ Built-in JavaScript globals (`Date`, `Error`, `Map`, `Set`, `Promise`, etc.) sho
 
 ### 3.2 No `instructions.md` for the MCP Server
 
-The MCP server has no `instructions.md` file in its schema directory (`/Users/gamil/.gemini/antigravity/mcp/github/`). Other MCP servers provide usage guidance, best practices, and known limitations. The `AGENTS.md` user rule partially covers this but is generic — it doesn't describe parameter formats, valid enum values for filters, or edge type semantics.
+The MCP server has no `instructions.md` file in its schema directory (`~/.gemini/antigravity/mcp/github/`). Other MCP servers provide usage guidance, best practices, and known limitations. The `AGENTS.md` user rule partially covers this but is generic — it doesn't describe parameter formats, valid enum values for filters, or edge type semantics.
 
 ### 3.3 Graph Staleness After Writes Is Not Communicated
 

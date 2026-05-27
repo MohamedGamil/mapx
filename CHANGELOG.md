@@ -17,6 +17,9 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Changed
 
+- **Laravel Route & Controller Mapping** — Upgraded the [LaravelDetector](./src/frameworks/detectors/laravel.ts) to support modular route structures (case-insensitive checking), group array attributes (prefix, namespace, middleware), `Route::controller` groups, `Route::match` and `Route::any` verbs, and inline comma-separated controller attributes. Added singularized resource route expansion (`resource`, `apiResource`, `resources`, `apiResources`) to generate actual individual routes with their controller action symbols rather than a single dummy `RESOURCE` route.
+- **Deep Laravel Controller Analysis** — Added parsing of controller files to extract path, query, and request body parameters, as well as constructor-defined middlewares (supporting `.only(...)` and `.except(...)` filters) using an asynchronous file cache.
+- **Route Registry Deduplication** — Updated the [RouteRegistry](./src/frameworks/route-registry.ts) `addRoute` method to check for and prevent duplicate route registrations.
 - **Updated Agent Templates** — Aligned all IDE/agent templates (GitHub Copilot, Windsurf, Cline, Aider, Gemini, Zed) in [templates.ts](./src/agents/templates.ts) to include references to the new `sources`, `sinks`, and `context` commands or MCP tools.
 - **Cross-Language Reference Prevention** — Constrained global symbol resolution to respect language compatibility groups. References from a source file (e.g. a PHP WordPress plugin) can no longer resolve to symbols in incompatible language files (e.g. TypeScript), preventing false edges.
 - **Search Wildcard & Case-Insensitivity** — Modified the symbol search command and MCP tool to support wildcard `*` and empty string `""` queries to list all symbols under a file path constraint. Standardized `kind` search filters to run case-insensitively.
