@@ -305,12 +305,46 @@ body {
   left: 15px;
   z-index: 10;
   display: flex;
-  gap: 8px;
-  background: rgba(33, 37, 43, 0.9);
-  padding: 8px;
-  border-radius: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: rgba(27, 29, 35, 0.95);
+  padding: 6px;
+  border-radius: 10px;
   border: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  max-width: calc(100% - 370px);
+  box-sizing: border-box;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(33, 37, 43, 0.4);
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.graph-toolbar .btn,
+.graph-toolbar .form-select {
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+.graph-toolbar .btn svg {
+  margin-right: 4px;
 }
 
 .form-select {

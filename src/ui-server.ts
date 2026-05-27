@@ -207,6 +207,22 @@ export function startUiServer(opts: ServerOpts) {
         return;
       }
 
+      if (pathname === '/api/clusters') {
+        const dbPath = resolve(dir, '.mapx', 'mapx.db');
+        const store = new Store(dbPath);
+        try {
+          const config = await Config.load(dir);
+          const repo = config.repo.name;
+          const clusters = store.getClusters(repo);
+          const memberships = store.getClusterMemberships(repo);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ clusters, memberships }));
+        } finally {
+          store.close();
+        }
+        return;
+      }
+
       if (pathname === '/api/symbols') {
         const dbPath = resolve(dir, '.mapx', 'mapx.db');
         const store = new Store(dbPath);

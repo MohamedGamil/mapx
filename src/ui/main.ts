@@ -1,4 +1,7 @@
 import cytoscape from 'cytoscape';
+import dagre from 'cytoscape-dagre';
+
+cytoscape.use(dagre);
 
 // Base Configuration and State
 let currentTab = 'graph';
@@ -178,10 +181,30 @@ async function loadStatus() {
 
 let rawGraphElements: any[] = [];
 let showClusters = false;
-let currentGraphMode: 'directory' | 'focus' | 'full' = 'directory';
+let currentGraphMode: 'proximity' | 'directory' | 'focus' | 'full' = 'proximity';
 let focusSeedNode: string | null = null;
 let focusDepth = 1;
 let activeLayout: any = null;
+let activeLayoutName: 'cose' | 'concentric' | 'dagre' | 'grid' = 'concentric';
+
+// New states for Proximity Clusters Mode & Groupings & Modifications
+let rawClustersData: { clusters: any[], memberships: any[] } = { clusters: [], memberships: [] };
+let activeClusterId: string | null = null;
+let groupingStrategy: 'community' | 'directory' | 'language' | 'custom' = 'community';
+const removedNodes = new Set<string>();
+const removedEdges = new Set<string>();
+const customTags = new Map<string, string[]>(); // node ID -> tags array
+
+async function loadClusters() {
+  try {
+    const res = await fetch('/api/clusters');
+    if (res.ok) {
+      rawClustersData = await res.json();
+    }
+  } catch (err) {
+    console.error('Failed to load clusters:', err);
+  }
+}
 
 function buildDirectoryAggregatedElements(rawElements: any[], useClusters: boolean): any[] {
   const dirs = new Set<string>();
@@ -380,8 +403,187 @@ function buildFocusModeElements(rawElements: any[], seedId: string, depth: numbe
   return elements;
 }
 
+function buildProximityClusterElements(): any[] {
+  // 1. Get filtered nodes and edges
+  const fileNodes = rawGraphElements.filter(el => el.data && el.data.type === 'file' && !removedNodes.has(el.data.id));
+  const edges = rawGraphElements.filter(el => 
+    el.data && el.data.source && el.data.target && 
+    !removedEdges.has(el.data.id) &&
+    !removedNodes.has(el.data.source) && !removedNodes.has(el.data.target)
+  );
+
+  // Calculate degrees for orphan & singular detection
+  const degreeMap = new Map<string, number>();
+  fileNodes.forEach(n => degreeMap.set(n.data.id, 0));
+  edges.forEach(e => {
+    const src = e.data.source;
+    const tgt = e.data.target;
+    if (degreeMap.has(src)) degreeMap.set(src, degreeMap.get(src)! + 1);
+    if (degreeMap.has(tgt)) degreeMap.set(tgt, degreeMap.get(tgt)! + 1);
+  });
+
+  // Determine file-to-cluster assignment based on grouping strategy
+  const fileToCluster = new Map<string, string>();
+  
+  // Community map
+  const communityMap = new Map<string, string>();
+  if (rawClustersData && rawClustersData.memberships) {
+    rawClustersData.memberships.forEach((m: any) => {
+      communityMap.set(m.filePath, m.clusterName);
+    });
+  }
+
+  fileNodes.forEach(node => {
+    const fId = node.data.id;
+    const deg = degreeMap.get(fId) || 0;
+
+    // Special groups override
+    if (deg === 0) {
+      fileToCluster.set(fId, 'cluster:orphans');
+      return;
+    }
+    if (deg === 1) {
+      fileToCluster.set(fId, 'cluster:singulars');
+      return;
+    }
+
+    if (groupingStrategy === 'community') {
+      const comm = communityMap.get(fId) || 'community_unassigned';
+      fileToCluster.set(fId, `cluster:${comm}`);
+    } else if (groupingStrategy === 'directory') {
+      const parts = fId.split('/');
+      const dir = parts.length > 1 ? parts.slice(0, -1).join('/') : 'root';
+      fileToCluster.set(fId, `dir:${dir}`);
+    } else if (groupingStrategy === 'language') {
+      const lang = node.data.language || 'unknown';
+      fileToCluster.set(fId, `lang:${lang}`);
+    } else if (groupingStrategy === 'custom') {
+      const tags = customTags.get(fId) || [];
+      if (tags.length > 0) {
+        fileToCluster.set(fId, `tag:${tags[0]}`); // Group by first tag
+      } else {
+        fileToCluster.set(fId, 'tag:untagged');
+      }
+    }
+  });
+
+  const elements: any[] = [];
+
+  if (activeClusterId) {
+    // DRILL-DOWN expanded view of a specific cluster
+    const clusterFiles = fileNodes.filter(n => fileToCluster.get(n.data.id) === activeClusterId);
+    const clusterFileIds = new Set(clusterFiles.map(n => n.data.id));
+
+    // Also identify boundary nodes outside this cluster that have edges to cluster nodes
+    const boundaryNodes = new Set<string>();
+    const clusterEdges: any[] = [];
+
+    edges.forEach(edge => {
+      const src = edge.data.source;
+      const tgt = edge.data.target;
+      const srcIn = clusterFileIds.has(src);
+      const tgtIn = clusterFileIds.has(tgt);
+
+      if (srcIn && tgtIn) {
+        clusterEdges.push(JSON.parse(JSON.stringify(edge)));
+      } else if (srcIn || tgtIn) {
+        clusterEdges.push(JSON.parse(JSON.stringify(edge)));
+        if (srcIn) boundaryNodes.add(tgt);
+        if (tgtIn) boundaryNodes.add(src);
+      }
+    });
+
+    // Add nodes in cluster
+    clusterFiles.forEach(node => {
+      const copy = JSON.parse(JSON.stringify(node));
+      copy.data.isInsideCluster = true;
+      elements.push(copy);
+    });
+
+    // Add boundary nodes as visually distinct nodes
+    boundaryNodes.forEach(id => {
+      const node = fileNodes.find(n => n.data.id === id);
+      if (node) {
+        const copy = JSON.parse(JSON.stringify(node));
+        copy.data.isBoundaryNode = true;
+        elements.push(copy);
+      }
+    });
+
+    // Add edges
+    elements.push(...clusterEdges);
+
+  } else {
+    // TOP-LEVEL collapsed view of all clusters
+    const clusterCounts = new Map<string, number>();
+    fileToCluster.forEach((clustId) => {
+      clusterCounts.set(clustId, (clusterCounts.get(clustId) || 0) + 1);
+    });
+
+    // Render cluster nodes
+    clusterCounts.forEach((cnt, clustId) => {
+      let label = clustId;
+      if (clustId === 'cluster:orphans') label = `Orphaned Files (${cnt})`;
+      else if (clustId === 'cluster:singulars') label = `Singular Connected (${cnt})`;
+      else if (clustId.startsWith('cluster:')) {
+        const commId = clustId.replace('cluster:', '');
+        const commObj = rawClustersData.clusters?.find(c => c.name === commId);
+        label = `${commObj ? commObj.label : commId} (${cnt} files)`;
+      } else if (clustId.startsWith('dir:')) {
+        label = `${clustId.replace('dir:', '')} (${cnt} files)`;
+      } else if (clustId.startsWith('lang:')) {
+        label = `${clustId.replace('lang:', '').toUpperCase()} (${cnt} files)`;
+      } else if (clustId.startsWith('tag:')) {
+        label = `Tag: ${clustId.replace('tag:', '')} (${cnt} files)`;
+      }
+
+      elements.push({
+        data: {
+          id: clustId,
+          label,
+          type: 'cluster-group',
+          fileCount: cnt,
+          isOrphans: clustId === 'cluster:orphans',
+          isSingulars: clustId === 'cluster:singulars'
+        }
+      });
+    });
+
+    // Aggregate inter-cluster edges
+    const interEdges = new Map<string, { source: string, target: string, count: number }>();
+    edges.forEach(edge => {
+      const srcClust = fileToCluster.get(edge.data.source);
+      const tgtClust = fileToCluster.get(edge.data.target);
+      if (srcClust && tgtClust && srcClust !== tgtClust) {
+        const key = `${srcClust}->${tgtClust}`;
+        if (!interEdges.has(key)) {
+          interEdges.set(key, { source: srcClust, target: tgtClust, count: 0 });
+        }
+        interEdges.get(key)!.count++;
+      }
+    });
+
+    interEdges.forEach((info) => {
+      elements.push({
+        data: {
+          id: `inter-edge:${info.source}->${info.target}`,
+          source: info.source,
+          target: info.target,
+          type: 'cluster-edge',
+          label: `${info.count}`,
+          count: info.count
+        }
+      });
+    });
+  }
+
+  return elements;
+}
+
 function buildGraphElementsForMode(): any[] {
-  if (currentGraphMode === 'directory') {
+  if (currentGraphMode === 'proximity') {
+    return buildProximityClusterElements();
+  } else if (currentGraphMode === 'directory') {
     return buildDirectoryAggregatedElements(rawGraphElements, showClusters);
   } else if (currentGraphMode === 'focus') {
     if (!focusSeedNode) {
@@ -393,7 +595,12 @@ function buildGraphElementsForMode(): any[] {
     }
     return [];
   } else {
-    return buildGraphElements(rawGraphElements, showClusters);
+    const filteredRaw = rawGraphElements.filter(el => {
+      if (el.data && el.data.id && removedNodes.has(el.data.id)) return false;
+      if (el.data && el.data.source && (removedNodes.has(el.data.source) || removedNodes.has(el.data.target) || removedEdges.has(el.data.id))) return false;
+      return true;
+    });
+    return buildGraphElements(filteredRaw, showClusters);
   }
 }
 
@@ -407,7 +614,56 @@ function updateGraphDisplay() {
     cyInstance.add(newElements);
   });
 
-  if (currentGraphMode === 'directory') {
+  if (currentGraphMode === 'proximity') {
+    if (activeClusterId) {
+      if (activeLayoutName === 'dagre') {
+        runLayout({
+          name: 'dagre',
+          animate: true,
+          fit: true,
+          padding: 50,
+          nodeSep: 50,
+          edgeSep: 10,
+          rankSep: 100,
+          rankDir: 'TB'
+        });
+      } else if (activeLayoutName === 'cose') {
+        runLayout({
+          name: 'cose',
+          animate: true,
+          nodeRepulsion: () => 60000,
+          idealEdgeLength: () => 120,
+          fit: true,
+          padding: 50
+        });
+      } else if (activeLayoutName === 'grid') {
+        runLayout({
+          name: 'grid',
+          animate: true,
+          fit: true,
+          padding: 50
+        });
+      } else {
+        runLayout({
+          name: 'concentric',
+          animate: true,
+          fit: true,
+          padding: 50,
+          concentric: (node: any) => node.degree ? node.degree() : 0,
+          levelWidth: () => 1
+        });
+      }
+    } else {
+      runLayout({
+        name: 'cose',
+        animate: true,
+        nodeRepulsion: () => 100000,
+        idealEdgeLength: () => 200,
+        fit: true,
+        padding: 60
+      });
+    }
+  } else if (currentGraphMode === 'directory') {
     runLayout({
       name: 'cose',
       animate: true,
@@ -698,12 +954,15 @@ async function loadGraph() {
     const container = document.getElementById('cy');
     if (!container) return;
 
+    // Load clusters mapping for Proximity Clusters Mode
+    await loadClusters();
+
     // Decide default mode based on file count
     const fileCount = rawGraphElements.filter(el => el.data && !el.data.source && !el.data.target && el.data.type === 'file').length;
     if (fileCount > 1000) {
-      currentGraphMode = 'directory';
+      currentGraphMode = 'proximity';
       const modeSelect = document.getElementById('select-graph-mode') as HTMLSelectElement;
-      if (modeSelect) modeSelect.value = 'directory';
+      if (modeSelect) modeSelect.value = 'proximity';
     } else {
       currentGraphMode = 'full';
       const modeSelect = document.getElementById('select-graph-mode') as HTMLSelectElement;
@@ -713,6 +972,16 @@ async function loadGraph() {
     const focusSearchContainer = document.getElementById('focus-search-container');
     if (focusSearchContainer) {
       focusSearchContainer.style.display = currentGraphMode === 'focus' ? 'inline-flex' : 'none';
+    }
+
+    const groupingSelect = document.getElementById('select-grouping-strategy');
+    if (groupingSelect) {
+      groupingSelect.style.display = currentGraphMode === 'proximity' ? 'inline-flex' : 'none';
+    }
+
+    const breadcrumb = document.getElementById('cluster-breadcrumb');
+    if (breadcrumb) {
+      breadcrumb.style.display = (currentGraphMode === 'proximity' && activeClusterId) ? 'inline-flex' : 'none';
     }
 
     // Populate focus search autocompletion datalist
@@ -1015,6 +1284,70 @@ async function loadGraph() {
             'height': '46px',
             'z-index': 9999
           }
+        },
+        {
+          selector: 'node[type="cluster-group"]',
+          style: {
+            'shape': 'hexagon',
+            'background-color': '#1e222b',
+            'background-opacity': 0.85,
+            'border-width': '3px',
+            'border-color': '#d19a66',
+            'width': (node: any) => {
+              const fileCount = node.data('fileCount') || 1;
+              return (70 + Math.min(Math.log2(fileCount) * 8, 40)) + 'px';
+            },
+            'height': (node: any) => {
+              const fileCount = node.data('fileCount') || 1;
+              return (70 + Math.min(Math.log2(fileCount) * 8, 40)) + 'px';
+            },
+            'color': '#ffffff',
+            'font-family': 'Outfit, sans-serif',
+            'font-size': '10.5px',
+            'font-weight': 'bold',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'text-outline-width': '2px',
+            'text-outline-color': '#14161a',
+            'text-wrap': 'wrap',
+            'text-max-width': '80px',
+            'line-height': 1.25,
+            'z-index': 15,
+            'transition-property': 'background-color, border-color, border-width, width, height',
+            'transition-duration': 0.2
+          }
+        },
+        {
+          selector: 'node[?isBoundaryNode]',
+          style: {
+            'border-style': 'dashed',
+            'border-width': '2.5px',
+            'border-color': '#e5c07b',
+            'opacity': 0.45,
+            'text-opacity': 0.6
+          }
+        },
+        {
+          selector: 'edge[type="cluster-edge"]',
+          style: {
+            'width': (edge: any) => {
+              const cnt = edge.data('count') || 1;
+              return Math.min(2 + Math.log2(cnt) * 1.5, 8) + 'px';
+            },
+            'line-color': 'rgba(209, 154, 102, 0.45)',
+            'target-arrow-color': 'rgba(209, 154, 102, 0.45)',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'label': 'data(label)',
+            'color': '#abb2bf',
+            'font-family': 'Outfit, sans-serif',
+            'font-size': '10px',
+            'font-weight': 'bold',
+            'text-background-color': '#1e222b',
+            'text-background-opacity': 0.95,
+            'text-background-padding': '3px',
+            'text-background-shape': 'roundrectangle'
+          }
         }
       ],
       layout: currentGraphMode === 'directory' ? {
@@ -1025,20 +1358,75 @@ async function loadGraph() {
       } : getLayoutOptions(showClusters, false)
     });
 
+    // Function to update visual active state of layout buttons
+    function updateLayoutButtonsUI(activeName: string) {
+      const buttons = ['fcose', 'concentric', 'dagre', 'grid'];
+      buttons.forEach(name => {
+        const btn = document.getElementById(`btn-layout-${name}`);
+        if (btn) {
+          if (name === activeName) {
+            btn.classList.remove('btn-secondary');
+          } else {
+            btn.classList.add('btn-secondary');
+          }
+        }
+      });
+    }
+
+    // Set initial layout button UI active state
+    updateLayoutButtonsUI('concentric');
+
     // Handle Layout button clicks
     document.getElementById('btn-layout-fcose')?.addEventListener('click', () => {
+      activeLayoutName = 'cose';
+      updateLayoutButtonsUI('fcose');
       if (currentGraphMode === 'directory') {
         runLayout({ name: 'cose', animate: true, nodeRepulsion: () => 90000, idealEdgeLength: () => 180 });
       } else if (currentGraphMode === 'focus') {
         runLayout({ name: 'cose', animate: true, nodeRepulsion: () => 60000, idealEdgeLength: () => 120 });
+      } else if (currentGraphMode === 'proximity') {
+        updateGraphDisplay();
       } else {
         runLayout(getLayoutOptions(showClusters, true));
       }
     });
-    document.getElementById('btn-layout-circle')?.addEventListener('click', () => {
-      runLayout({ name: 'circle', animate: true });
+    document.getElementById('btn-layout-concentric')?.addEventListener('click', () => {
+      activeLayoutName = 'concentric';
+      updateLayoutButtonsUI('concentric');
+      if (currentGraphMode === 'proximity' && activeClusterId) {
+        updateGraphDisplay();
+      } else {
+        runLayout({
+          name: 'concentric',
+          animate: true,
+          fit: true,
+          padding: 50,
+          concentric: (node: any) => node.degree ? node.degree() : 0,
+          levelWidth: () => 1
+        });
+      }
+    });
+    document.getElementById('btn-layout-dagre')?.addEventListener('click', () => {
+      activeLayoutName = 'dagre';
+      updateLayoutButtonsUI('dagre');
+      if (currentGraphMode === 'proximity' && activeClusterId) {
+        updateGraphDisplay();
+      } else {
+        runLayout({
+          name: 'dagre',
+          animate: true,
+          fit: true,
+          padding: 50,
+          nodeSep: 50,
+          edgeSep: 10,
+          rankSep: 100,
+          rankDir: 'TB'
+        });
+      }
     });
     document.getElementById('btn-layout-grid')?.addEventListener('click', () => {
+      activeLayoutName = 'grid';
+      updateLayoutButtonsUI('grid');
       runLayout({ name: 'grid', animate: true });
     });
 
@@ -1052,6 +1440,32 @@ async function loadGraph() {
         focusSearchContainer.style.display = mode === 'focus' ? 'inline-flex' : 'none';
       }
 
+      const groupingSelect = document.getElementById('select-grouping-strategy');
+      if (groupingSelect) {
+        groupingSelect.style.display = mode === 'proximity' ? 'inline-flex' : 'none';
+      }
+
+      const breadcrumb = document.getElementById('cluster-breadcrumb');
+      if (breadcrumb) {
+        breadcrumb.style.display = (mode === 'proximity' && activeClusterId) ? 'inline-flex' : 'none';
+      }
+
+      updateGraphDisplay();
+    });
+
+    // Grouping strategy change listener
+    document.getElementById('select-grouping-strategy')?.addEventListener('change', (e) => {
+      groupingStrategy = (e.target as HTMLSelectElement).value as any;
+      updateGraphDisplay();
+    });
+
+    // Breadcrumbs root button click listener
+    document.getElementById('btn-breadcrumb-root')?.addEventListener('click', () => {
+      activeClusterId = null;
+      const breadcrumb = document.getElementById('cluster-breadcrumb');
+      if (breadcrumb) {
+        breadcrumb.style.display = 'none';
+      }
       updateGraphDisplay();
     });
 
@@ -1286,6 +1700,22 @@ async function loadGraph() {
       const node = evt.target;
       const data = node.data();
       const details = document.getElementById('details-content');
+      
+      // If tapping a collapsed cluster-group node, enter drill-down view
+      if (data.type === 'cluster-group') {
+        activeClusterId = data.id;
+        const breadcrumb = document.getElementById('cluster-breadcrumb');
+        if (breadcrumb) {
+          breadcrumb.style.display = 'inline-flex';
+        }
+        const activeLabel = document.getElementById('breadcrumb-active-cluster');
+        if (activeLabel) {
+          activeLabel.textContent = data.label || data.id;
+        }
+        updateGraphDisplay();
+        return;
+      }
+
       if (details) {
         if (data.type === 'parent') {
           details.innerHTML = `
@@ -1301,6 +1731,9 @@ async function loadGraph() {
             </div>
           ` + buildRelatedFlowsHTML(node);
         } else {
+          const tags = customTags.get(data.id) || [];
+          const tagsListHtml = tags.map(t => `<span class="badge" style="background: rgba(86, 182, 194, 0.2); color: #56b6c2; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px; display: inline-block;">${t}</span>`).join('');
+          
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
               <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
@@ -1318,6 +1751,29 @@ async function loadGraph() {
               <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
                 <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Size</span>
                 <span style="text-align: right; word-break: break-all;">${data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A'}</span>
+              </div>
+              ${data.isBoundaryNode ? `
+              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
+                <span style="color: #d19a66; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Role</span>
+                <span style="color: #d19a66; text-align: right;">Boundary Node</span>
+              </div>
+              ` : ''}
+              
+              <!-- Custom Tags Section -->
+              <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
+                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Custom Tags</span>
+                <div style="margin-bottom: 4px;">${tagsListHtml || '<span style="color: var(--text-muted); font-style: italic;">No tags</span>'}</div>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="input-new-tag" placeholder="Add custom tag..." class="form-control" style="padding: 4px 8px; font-size: 11px; height: 26px; border-radius: 4px;">
+                  <button id="btn-add-tag" class="btn" style="padding: 4px 10px; font-size: 11px; height: 26px; border-radius: 4px; flex-shrink: 0;">Add</button>
+                </div>
+              </div>
+              
+              <!-- Actions Section -->
+              <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px;">
+                <button class="btn btn-secondary btn-action-remove-node" data-node-id="${data.id}" style="padding: 6px 12px; font-size: 11px; border-color: rgba(239, 68, 68, 0.35); color: #ef4444; width: 100%; border-radius: 4px;">
+                  Remove Node from View
+                </button>
               </div>
             </div>
           ` + buildRelatedFlowsHTML(node);
@@ -1379,7 +1835,7 @@ async function loadGraph() {
       const data = edge.data();
       const details = document.getElementById('details-content');
       if (details) {
-        if (data.type === 'cluster-dependency') {
+        if (data.type === 'cluster-dependency' || data.type === 'cluster-edge') {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
               <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
@@ -1400,10 +1856,17 @@ async function loadGraph() {
               </div>
               <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
                 <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Count</span>
-                <span style="color: #61afef; font-weight: bold; text-align: right;">${data.count} file-level edge(s)</span>
+                <span style="color: #61afef; font-weight: bold; text-align: right;">${data.count || 1} file-level edge(s)</span>
+              </div>
+              
+              <!-- Actions Section -->
+              <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px;">
+                <button class="btn btn-secondary btn-action-remove-edge" data-edge-id="${data.id}" style="padding: 6px 12px; font-size: 11px; border-color: rgba(239, 68, 68, 0.35); color: #ef4444; width: 100%; border-radius: 4px;">
+                  Remove Edge from View
+                </button>
               </div>
             </div>
-          ` + buildRelatedNodesForEdgeHTML(edge);
+          ` + (data.type === 'cluster-dependency' ? buildRelatedNodesForEdgeHTML(edge) : '');
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
@@ -1426,6 +1889,13 @@ async function loadGraph() {
               <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
                 <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Verify</span>
                 <span style="text-align: right; word-break: break-all;">${data.verifiability}</span>
+              </div>
+              
+              <!-- Actions Section -->
+              <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px;">
+                <button class="btn btn-secondary btn-action-remove-edge" data-edge-id="${data.id}" style="padding: 6px 12px; font-size: 11px; border-color: rgba(239, 68, 68, 0.35); color: #ef4444; width: 100%; border-radius: 4px;">
+                  Remove Edge from View
+                </button>
               </div>
             </div>
           ` + buildRelatedNodesForEdgeHTML(edge);
@@ -1948,10 +2418,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Click delegation for selection details panel related items
+  // Click delegation for selection details panel related items and actions
   const detailsContent = document.getElementById('details-content');
   detailsContent?.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    
+    // 1. Remove Node action
+    const removeNodeBtn = target.closest('.btn-action-remove-node');
+    if (removeNodeBtn) {
+      const nodeId = removeNodeBtn.getAttribute('data-node-id');
+      if (nodeId) {
+        removedNodes.add(nodeId);
+        const resetBtn = document.getElementById('btn-reset-hidden');
+        if (resetBtn) resetBtn.style.display = 'inline-flex';
+        updateGraphDisplay();
+        if (detailsContent) detailsContent.innerHTML = 'Click a file node or dependency edge to view details.';
+      }
+      return;
+    }
+
+    // 2. Remove Edge action
+    const removeEdgeBtn = target.closest('.btn-action-remove-edge');
+    if (removeEdgeBtn) {
+      const edgeId = removeEdgeBtn.getAttribute('data-edge-id');
+      if (edgeId) {
+        removedEdges.add(edgeId);
+        const resetBtn = document.getElementById('btn-reset-hidden');
+        if (resetBtn) resetBtn.style.display = 'inline-flex';
+        updateGraphDisplay();
+        if (detailsContent) detailsContent.innerHTML = 'Click a file node or dependency edge to view details.';
+      }
+      return;
+    }
+
+    // 3. Add Custom Tag action
+    const addTagBtn = target.closest('#btn-add-tag');
+    if (addTagBtn) {
+      const input = document.getElementById('input-new-tag') as HTMLInputElement;
+      const tagVal = input?.value.trim();
+      if (tagVal) {
+        // Find selected node in cyInstance
+        const selectedNode = cyInstance.$('node:selected');
+        if (selectedNode && selectedNode.length > 0) {
+          const nodeId = selectedNode.id();
+          const tags = customTags.get(nodeId) || [];
+          if (!tags.includes(tagVal)) {
+            tags.push(tagVal);
+            customTags.set(nodeId, tags);
+          }
+          // Re-trigger selection to update details panel HTML
+          selectedNode.trigger('tap');
+          
+          // If current grouping strategy is custom, update graph display
+          if (groupingStrategy === 'custom') {
+            updateGraphDisplay();
+          }
+        }
+      }
+      return;
+    }
+
+    // 4. Clickable Node/Edge navigation
     const clickable = target.closest('[data-go-id]');
     if (clickable && cyInstance) {
       e.preventDefault();
@@ -1970,5 +2497,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     }
+  });
+
+  // Reset hidden files/edges button
+  document.getElementById('btn-reset-hidden')?.addEventListener('click', () => {
+    removedNodes.clear();
+    removedEdges.clear();
+    const resetBtn = document.getElementById('btn-reset-hidden');
+    if (resetBtn) resetBtn.style.display = 'none';
+    updateGraphDisplay();
   });
 });

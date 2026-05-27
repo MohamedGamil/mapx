@@ -623,6 +623,18 @@ export class LaravelDetector implements FrameworkDetector {
             middlewareType: 'alias'
           }
         });
+        // Register concrete FQN as a hook (qualified entry)
+        hooks.push({
+          framework: this.name,
+          hookName: fqn,
+          hookType: 'middleware',
+          handlerFile: resolvedPath || filePath,
+          handlerSymbol: fqn,
+          metadata: {
+            confidence: 'declared',
+            middlewareType: 'concrete_qualified'
+          }
+        });
       }
 
       // Add all groups
@@ -640,6 +652,18 @@ export class LaravelDetector implements FrameworkDetector {
               middlewareType: 'group_member'
             }
           });
+          // Register concrete member FQN as a hook (qualified entry)
+          hooks.push({
+            framework: this.name,
+            hookName: mw,
+            hookType: 'middleware',
+            handlerFile: resolvedPath || filePath,
+            handlerSymbol: mw,
+            metadata: {
+              confidence: 'declared',
+              middlewareType: 'group_member_qualified'
+            }
+          });
         }
       }
     }
@@ -652,6 +676,18 @@ export class LaravelDetector implements FrameworkDetector {
       if (classMatch) {
         const className = classMatch[1];
         const classFqn = namespace ? `${namespace}\\${className}` : className;
+        // Register fully-qualified name as a hook
+        hooks.push({
+          framework: this.name,
+          hookName: classFqn,
+          hookType: 'service_provider',
+          handlerFile: filePath,
+          handlerSymbol: classFqn,
+          metadata: {
+            confidence: 'declared'
+          }
+        });
+        // Register simple class name as hook
         hooks.push({
           framework: this.name,
           hookName: className,
@@ -659,7 +695,8 @@ export class LaravelDetector implements FrameworkDetector {
           handlerFile: filePath,
           handlerSymbol: classFqn,
           metadata: {
-            confidence: 'declared'
+            confidence: 'declared',
+            aliasOf: classFqn
           }
         });
       }
