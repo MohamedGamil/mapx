@@ -128,7 +128,7 @@ specs/
 | F35 | JSX component rendering edges | `done` | I19 | [F35](features/F35-jsx-render-edges.md) |
 | F36 | NestJS decorator and DI parsing | `done` | I20 | [F36](features/F36-nestjs-decorators.md) |
 | F37 | Graph resolution & noise reduction | `done` | I21 | [F37](features/F37-graph-resolution-filtering.md) |
-| F38 | MCP/CLI usability & context improvements | `planned` | I22 | [F38](features/F38-mcp-usability-improvements.md) |
+| F38 | MCP/CLI usability & context improvements | `done` | I22 | [F38](features/F38-mcp-usability-improvements.md) |
 
 
 **Status values:** `planned` · `in-progress` · `in-review` · `done` · `deferred` · `cancelled`
@@ -160,7 +160,7 @@ specs/
 | [I19](iterations/I19.md) | JSX component rendering edges | `done` | F35 |
 | [I20](iterations/I20.md) | NestJS routes, hooks, & DI parsing | `done` | F36 |
 | [I21](iterations/I21.md) | Graph resolution & noise reduction | `done` | F37 |
-| [I22](iterations/I22.md) | CLI/MCP search & context usability | `in-progress` | F38 |
+| [I22](iterations/I22.md) | CLI/MCP search & context usability | `done` | F38 |
 
 
 Iterations are intended to be **sequentially deliverable** but where features have no cross-dependency they can be parallelised. See each iteration doc for explicit dependency declarations.

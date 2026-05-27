@@ -604,17 +604,24 @@ export class Store {
     let sql = 'SELECT * FROM symbols WHERE ';
     const params: any[] = [];
 
-    if (options.exact) {
-      sql += '(name = ? OR file_path = ?)';
-      params.push(options.term, options.term);
+    const isWildcard = options.term === '*' || options.term === '';
+    const hasFilePrefix = !!options.filePrefix;
+
+    if (isWildcard && hasFilePrefix) {
+      sql += '1=1';
     } else {
-      sql += '(name LIKE ? OR file_path LIKE ?)';
-      params.push(`%${options.term}%`, `%${options.term}%`);
+      if (options.exact) {
+        sql += '(name = ? OR file_path = ?)';
+        params.push(options.term, options.term);
+      } else {
+        sql += '(name LIKE ? OR file_path LIKE ?)';
+        params.push(`%${options.term}%`, `%${options.term}%`);
+      }
     }
 
     if (options.kind) {
-      sql += ' AND kind = ?';
-      params.push(options.kind);
+      sql += ' AND LOWER(kind) = ?';
+      params.push(options.kind.toLowerCase());
     }
 
     if (options.filePrefix) {

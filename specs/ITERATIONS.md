@@ -578,9 +578,9 @@ Improves reliability and clarity of `mapx callers`, `mapx trace`, and `mapx impa
  
 | Field | Value |
 |-------|-------|
-| Status | `in-progress` |
+| Status | `done` |
 | Started | 2026-05-27 |
-| Completed | — |
+| Completed | 2026-05-27 |
 | Features | F38 |
 | Branch | `feat/i22-mcp-usability` |
 | PR | — |

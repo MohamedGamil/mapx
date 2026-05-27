@@ -10,6 +10,15 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+- **Detailed MCP Guide** — Created `.agents/rules/instructions.md` containing a comprehensive usage guide for MapX MCP server tools, schemas, query parameters, and best practices.
+- **LLM Exporter File Summaries** — Integrated heuristic summaries (class/method/function counts and dominant symbol types) for file nodes in the `llm` export format.
+
+### Changed
+
+- **Search Wildcard & Case-Insensitivity** — Modified the symbol search command and MCP tool to support wildcard `*` and empty string `""` queries to list all symbols under a file path constraint. Standardized `kind` search filters to run case-insensitively.
+- **Logical Cluster Grouping Boost** — Refined the `mapx_context` token-budget relevance scoring heuristics to give an extra boost (+150 points) to files sharing logical clusters with the matched seed files.
+- **Centralized try/catch-Aware Impact Analysis** — Extracted and centralized BFS traversal and risk categorization logic to a new reusable `ImpactAnalyzer` module. Categorized callers at depth 2+ as `MEDIUM` or `LOW` risk, and calling sites inside test files or wrapped in try/catch blocks as `LOW` risk.
+
 - **Graph Resolution Blacklist** — Prevented standard built-in JavaScript/TypeScript globals (`Date`, `Error`, `Map`, `Set`, `Promise`, `Object`, `Array`, `String`, `Number`, `Boolean`, `Function`, `RegExp`, `Symbol`, `JSON`, `Math`, `console`, `Console`, etc.) from incorrectly resolving to user-defined symbols during database reference resolution.
 - **Import Caller Filtering** — Excluded named imports and require declarations (`import` and `require` edge types) from the standard `callers` query outputs, eliminating `<top-level>` import statement noise in call graphs.
 - **Enhanced Change Impact Risk Scoring** — Upgraded `mapx impact` and `mapx_impact` risk grading. Calls from test files (`.test.ts`, `.spec.ts`, etc.) are now classified as `LOW` risk, calls wrapped inside `try`/`catch` blocks are downgraded by one risk level, and callers at depth 2+ or inside test modules are classified as `MEDIUM` or `LOW` risk.

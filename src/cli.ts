@@ -18,6 +18,7 @@ import { SvgExporter } from './exporters/svg-exporter.js';
 import { ToonExporter } from './exporters/toon-exporter.js';
 import { calculateMetrics } from './core/metrics.js';
 import { getChangedFiles, isGitRepo } from './core/git-tracker.js';
+import { ImpactAnalyzer, checkTryCatch as coreCheckTryCatch } from './core/impact-analyzer.js';
 import { getBuiltinLanguages } from './languages/registry.js';
 import { isLanguageInstalled, installLanguage, uninstallLanguage } from './languages/installer.js';
 import type { ScanProgress, ProgressCallback } from './types.js';
@@ -772,7 +773,7 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
     .command('search <term>')
     .description('Symbol search with kind/file/exact filters')
     .option('-d, --dir <path>', 'Target directory')
-    .option('--kind <kind>', 'Filter by symbol kind (e.g. class, method)')
+    .option('--kind <kind>', 'Filter by symbol kind (case-insensitive: class, method, function, interface, trait, constant, enum, property, namespace, struct, module)')
     .option('--file <prefix>', 'Filter by file path prefix')
     .option('--exact', 'Only match exact name', false)
     .option('--limit <limit>', 'Max results to return', '20')
@@ -931,107 +932,21 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
       checkAndPrintStaleness(store, dir);
       const maxDepth = parseInt(opts.depth as string, 10);
 
-      const queue: Array<{ symName: string; depth: number }> = [{ symName: symbol, depth: 0 }];
-      const visited = new Set<string>([symbol]);
-      const items: Array<{ symbol: string; file: string; depth: number; edgeType: string; risk: 'HIGH' | 'MEDIUM' | 'LOW' }> = [];
-
-      while (queue.length > 0) {
-        const { symName, depth } = queue.shift()!;
-        if (depth >= maxDepth) continue;
-
-        const callers = store.getCallersOfSymbol(symName);
-        for (const edge of callers) {
-          const callerName = edge.source_symbol || '<top-level>';
-          const key = `${edge.source_file}::${callerName}`;
-          if (visited.has(key)) continue;
-          visited.add(key);
-
-          let risk: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
-          const isStructural = ['import', 'require', 'extends', 'implements'].includes(edge.edge_type);
-          const curDepth = depth + 1;
-
-          if (curDepth === 1) {
-            risk = isStructural ? 'MEDIUM' : 'HIGH';
-          } else if (curDepth === 2) {
-            risk = isStructural ? 'LOW' : 'MEDIUM';
-          } else {
-            risk = 'LOW';
-          }
-
-          // Check if test file
-          const isTestFile = /\.(test|spec)\.[a-z]+$/.test(edge.source_file) ||
-            /\/test\//i.test(edge.source_file) ||
-            /\/tests\//i.test(edge.source_file) ||
-            /__tests__/.test(edge.source_file);
-
-          if (isTestFile) {
-            risk = 'LOW';
-          } else if (risk !== 'LOW') {
-            // Check if call is within a try/catch block
-            let hasTryCatch = false;
-            try {
-              let callerStartLine = 1;
-              if (edge.source_symbol) {
-                const symInfo = store.getSymbolByName(edge.source_symbol);
-                if (symInfo) {
-                  callerStartLine = symInfo.start_line as number;
-                }
-              }
-              const meta = edge.metadata ? JSON.parse(edge.metadata) : {};
-              const callLine = meta.startLine || 1;
-              const absolutePath = resolve(dir, edge.source_file);
-              const content = readFileSync(absolutePath, 'utf8');
-              const isPython = edge.source_file.endsWith('.py');
-              hasTryCatch = checkTryCatch(content, callLine, callerStartLine, isPython);
-            } catch {}
-
-            if (hasTryCatch) {
-              if (risk === 'HIGH') risk = 'MEDIUM';
-              else if (risk === 'MEDIUM') risk = 'LOW';
-            }
-          }
-
-          items.push({
-            symbol: callerName,
-            file: edge.source_file,
-            depth: curDepth,
-            edgeType: edge.edge_type,
-            risk
-          });
-
-          if (edge.source_symbol) {
-            queue.push({ symName: edge.source_symbol, depth: curDepth });
-          }
-        }
-      }
-
-      let recommendation = 'No callers found — safe to change';
-      if (items.some(x => x.risk === 'HIGH')) {
-        recommendation = 'Treat as BREAKING CHANGE — update all HIGH-risk callers';
-      } else if (items.length > 0) {
-        recommendation = 'Low blast radius — proceed with caution';
-      }
+      const analyzer = new ImpactAnalyzer(store);
+      const result = analyzer.analyze(symbol, maxDepth, dir);
 
       if (opts.format === 'json') {
-        console.log(JSON.stringify({
-          affected: items,
-          summary: {
-            high: items.filter(x => x.risk === 'HIGH').length,
-            medium: items.filter(x => x.risk === 'MEDIUM').length,
-            low: items.filter(x => x.risk === 'LOW').length,
-          },
-          recommendation
-        }, null, 2));
+        console.log(JSON.stringify(result, null, 2));
       } else {
-        if (items.length === 0) {
+        if (result.affected.length === 0) {
           console.log(`No callers affected by changing "${symbol}"`);
         } else {
           console.log(`Impact analysis for "${symbol}":`);
-          for (const item of items) {
+          for (const item of result.affected) {
             console.log(`  [${item.risk}] ${item.symbol} (${item.file}) [depth: ${item.depth}, type: ${item.edgeType}]`);
           }
         }
-        console.log(`\nRecommendation: ${recommendation}`);
+        console.log(`\nRecommendation: ${result.recommendation}`);
       }
     });
 
@@ -2483,48 +2398,6 @@ export function checkAndPrintStaleness(store: Store, dir: string): void {
 }
 
 export function checkTryCatch(content: string, lineNum: number, startLine: number, isPython: boolean): boolean {
-  const lines = content.split('\n');
-  if (isPython) {
-    let tryIndent = -1;
-    for (let i = Math.max(0, startLine - 1); i < lineNum - 1; i++) {
-      const line = lines[i];
-      if (/\btry\s*:/.test(line)) {
-        tryIndent = line.match(/^\s*/)?.[0].length ?? 0;
-      } else if (tryIndent !== -1) {
-        const indent = line.match(/^\s*/)?.[0].length ?? 0;
-        const isEmpty = line.trim() === '';
-        if (!isEmpty && indent <= tryIndent && !/^\s*(except|finally)\b/.test(line)) {
-          tryIndent = -1;
-        }
-      }
-    }
-    if (tryIndent !== -1) {
-      const callLine = lines[lineNum - 1];
-      const callIndent = callLine.match(/^\s*/)?.[0].length ?? 0;
-      return callIndent > tryIndent;
-    }
-    return false;
-  } else {
-    let tryBlockBraceLevel = -1;
-    let braceLevel = 0;
-    for (let i = Math.max(0, startLine - 1); i < lineNum - 1; i++) {
-      const line = lines[i];
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        if (char === '{') {
-          braceLevel++;
-        } else if (char === '}') {
-          braceLevel--;
-          if (braceLevel < tryBlockBraceLevel) {
-            tryBlockBraceLevel = -1;
-          }
-        }
-      }
-      if (/\btry\b/.test(line)) {
-        tryBlockBraceLevel = braceLevel;
-      }
-    }
-    return tryBlockBraceLevel !== -1;
-  }
+  return coreCheckTryCatch(content, lineNum, startLine, isPython);
 }
 

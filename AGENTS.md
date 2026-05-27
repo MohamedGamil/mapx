@@ -76,7 +76,7 @@ When running as an MCP server, MapxGraph exposes these tools:
 - `mapx_clusters` - List code clusters/modules
 - `mapx_status` - Check scan status, languages breakdown, top PageRank files/symbols, and index recommendations
 - `mapx_export` - Export compact graph summary (formats: llm, json, dot, svg, toon)
-- `mapx_context` - Intelligent, token-budgeted workspace context builder
+- `mapx_context` - Intelligent, token-budgeted workspace context builder. Requires `task` (description of the task). Accepts optional `seeds` (symbols or file paths to anchor context), `tokens` (budget, defaults to 8192), and `depth` (traversal depth, defaults to 2).
 - `mapx_workspaces` - Retrieve workspace configuration and repositories (list/discover)
 - `mapx_lang_list` - List supported languages and status
 - `mapx_lang_install` - Install dynamic language support
@@ -92,5 +92,5 @@ When running as an MCP server, MapxGraph exposes these tools:
 6. **Need a visual overview**: Run `mapx export --format=svg -o graph.svg`.
 7. **Trace data flow / call chains**: Run `mapx trace <symbol>`, `mapx callers`, or `mapx callees`.
 8. **Planning a modification**: Run `mapx impact` to determine the blast radius.
-9. **Building custom prompts / context**: Run `mapx context` to generate optimal context within a token budget.
+9. **Building custom prompts / context**: Use the `mapx_context` MCP tool (passing the required `task` parameter and optional `seeds`, `tokens`, or `depth`) to generate optimal context within a token budget.
 <!-- /mapx -->

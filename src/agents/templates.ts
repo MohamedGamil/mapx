@@ -487,5 +487,77 @@ After completing file writes:
 * **Strict Ordering**: Initialization → Impact Analysis → Planning → Execution → Re-sync.
 * **Fail-Safe**: Prevent the agent from acting on unverified workspace data.
 * **Token Efficiency**: Use \`mapx_export\` and \`mapx_context\` instead of reading raw source files — reduces token usage by up to 87%.`
+  },
+  instructions: {
+    filename: '.agents/rules/instructions.md',
+    isAppend: false,
+    content: `# MapX MCP Server - Agent Instructions Guide
+
+MapX exposes a set of powerful Model Context Protocol (MCP) tools that allow AI agents to navigate, analyze, and build context from a multi-language codebase. 
+
+---
+
+## 💡 Quick Rules of Thumb
+
+1. **Start of Session**: Call \`mapx_status\` to see if the index is up to date, followed by \`mapx_export\` (format: \`llm\` or \`toon\`) to quickly understand the overall workspace layout.
+2. **Before Searching or Querying**: If you or the user made any code changes, run \`mapx_sync\` first to incrementally update the graph index.
+3. **Smart Context Building**: Call \`mapx_context\` to automatically build a token-efficient context of relevant files and dependencies for a specific task.
+
+---
+
+## 🛠️ MCP Tool Reference
+
+### 1. \`mapx_context\` (Smart Context Builder)
+Generates task-specific workspace context by running graph-expansion and keyword matching weighted by PageRank.
+- **Required parameters**:
+  - \`task\` (string): Natural language description of what you are trying to implement or fix. Be descriptive (e.g. "Add validation to the user sign-up controller").
+- **Optional parameters**:
+  - \`seeds\` (array of strings): Specific symbols or file paths to anchor the expansion around (e.g., \`["UserController", "src/auth/validator.ts"]\`).
+  - \`tokens\` (number): The maximum estimated token budget (default: \`8192\`).
+  - \`depth\` (number): Graph traversal depth (default: \`2\`).
+
+### 2. \`mapx_search\` (Advanced Symbol Search)
+Allows filtering and searching for code symbols (classes, methods, functions, etc.).
+- **Parameters**:
+  - \`term\` (string): The query string. To retrieve **all** symbols in a file, pass \`*\` (wildcard) as the term along with the \`file\` parameter.
+  - \`kind\` (string): Filter by symbol kind (case-insensitive). Valid kinds: \`class\`, \`method\`, \`function\`, \`interface\`, \`trait\`, \`constant\`, \`enum\`, \`property\`, \`namespace\`, \`struct\`, \`module\`.
+  - \`file\` (string): Path prefix to restrict the search to a directory or specific file.
+  - \`exact\` (boolean): Whether to match the name exactly (default: \`false\`).
+  - \`limit\` (number): Maximum number of results to return (default: \`20\`).
+
+### 3. \`mapx_status\` (Index Status & Breakdown)
+Checks indexing state, language counts, top files/symbols, and Git status.
+- Use this to check if index is stale and see PageRank rankings.
+
+### 4. \`mapx_sync\` (Incremental Indexing)
+Scans only modified/new files since the last scan and updates the graph index. Fast and efficient.
+- Call this immediately after modifying files.
+
+### 5. \`mapx_scan\` (Full Indexing)
+Performs a full clean re-scan of the codebase. Use only for major structural updates.
+
+### 6. \`mapx_impact\` (Change Impact Analysis)
+Traces transitive callers of a symbol up to a certain depth and grades the change risk (\`HIGH\`, \`MEDIUM\`, or \`LOW\`).
+- Depth 1 is graded \`HIGH\`/\`MEDIUM\` risk, depth 2+ is \`MEDIUM\`/\`LOW\` risk.
+- Calling sites inside test files or wrapped in try/catch blocks are automatically labeled as \`LOW\` risk.
+
+### 7. \`mapx_node\` (Symbol Details & Source Extraction)
+Fetches metadata for a single symbol (file path, line range, signature) and can optionally extract the exact source code.
+- Set \`source: true\` to view the symbol's implementation.
+
+### 8. \`mapx_trace\` (Data-Flow Tracing)
+Follows data-bearing edges forward/backward through the graph to trace data propagation.
+- Use \`direction: "up"\` or \`direction: "down"\` to trace dependencies.
+
+---
+
+## 📈 Suggested Workflows
+
+### Scenario: Implementing a new feature
+1. Call \`mapx_context\` with your feature description in the \`task\` parameter.
+2. Review the resulting context and list of files.
+3. Open and modify the required files.
+4. Call \`mapx_sync\` to update the index.
+5. Use \`mapx_impact\` on the modified symbols to make sure you didn't break callers elsewhere.`
   }
 };

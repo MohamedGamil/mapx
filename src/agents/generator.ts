@@ -73,7 +73,7 @@ export class AgentGenerator {
   }
 
   public listProviders(): string[] {
-    return Object.keys(TEMPLATES);
+    return Object.keys(TEMPLATES).filter(p => p !== 'instructions');
   }
 
   public getTemplate(provider: string): ProviderTemplate | undefined {
@@ -95,7 +95,12 @@ export class AgentGenerator {
     const dir = options.dir;
     const mcpPort = options.mcpPort || 3456;
 
-    for (const provider of providers) {
+    const targetProviders = [...providers];
+    if (!targetProviders.includes('instructions')) {
+      targetProviders.push('instructions');
+    }
+
+    for (const provider of targetProviders) {
       const template = TEMPLATES[provider];
       if (!template) continue;
 

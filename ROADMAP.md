@@ -206,11 +206,11 @@
 - [x] Introduce a filesystem staleness warning when queries are run after modifications without syncing
 
 ### I22 · CLI/MCP Search & Context Usability · F38 · Risk: Low
-- [ ] Support wildcard `*` or empty string in `mapx_search` to list all symbols when a file filter is provided
-- [ ] Case-insensitively map kinds (e.g. `interface`, `class`) in symbol queries and searches
-- [ ] Fix required parameter `task` in `mapx_context` schema/docs and optimize token-budget relevance scoring
-- [ ] Write detailed `instructions.md` with parameter and type documentation for the MCP server
-- [ ] Add file-level summaries to `llm` export
+- [x] Support wildcard `*` or empty string in `mapx_search` to list all symbols when a file filter is provided
+- [x] Case-insensitively map kinds (e.g. `interface`, `class`) in symbol queries and searches
+- [x] Fix required parameter `task` in `mapx_context` schema/docs and optimize token-budget relevance scoring
+- [x] Write detailed `instructions.md` with parameter and type documentation for the MCP server
+- [x] Add file-level summaries to `llm` export
 
 ---
 
