@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, readdir
 import { join, dirname, basename, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TEMPLATES, MCP_CONFIGS, ProviderTemplate, McpConfigEntry } from './templates.js';
+import { VERSION } from '../version.js';
 
 export interface AgentAction {
   provider: string;
@@ -51,21 +52,7 @@ export class AgentGenerator {
   private version: string;
 
   constructor() {
-    this.version = this.readVersion();
-  }
-
-  private readVersion(): string {
-    const base = dirname(fileURLToPath(import.meta.url));
-    for (const candidate of [
-      join(base, 'VERSION'),
-      join(base, '..', 'VERSION'),
-      join(base, '..', '..', 'VERSION')
-    ]) {
-      if (existsSync(candidate)) {
-        return readFileSync(candidate, 'utf-8').trim();
-      }
-    }
-    return '0.1.7';
+    this.version = VERSION;
   }
 
   public getVersion(): string {

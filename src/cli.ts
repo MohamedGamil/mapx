@@ -24,19 +24,10 @@ import { getBuiltinLanguages } from './languages/registry.js';
 import { isLanguageInstalled, installLanguage, uninstallLanguage } from './languages/installer.js';
 import type { ScanProgress, ProgressCallback } from './types.js';
 import { RouteRegistry } from './frameworks/route-registry.js';
+import { VERSION } from './version.js';
 import * as clack from '@clack/prompts';
 
 const dynamicRequire = createRequire(import.meta.url);
-
-function readVersion(): string {
-  const base = dirname(fileURLToPath(import.meta.url));
-  // Compiled binary: VERSION is in the same directory as the binary
-  // Development (tsx): VERSION is one level up from src/
-  for (const candidate of [join(base, 'VERSION'), join(base, '..', 'VERSION')]) {
-    if (existsSync(candidate)) return readFileSync(candidate, 'utf-8').trim();
-  }
-  return '0.1.0';
-}
 
 function collectPatterns(val: string, memo: string[]): string[] {
   return memo.concat(val.split(',').map(s => s.trim()));
@@ -266,7 +257,7 @@ export function buildCLI(): Command {
   program
     .name('mapx')
     .description('Multi-language code graph memory system for LLMs')
-    .version(readVersion())
+    .version(VERSION)
     .option('-d, --dir <path>', 'Target project directory (default: current directory)');
 
 function detectLaravel(workspaceRoot: string): boolean {
