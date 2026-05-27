@@ -106,7 +106,18 @@ export class GenericWasmParser implements LanguageParser {
             const signature = this.extractSignature(source, capture.node, name, kind, startLine);
 
             const explicitScope = scopeByNodeId.get(capture.node.id) || extractedScope;
-            const resolvedScope = explicitScope || (this.isMemberKind(kind) ? currentScope : null);
+            let resolvedScope = explicitScope;
+            if (!resolvedScope && this.isMemberKind(kind)) {
+              let curr = capture.node.parent;
+              while (curr) {
+                const parentName = nameByNodeId.get(curr.id);
+                if (parentName) {
+                  resolvedScope = parentName;
+                  break;
+                }
+                curr = curr.parent;
+              }
+            }
 
             if (options?.ignoredSymbols?.has(name)) {
               continue;
@@ -221,6 +232,8 @@ export class GenericWasmParser implements LanguageParser {
       call: 'call',
       instantiation: 'instantiation',
       render: 'render',
+      param_type: 'param_type',
+      return_type: 'return_type',
     };
     return map[refType] || 'call';
   }

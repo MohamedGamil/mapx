@@ -10,6 +10,11 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+- **NestJS Decorator Routing** — Implemented decorator-based route extraction from class-level `@Controller` and method-level route handler decorators (`@Get`, `@Post`, `@Patch`, `@Delete`, etc.) supporting both string arguments (including template literals) and object configurations (e.g. `@Controller({ path: 'prefix' })`).
+- **NestJS GraphQL & WebSockets Integration** — Added resolver extraction from `@Resolver`, `@Query`, `@Mutation`, and `@Subscription` decorators, WebSocket event subscriptions from `@SubscribeMessage`, and microservice handlers from `@MessagePattern` and `@EventPattern` using a robust, comment-resilient method name discovery helper.
+- **NestJS Lifecycle & Custom Interfaces** — Cataloged class definitions implementing custom interfaces such as lifecycle hooks (`OnModuleInit`, `OnApplicationBootstrap`, etc.) and guard/pipe/interceptor definitions (`CanActivate`, `PipeTransform`, `NestInterceptor`) as queryable hooks.
+- **NestJS Constructor Dependency Injection** — Extended TS/TSX tree-sitter references queries to capture type annotations in constructor parameters (e.g. `constructor(private readonly service: Service)`) and map them as `param_type` dependency injection edges in the graph.
+- **AST-Based Parser Scope Resolution** — Fixed a critical scoping bug in the generic WASM parser that caused method/property symbols to incorrectly inherit the scope of the last-parsed class in file iteration, resolving them via AST ancestor symbol lookup instead.
 - **JSX Rendering Edges** — Added parsing and extraction of opening (`<Component>`) and self-closing (`<Component />`) JSX tags in `.tsx` and `.jsx` files as `render` edges.
 - **Native HTML Elements Filtering** — Implemented target name checking (`/^[A-Z]/`) to filter out native lowercase HTML tags (like `<div />`, `<span />`) and only emit edges for custom React component tags.
 - **TS/TSX Query Separation** — Separated references query configuration between standard TypeScript and TSX files (`references.scm` and `references-tsx.scm`) to prevent grammar syntax compilation errors in non-JSX files.

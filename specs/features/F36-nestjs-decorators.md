@@ -1,6 +1,6 @@
 # F36 — NestJS Decorators & DI Parsing
 
-> **Iteration**: [I20](../iterations/I20.md) · **Status**: `planned` · **Priority**: 🔴 CRITICAL
+> **Iteration**: [I20](../iterations/I20.md) · **Status**: `done` · **Priority**: 🔴 CRITICAL
 > **Origin**: MCP Feedback Sections 1.3, 1.4, & 4.3 — `mapx_routes` and `mapx_hooks` empty for NestJS
 
 ---
@@ -29,8 +29,8 @@ NestJS relies heavily on decorators for routing (`@Controller`, `@Get`, `@Post`)
 
 ## Acceptance Criteria
 
-- [ ] `mapx routes` extracts NestJS API endpoints with path, method, and handler details
-- [ ] GraphQL query/mutation decorators generate resolver metadata in the graph
-- [ ] Constructor parameters resolve to target classes as dependency injection edges
-- [ ] Lifecycle hooks and guards are cataloged and queryable via `mapx hooks`
-- [ ] TypeScript compiles with 0 errors
+- [x] `mapx routes` extracts NestJS API endpoints with path, method, and handler details
+- [x] GraphQL query/mutation decorators generate resolver metadata in the graph
+- [x] Constructor parameters resolve to target classes as dependency injection edges
+- [x] Lifecycle hooks and guards are cataloged and queryable via `mapx hooks`
+- [x] TypeScript compiles with 0 errors

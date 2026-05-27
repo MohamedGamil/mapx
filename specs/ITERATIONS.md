@@ -528,13 +528,11 @@ Requires I18 to be complete so that components are successfully indexed.
 
 ## I20 — NestJS Routes, Hooks, & DI Parsing
 
-| Field | Value |
-|-------|-------|
-| Status | planned |
-| Started | — |
-| Completed | — |
+| Status | `done` |
+| Started | 2026-05-27 |
+| Completed | 2026-05-27 |
 | Features | F36 |
-| Branch | feat/i20-nestjs-decorators |
+| Branch | `feat/i20-nestjs-decorators` |
 | PR | — |
 
 ### Scope

@@ -190,10 +190,10 @@
 - [x] Extract JSX/TSX elements (e.g. `<LinksPage />`) to create `render` / `call` type edges from the rendering component/file to the target symbol
 
 ### I20 · NestJS Routes, Hooks, & DI Parsing · F36 · Risk: Medium
-- [ ] Extract NestJS route decorators (`@Controller`, `@Get`, `@Post`, `@Patch`, `@Delete`)
-- [ ] Extract NestJS GraphQL resolvers (`@Resolver`, `@Query`, `@Mutation`)
-- [ ] Parse implemented lifecycle hooks (`OnModuleInit`, `OnApplicationBootstrap`, etc.) and decorators (`@Injectable`, `@Inject`, `@UseGuards`, `@UseInterceptors`)
-- [ ] Detect constructor parameter dependency injection to generate `param_type` / DI edges
+- [x] Extract NestJS route decorators (`@Controller`, `@Get`, `@Post`, `@Patch`, `@Delete`)
+- [x] Extract NestJS GraphQL resolvers (`@Resolver`, `@Query`, `@Mutation`)
+- [x] Parse implemented lifecycle hooks (`OnModuleInit`, `OnApplicationBootstrap`, etc.) and decorators (`@Injectable`, `@Inject`, `@UseGuards`, `@UseInterceptors`)
+- [x] Detect constructor parameter dependency injection to generate `param_type` / DI edges
 
 ---
 

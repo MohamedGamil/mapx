@@ -35,3 +35,30 @@
     (identifier) @ref.target_render
     (member_expression) @ref.target_render
   ]) @ref.type_render
+
+; Constructor parameter type annotations (for DI)
+(method_definition
+  name: (property_identifier) @method_name (#eq? @method_name "constructor")
+  parameters: (formal_parameters
+    [
+      (required_parameter
+        type: (type_annotation
+          [
+            (type_identifier) @ref.target_param_type
+            (generic_type name: (type_identifier) @ref.target_param_type)
+          ]
+        )
+      )
+      (optional_parameter
+        type: (type_annotation
+          [
+            (type_identifier) @ref.target_param_type
+            (generic_type name: (type_identifier) @ref.target_param_type)
+          ]
+        )
+      )
+    ]
+  )
+) @ref.type_param_type
+
+
