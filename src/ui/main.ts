@@ -1,7 +1,13 @@
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+import fcose from 'cytoscape-fcose';
+import cola from 'cytoscape-cola';
+import elk from 'cytoscape-elk';
 
 cytoscape.use(dagre);
+cytoscape.use(fcose);
+cytoscape.use(cola);
+cytoscape.use(elk);
 
 // Base Configuration and State
 let currentTab = 'graph';
@@ -185,7 +191,7 @@ let currentGraphMode: 'proximity' | 'directory' | 'focus' | 'full' = 'proximity'
 let focusSeedNode: string | null = null;
 let focusDepth = 1;
 let activeLayout: any = null;
-let activeLayoutName: 'cose' | 'concentric' | 'dagre' | 'grid' = 'concentric';
+let activeLayoutName: 'fcose' | 'cose' | 'cola' | 'dagre' | 'elk' | 'concentric' | 'circle' | 'grid' = 'concentric';
 
 // New states for Proximity Clusters Mode & Groupings & Modifications
 let rawClustersData: { clusters: any[], memberships: any[] } = { clusters: [], memberships: [] };
@@ -194,6 +200,166 @@ let groupingStrategy: 'community' | 'directory' | 'language' | 'custom' = 'commu
 const removedNodes = new Set<string>();
 const removedEdges = new Set<string>();
 const customTags = new Map<string, string[]>(); // node ID -> tags array
+
+// Custom tags persistence via localStorage
+function getTagsStorageKey(): string {
+  const repoEl = document.getElementById('repo-name');
+  const repoName = repoEl?.textContent || 'mapx';
+  return `mapx-custom-tags:${repoName}`;
+}
+
+function saveCustomTags() {
+  try {
+    const obj: Record<string, string[]> = {};
+    customTags.forEach((tags, nodeId) => {
+      if (tags.length > 0) obj[nodeId] = tags;
+    });
+    localStorage.setItem(getTagsStorageKey(), JSON.stringify(obj));
+  } catch { /* ignore quota errors */ }
+}
+
+function loadCustomTags() {
+  try {
+    const raw = localStorage.getItem(getTagsStorageKey());
+    if (raw) {
+      const obj = JSON.parse(raw);
+      for (const [nodeId, tags] of Object.entries(obj)) {
+        if (Array.isArray(tags) && tags.length > 0) {
+          customTags.set(nodeId, tags as string[]);
+        }
+      }
+    }
+  } catch { /* ignore parse errors */ }
+}
+
+function getAllUsedTags(): string[] {
+  const allTags = new Set<string>();
+  customTags.forEach(tags => tags.forEach(t => allTags.add(t)));
+  return Array.from(allTags).sort();
+}
+
+// Centralized layout configuration resolver
+function getLayoutConfigForName(layoutName: string, elementCount?: number): any {
+  const isLarge = (elementCount || 0) > 500;
+  const baseAnimate = !isLarge;
+
+  switch (layoutName) {
+    case 'fcose':
+      return {
+        name: 'fcose',
+        animate: baseAnimate,
+        animationDuration: 500,
+        quality: 'default',
+        randomize: true,
+        fit: true,
+        padding: 50,
+        nodeDimensionsIncludeLabels: true,
+        nodeRepulsion: () => 120000,
+        idealEdgeLength: () => 160,
+        edgeElasticity: () => 0.45,
+        gravity: 0.15,
+        gravityRange: 3.8,
+        numIter: 2500,
+        tile: true,
+        tilingPaddingVertical: 20,
+        tilingPaddingHorizontal: 20,
+        nodeSeparation: 100,
+      };
+    case 'cose':
+      return {
+        name: 'cose',
+        animate: baseAnimate ? 'end' : false,
+        animationDuration: 500,
+        fit: true,
+        padding: 50,
+        nodeDimensionsIncludeLabels: true,
+        nodeRepulsion: () => 120000,
+        idealEdgeLength: () => 160,
+        nodeOverlap: 80,
+        gravity: 0.05,
+        nestingFactor: 1.2,
+        componentSpacing: 60,
+        refresh: 20,
+      };
+    case 'cola':
+      return {
+        name: 'cola',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        nodeDimensionsIncludeLabels: true,
+        maxSimulationTime: isLarge ? 2000 : 4000,
+        avoidOverlap: true,
+        convergenceThreshold: 0.01,
+        nodeSpacing: () => 30,
+        edgeLength: undefined,
+        flow: undefined,
+      };
+    case 'dagre':
+      return {
+        name: 'dagre',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        nodeSep: 50,
+        edgeSep: 10,
+        rankSep: 100,
+        rankDir: 'TB',
+        nodeDimensionsIncludeLabels: true,
+      };
+    case 'elk':
+      return {
+        name: 'elk',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        elk: {
+          algorithm: 'mrtree',
+          'elk.direction': 'DOWN',
+          'spacing.nodeNode': 40,
+          'spacing.edgeNode': 20,
+        },
+        nodeDimensionsIncludeLabels: true,
+      };
+    case 'concentric':
+      return {
+        name: 'concentric',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        concentric: (node: any) => node.degree ? node.degree() : 0,
+        levelWidth: () => 1,
+        minNodeSpacing: 30,
+      };
+    case 'circle':
+      return {
+        name: 'circle',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        avoidOverlap: true,
+        spacingFactor: 1.2,
+      };
+    case 'grid':
+      return {
+        name: 'grid',
+        animate: baseAnimate,
+        fit: true,
+        padding: 50,
+        avoidOverlap: true,
+        condense: true,
+      };
+    default:
+      return {
+        name: 'cose',
+        animate: baseAnimate ? 'end' : false,
+        fit: true,
+        padding: 50,
+        nodeRepulsion: () => 120000,
+        idealEdgeLength: () => 160,
+      };
+  }
+}
 
 async function loadClusters() {
   try {
@@ -254,12 +420,18 @@ function buildDirectoryAggregatedElements(rawElements: any[], useClusters: boole
       elements.push(nodeEl);
     });
   } else {
-    // Create flat directory nodes
+    // Create flat directory nodes with truncated labels
     dirs.forEach(dir => {
+      let label = dir;
+      if (dir !== 'root') {
+        const parts = dir.split('/');
+        label = parts.length > 2 ? '…/' + parts.slice(-2).join('/') : dir;
+      }
       elements.push({
         data: {
           id: `dir:${dir}`,
-          label: dir === 'root' ? 'root' : dir,
+          label,
+          fullPath: dir,
           type: 'parent-folder'
         }
       });
@@ -614,75 +786,29 @@ function updateGraphDisplay() {
     cyInstance.add(newElements);
   });
 
-  if (currentGraphMode === 'proximity') {
-    if (activeClusterId) {
-      if (activeLayoutName === 'dagre') {
-        runLayout({
-          name: 'dagre',
-          animate: true,
-          fit: true,
-          padding: 50,
-          nodeSep: 50,
-          edgeSep: 10,
-          rankSep: 100,
-          rankDir: 'TB'
-        });
-      } else if (activeLayoutName === 'cose') {
-        runLayout({
-          name: 'cose',
-          animate: true,
-          nodeRepulsion: () => 60000,
-          idealEdgeLength: () => 120,
-          fit: true,
-          padding: 50
-        });
-      } else if (activeLayoutName === 'grid') {
-        runLayout({
-          name: 'grid',
-          animate: true,
-          fit: true,
-          padding: 50
-        });
-      } else {
-        runLayout({
-          name: 'concentric',
-          animate: true,
-          fit: true,
-          padding: 50,
-          concentric: (node: any) => node.degree ? node.degree() : 0,
-          levelWidth: () => 1
-        });
-      }
-    } else {
-      runLayout({
-        name: 'cose',
-        animate: true,
-        nodeRepulsion: () => 100000,
-        idealEdgeLength: () => 200,
-        fit: true,
-        padding: 60
-      });
-    }
-  } else if (currentGraphMode === 'directory') {
-    runLayout({
-      name: 'cose',
-      animate: true,
-      nodeRepulsion: () => 90000,
-      idealEdgeLength: () => 180,
-      fit: true,
-      padding: 50
-    });
-  } else if (currentGraphMode === 'focus') {
-    runLayout({
-      name: 'cose',
-      animate: true,
-      nodeRepulsion: () => 60000,
-      idealEdgeLength: () => 120,
-      fit: true,
-      padding: 50
-    });
-  } else {
+  const elementCount = newElements.length;
+
+  // Use the centralized layout resolver — always respect user's choice
+  // except for proximity top-level which defaults to fcose for physics clustering
+  if (currentGraphMode === 'proximity' && !activeClusterId) {
+    // Top-level proximity clusters: use fcose for best cluster separation
+    const config = getLayoutConfigForName('fcose', elementCount);
+    config.nodeRepulsion = () => 150000;
+    config.idealEdgeLength = () => 200;
+    config.gravity = 0.08;
+    runLayout(config);
+  } else if (currentGraphMode === 'full' && showClusters) {
+    // Full codebase with clusters uses preset layout
     runLayout(getLayoutOptions(showClusters, true));
+  } else {
+    // All other cases: use the user's selected layout
+    runLayout(getLayoutConfigForName(activeLayoutName, elementCount));
+  }
+
+  // Update layout dropdown UI
+  const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
+  if (layoutSelect && layoutSelect.value !== activeLayoutName) {
+    layoutSelect.value = activeLayoutName;
   }
 }
 
@@ -1241,14 +1367,17 @@ async function loadGraph() {
             'background-color': '#2d3139',
             'border-width': '2px',
             'border-color': '#61afef',
-            'width': '52px',
-            'height': '36px',
-            'font-size': '12px',
+            'width': '60px',
+            'height': '40px',
+            'font-size': '10px',
             'font-weight': 'bold',
             'color': '#abb2bf',
             'text-valign': 'center',
             'text-halign': 'center',
             'text-outline-width': '0px',
+            'text-wrap': 'ellipsis',
+            'text-max-width': '100px',
+            'text-overflow-wrap': 'anywhere',
             'z-index': 15
           }
         },
@@ -1309,8 +1438,12 @@ async function loadGraph() {
             'text-halign': 'center',
             'text-outline-width': '2px',
             'text-outline-color': '#14161a',
-            'text-wrap': 'wrap',
-            'text-max-width': '80px',
+            'text-wrap': 'ellipsis',
+            'text-max-width': (node: any) => {
+              const fileCount = node.data('fileCount') || 1;
+              return (60 + Math.min(Math.log2(fileCount) * 8, 40)) + 'px';
+            },
+            'text-overflow-wrap': 'anywhere',
             'line-height': 1.25,
             'z-index': 15,
             'transition-property': 'background-color, border-color, border-width, width, height',
@@ -1358,83 +1491,19 @@ async function loadGraph() {
       } : getLayoutOptions(showClusters, false)
     });
 
-    // Function to update visual active state of layout buttons
-    function updateLayoutButtonsUI(activeName: string) {
-      const buttons = ['fcose', 'concentric', 'dagre', 'grid'];
-      buttons.forEach(name => {
-        const btn = document.getElementById(`btn-layout-${name}`);
-        if (btn) {
-          if (name === activeName) {
-            btn.classList.remove('btn-secondary');
-          } else {
-            btn.classList.add('btn-secondary');
-          }
-        }
+    // Layout dropdown handler
+    const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
+    if (layoutSelect) {
+      layoutSelect.value = activeLayoutName;
+      layoutSelect.addEventListener('change', () => {
+        activeLayoutName = layoutSelect.value as any;
+        const elementCount = cyInstance.elements().length;
+        runLayout(getLayoutConfigForName(activeLayoutName, elementCount));
       });
     }
 
-    // Set initial layout button UI active state
-    updateLayoutButtonsUI('concentric');
-
-    // Handle Layout button clicks
-    document.getElementById('btn-layout-fcose')?.addEventListener('click', () => {
-      activeLayoutName = 'cose';
-      updateLayoutButtonsUI('fcose');
-      if (currentGraphMode === 'directory') {
-        runLayout({ name: 'cose', animate: true, nodeRepulsion: () => 90000, idealEdgeLength: () => 180 });
-      } else if (currentGraphMode === 'focus') {
-        runLayout({ name: 'cose', animate: true, nodeRepulsion: () => 60000, idealEdgeLength: () => 120 });
-      } else if (currentGraphMode === 'proximity') {
-        updateGraphDisplay();
-      } else {
-        runLayout(getLayoutOptions(showClusters, true));
-      }
-    });
-    document.getElementById('btn-layout-concentric')?.addEventListener('click', () => {
-      activeLayoutName = 'concentric';
-      updateLayoutButtonsUI('concentric');
-      if (currentGraphMode === 'proximity' && activeClusterId) {
-        updateGraphDisplay();
-      } else {
-        runLayout({
-          name: 'concentric',
-          animate: true,
-          fit: true,
-          padding: 50,
-          concentric: (node: any) => node.degree ? node.degree() : 0,
-          levelWidth: () => 1
-        });
-      }
-    });
-    document.getElementById('btn-layout-dagre')?.addEventListener('click', () => {
-      activeLayoutName = 'dagre';
-      updateLayoutButtonsUI('dagre');
-      if (currentGraphMode === 'proximity' && activeClusterId) {
-        updateGraphDisplay();
-      } else {
-        runLayout({
-          name: 'dagre',
-          animate: true,
-          fit: true,
-          padding: 50,
-          nodeSep: 50,
-          edgeSep: 10,
-          rankSep: 100,
-          rankDir: 'TB'
-        });
-      }
-    });
-    document.getElementById('btn-layout-grid')?.addEventListener('click', () => {
-      activeLayoutName = 'grid';
-      updateLayoutButtonsUI('grid');
-      runLayout({ name: 'grid', animate: true });
-    });
-
-    // Graph Mode selector event listener
-    document.getElementById('select-graph-mode')?.addEventListener('change', (e) => {
-      const mode = (e.target as HTMLSelectElement).value as any;
-      currentGraphMode = mode;
-      
+    // Graph Mode selector event listener — manages contextual visibility
+    function updateToolbarVisibility(mode: string) {
       const focusSearchContainer = document.getElementById('focus-search-container');
       if (focusSearchContainer) {
         focusSearchContainer.style.display = mode === 'focus' ? 'inline-flex' : 'none';
@@ -1442,14 +1511,29 @@ async function loadGraph() {
 
       const groupingSelect = document.getElementById('select-grouping-strategy');
       if (groupingSelect) {
-        groupingSelect.style.display = mode === 'proximity' ? 'inline-flex' : 'none';
+        // Grouping only relevant in proximity mode
+        (groupingSelect as HTMLElement).style.display = mode === 'proximity' ? 'inline-flex' : 'none';
+      }
+
+      const clustersBtn = document.getElementById('btn-toggle-clusters');
+      if (clustersBtn) {
+        // Clusters toggle only relevant in full and focus modes
+        // (proximity has its own clustering, directory has its own)
+        clustersBtn.style.display = (mode === 'full' || mode === 'focus') ? 'inline-flex' : 'none';
       }
 
       const breadcrumb = document.getElementById('cluster-breadcrumb');
       if (breadcrumb) {
         breadcrumb.style.display = (mode === 'proximity' && activeClusterId) ? 'inline-flex' : 'none';
       }
+    }
 
+    updateToolbarVisibility(currentGraphMode);
+
+    document.getElementById('select-graph-mode')?.addEventListener('change', (e) => {
+      const mode = (e.target as HTMLSelectElement).value as any;
+      currentGraphMode = mode;
+      updateToolbarVisibility(mode);
       updateGraphDisplay();
     });
 
@@ -1469,56 +1553,147 @@ async function loadGraph() {
       updateGraphDisplay();
     });
 
-    // Search input listener for Neighborhood Focus Mode
-    let searchDebounceTimeout: any = null;
+    // === Custom Autocomplete for Neighborhood Focus Mode ===
     const focusSearchInput = document.getElementById('focus-search-input') as HTMLInputElement;
+    const focusAutocomplete = document.getElementById('focus-autocomplete') as HTMLDivElement;
+    let acActiveIndex = -1;
+    let acItems: HTMLElement[] = [];
+    let searchDebounceTimeout: any = null;
+
+    function getFileNodes() {
+      return rawGraphElements.filter(el => el.data && el.data.type === 'file');
+    }
+
+    function highlightMatch(text: string, query: string): string {
+      if (!query) return text;
+      const idx = text.toLowerCase().indexOf(query.toLowerCase());
+      if (idx === -1) return text;
+      return text.substring(0, idx) +
+        `<span class="ac-match">${text.substring(idx, idx + query.length)}</span>` +
+        text.substring(idx + query.length);
+    }
+
+    function showAutocomplete(query: string) {
+      if (!focusAutocomplete || !query) {
+        hideAutocomplete();
+        return;
+      }
+
+      const fileNodes = getFileNodes();
+      const lowerQuery = query.toLowerCase();
+      const matches = fileNodes
+        .filter(el => el.data.id.toLowerCase().includes(lowerQuery))
+        .slice(0, 10);
+
+      if (matches.length === 0) {
+        focusAutocomplete.innerHTML = '<div class="focus-autocomplete-empty">No matching files found</div>';
+        focusAutocomplete.classList.add('open');
+        acItems = [];
+        acActiveIndex = -1;
+        return;
+      }
+
+      focusAutocomplete.innerHTML = matches.map((el, i) => {
+        const id = el.data.id;
+        const fileName = id.split('/').pop() || id;
+        const dirPath = id.includes('/') ? id.substring(0, id.lastIndexOf('/')) : '';
+        const lang = el.data.language || '';
+        return `<div class="focus-autocomplete-item${i === 0 ? ' active' : ''}" data-file-id="${id}">
+          <span class="ac-file-name">${highlightMatch(fileName, lowerQuery)}</span>
+          <span class="ac-file-path">${dirPath ? highlightMatch(dirPath, lowerQuery) : ''}</span>
+          ${lang ? `<span class="ac-lang-badge">${lang}</span>` : ''}
+        </div>`;
+      }).join('');
+
+      focusAutocomplete.classList.add('open');
+      acItems = Array.from(focusAutocomplete.querySelectorAll('.focus-autocomplete-item'));
+      acActiveIndex = 0;
+    }
+
+    function hideAutocomplete() {
+      if (focusAutocomplete) {
+        focusAutocomplete.classList.remove('open');
+        focusAutocomplete.innerHTML = '';
+      }
+      acItems = [];
+      acActiveIndex = -1;
+    }
+
+    function selectAutocompleteItem(fileId: string) {
+      focusSeedNode = fileId;
+      if (focusSearchInput) focusSearchInput.value = fileId;
+      hideAutocomplete();
+      updateGraphDisplay();
+    }
+
     focusSearchInput?.addEventListener('input', (e) => {
       clearTimeout(searchDebounceTimeout);
-      const query = (e.target as HTMLInputElement).value.trim().toLowerCase();
-      if (!query) return;
-
-      searchDebounceTimeout = setTimeout(() => {
-        const match = rawGraphElements.find(el => 
-          el.data && 
-          el.data.type === 'file' && 
-          el.data.id.toLowerCase().includes(query)
-        );
-        if (match) {
-          focusSeedNode = match.data.id;
-          updateGraphDisplay();
-        }
-      }, 400);
+      const query = (e.target as HTMLInputElement).value.trim();
+      searchDebounceTimeout = setTimeout(() => showAutocomplete(query), 150);
     });
 
     focusSearchInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        clearTimeout(searchDebounceTimeout);
-        const query = (e.target as HTMLInputElement).value.trim().toLowerCase();
-        if (!query) return;
-        const match = rawGraphElements.find(el => 
-          el.data && 
-          el.data.type === 'file' && 
-          el.data.id.toLowerCase().includes(query)
-        );
-        if (match) {
-          focusSeedNode = match.data.id;
-          updateGraphDisplay();
+      if (!focusAutocomplete?.classList.contains('open')) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (acActiveIndex < acItems.length - 1) {
+          acItems[acActiveIndex]?.classList.remove('active');
+          acActiveIndex++;
+          acItems[acActiveIndex]?.classList.add('active');
+          acItems[acActiveIndex]?.scrollIntoView({ block: 'nearest' });
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (acActiveIndex > 0) {
+          acItems[acActiveIndex]?.classList.remove('active');
+          acActiveIndex--;
+          acItems[acActiveIndex]?.classList.add('active');
+          acItems[acActiveIndex]?.scrollIntoView({ block: 'nearest' });
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (acActiveIndex >= 0 && acItems[acActiveIndex]) {
+          const fileId = acItems[acActiveIndex].getAttribute('data-file-id');
+          if (fileId) selectAutocompleteItem(fileId);
+        }
+      } else if (e.key === 'Escape') {
+        hideAutocomplete();
+      }
+    });
+
+    focusAutocomplete?.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest('.focus-autocomplete-item');
+      if (item) {
+        const fileId = item.getAttribute('data-file-id');
+        if (fileId) selectAutocompleteItem(fileId);
+      }
+    });
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+      if (focusSearchInput && focusAutocomplete) {
+        if (!focusSearchInput.contains(e.target as Node) && !focusAutocomplete.contains(e.target as Node)) {
+          hideAutocomplete();
         }
       }
     });
 
-    // Focus depth control
-    const btnFocusDepth = document.getElementById('btn-focus-depth');
-    btnFocusDepth?.addEventListener('click', () => {
-      focusDepth = focusDepth === 1 ? 2 : focusDepth === 2 ? 3 : 1;
-      btnFocusDepth.textContent = `Depth: ${focusDepth}`;
-      updateGraphDisplay();
+    // Segmented Depth Toggle
+    const depthButtons = document.querySelectorAll('.depth-btn');
+    depthButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        depthButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        focusDepth = parseInt(btn.getAttribute('data-depth') || '1', 10);
+        if (focusSeedNode) updateGraphDisplay();
+      });
     });
 
-    // Focus clear control
-    const btnFocusClear = document.getElementById('btn-focus-clear');
-    btnFocusClear?.addEventListener('click', () => {
+    // Focus clear button
+    document.getElementById('btn-focus-clear')?.addEventListener('click', () => {
       if (focusSearchInput) focusSearchInput.value = '';
+      hideAutocomplete();
       const firstFile = rawGraphElements.find(el => el.data && el.data.type === 'file');
       focusSeedNode = firstFile ? firstFile.data.id : null;
       updateGraphDisplay();
@@ -1720,51 +1895,99 @@ async function loadGraph() {
         if (data.type === 'parent') {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Type</span>
-                <span style="color: #98c379; font-weight: bold; text-align: right; word-break: break-all;">DIRECTORY CLUSTER</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Type</span>
+                <span class="detail-stat-value" style="color: #98c379; font-weight: bold;">DIRECTORY CLUSTER</span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Path</span>
-                <span style="word-break: break-all; text-align: right;">${data.id.replace('dir:', '')}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Path</span>
+                <span class="detail-stat-value">${data.fullPath || data.id.replace('dir:', '')}</span>
               </div>
             </div>
           ` + buildRelatedFlowsHTML(node);
         } else {
           const tags = customTags.get(data.id) || [];
-          const tagsListHtml = tags.map(t => `<span class="badge" style="background: rgba(86, 182, 194, 0.2); color: #56b6c2; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px; display: inline-block;">${t}</span>`).join('');
+          const tagsListHtml = tags.map(t =>
+            `<span class="tag-badge">${t}<button class="tag-badge-remove" data-node-id="${data.id}" data-tag="${t}" title="Remove tag">&times;</button></span>`
+          ).join('');
+
+          // Compute degree stats
+          const inDeg = node.indegree ? node.indegree() : 0;
+          const outDeg = node.outdegree ? node.outdegree() : 0;
+          const totalDeg = node.degree ? node.degree() : (inDeg + outDeg);
+
+          // Check for enriched data from API
+          const symbolCount = data.symbolCount || 0;
+          const pagerank = data.pagerank != null ? (data.pagerank * 1000).toFixed(2) : null;
+
+          // Find cluster membership if available
+          let clusterLabel = '';
+          if (node.parent && node.parent().length > 0) {
+            const parentData = node.parent().data();
+            clusterLabel = parentData?.label || parentData?.id || '';
+          }
           
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Path</span>
-                <span style="word-break: break-all; text-align: right;">${data.id}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Path</span>
+                <span class="detail-stat-value">${data.id}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Language</span>
-                <span style="text-align: right; word-break: break-all;">${data.language ? data.language.toUpperCase() : 'UNKNOWN'}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Language</span>
+                <span class="detail-stat-value">${data.language ? data.language.toUpperCase() : 'UNKNOWN'}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Lines</span>
-                <span style="text-align: right; word-break: break-all;">${data.lines || 'N/A'}</span>
+
+              <!-- Stats Grid -->
+              <div class="detail-stat-grid">
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">Lines</span>
+                  <span class="detail-stat-mini-value">${data.lines || '—'}</span>
+                </div>
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">Size</span>
+                  <span class="detail-stat-mini-value">${data.size ? `${(data.size / 1024).toFixed(1)}K` : '—'}</span>
+                </div>
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">In / Out</span>
+                  <span class="detail-stat-mini-value" style="color: var(--syntax-green);">${inDeg} / ${outDeg}</span>
+                </div>
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">Connections</span>
+                  <span class="detail-stat-mini-value" style="color: var(--syntax-blue);">${totalDeg}</span>
+                </div>
+                ${symbolCount > 0 ? `
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">Symbols</span>
+                  <span class="detail-stat-mini-value">${symbolCount}</span>
+                </div>` : ''}
+                ${pagerank ? `
+                <div class="detail-stat-mini">
+                  <span class="detail-stat-mini-label">PageRank</span>
+                  <span class="detail-stat-mini-value" style="color: var(--syntax-purple);">${pagerank}</span>
+                </div>` : ''}
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Size</span>
-                <span style="text-align: right; word-break: break-all;">${data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A'}</span>
-              </div>
+
               ${data.isBoundaryNode ? `
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #d19a66; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Role</span>
-                <span style="color: #d19a66; text-align: right;">Boundary Node</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label" style="color: #d19a66;">Role</span>
+                <span class="detail-stat-value" style="color: #d19a66;">Boundary Node</span>
+              </div>
+              ` : ''}
+
+              ${clusterLabel ? `
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Cluster</span>
+                <span class="detail-stat-value" style="color: var(--syntax-cyan);">${clusterLabel}</span>
               </div>
               ` : ''}
               
               <!-- Custom Tags Section -->
               <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase;">Custom Tags</span>
-                <div style="margin-bottom: 4px;">${tagsListHtml || '<span style="color: var(--text-muted); font-style: italic;">No tags</span>'}</div>
-                <div style="display: flex; gap: 6px;">
-                  <input type="text" id="input-new-tag" placeholder="Add custom tag..." class="form-control" style="padding: 4px 8px; font-size: 11px; height: 26px; border-radius: 4px;">
+                <span class="detail-stat-label">Custom Tags</span>
+                <div style="margin-bottom: 4px; display: flex; flex-wrap: wrap;">${tagsListHtml || '<span style="color: var(--text-muted); font-style: italic; font-size: 10px;">No tags</span>'}</div>
+                <div style="display: flex; gap: 6px; position: relative;">
+                  <input type="text" id="input-new-tag" placeholder="Add tag..." class="form-control" style="padding: 4px 8px; font-size: 11px; height: 26px; border-radius: 4px;">
                   <button id="btn-add-tag" class="btn" style="padding: 4px 10px; font-size: 11px; height: 26px; border-radius: 4px; flex-shrink: 0;">Add</button>
                 </div>
               </div>
@@ -1870,26 +2093,28 @@ async function loadGraph() {
         } else {
           details.innerHTML = `
             <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #cbd5e1; display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge ID</span>
-                <span style="word-break: break-all; text-align: right;">${data.id}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Source</span>
+                <span class="detail-stat-value"><a href="#" data-go-id="${data.source}" style="color: var(--syntax-blue); text-decoration: none;">${data.source.split('/').pop()}</a></span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Source</span>
-                <span style="word-break: break-all; text-align: right;">${data.source}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Target</span>
+                <span class="detail-stat-value"><a href="#" data-go-id="${data.target}" style="color: var(--syntax-blue); text-decoration: none;">${data.target.split('/').pop()}</a></span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Target</span>
-                <span style="word-break: break-all; text-align: right;">${data.target}</span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Edge Type</span>
+                <span class="detail-stat-value"><span class="badge" style="background:#8b5cf6; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">${data.type}</span></span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Edge Type</span>
-                <span style="text-align: right;"><span class="badge" style="background:#8b5cf6; padding:3px 6px; border-radius:4px; font-size:10px; color:#fff; font-family:inherit;">${data.type}</span></span>
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Verifiability</span>
+                <span class="detail-stat-value"><span class="verifiability-badge ${data.verifiability === 'verified' ? 'verified' : 'inferred'}">${data.verifiability || 'unknown'}</span></span>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; align-items: start;">
-                <span style="color: #94a3b8; font-weight: bold; text-transform: uppercase; flex-shrink: 0;">Verify</span>
-                <span style="text-align: right; word-break: break-all;">${data.verifiability}</span>
+              ${data.weight ? `
+              <div class="detail-stat-row">
+                <span class="detail-stat-label">Weight</span>
+                <span class="detail-stat-value">${data.weight}</span>
               </div>
+              ` : ''}
               
               <!-- Actions Section -->
               <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px;">
@@ -2465,7 +2690,10 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!tags.includes(tagVal)) {
             tags.push(tagVal);
             customTags.set(nodeId, tags);
+            saveCustomTags();
           }
+          // Clear the input
+          if (input) input.value = '';
           // Re-trigger selection to update details panel HTML
           selectedNode.trigger('tap');
           
@@ -2478,7 +2706,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 4. Clickable Node/Edge navigation
+    // 4. Remove Custom Tag action
+    const removeTagBtn = target.closest('.tag-badge-remove');
+    if (removeTagBtn) {
+      const nodeId = removeTagBtn.getAttribute('data-node-id');
+      const tagVal = removeTagBtn.getAttribute('data-tag');
+      if (nodeId && tagVal) {
+        const tags = customTags.get(nodeId) || [];
+        const idx = tags.indexOf(tagVal);
+        if (idx !== -1) {
+          tags.splice(idx, 1);
+          if (tags.length === 0) {
+            customTags.delete(nodeId);
+          } else {
+            customTags.set(nodeId, tags);
+          }
+          saveCustomTags();
+        }
+        // Re-trigger selection to update details panel
+        const selectedNode = cyInstance?.getElementById(nodeId);
+        if (selectedNode && selectedNode.length > 0) {
+          selectedNode.trigger('tap');
+        }
+        if (groupingStrategy === 'custom') {
+          updateGraphDisplay();
+        }
+      }
+      return;
+    }
+
+    // 5. Clickable Node/Edge navigation
     const clickable = target.closest('[data-go-id]');
     if (clickable && cyInstance) {
       e.preventDefault();
@@ -2499,12 +2756,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Load custom tags from localStorage
+  loadCustomTags();
+
   // Reset hidden files/edges button
   document.getElementById('btn-reset-hidden')?.addEventListener('click', () => {
     removedNodes.clear();
     removedEdges.clear();
     const resetBtn = document.getElementById('btn-reset-hidden');
     if (resetBtn) resetBtn.style.display = 'none';
+    updateGraphDisplay();
+  });
+
+  // Reset All button — restore all toolbar state to defaults
+  document.getElementById('btn-reset-all')?.addEventListener('click', () => {
+    // Reset mode
+    currentGraphMode = 'proximity';
+    const modeSelect = document.getElementById('select-graph-mode') as HTMLSelectElement;
+    if (modeSelect) modeSelect.value = 'proximity';
+
+    // Reset layout
+    activeLayoutName = 'concentric';
+    const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
+    if (layoutSelect) layoutSelect.value = 'concentric';
+
+    // Reset grouping
+    groupingStrategy = 'community';
+    const groupingSelect = document.getElementById('select-grouping-strategy') as HTMLSelectElement;
+    if (groupingSelect) groupingSelect.value = 'community';
+
+    // Reset language filter
+    const langFilter = document.getElementById('filter-lang') as HTMLSelectElement;
+    if (langFilter) langFilter.value = '';
+
+    // Reset focus state
+    focusSeedNode = null;
+    focusDepth = 1;
+    const focusInput = document.getElementById('focus-search-input') as HTMLInputElement;
+    if (focusInput) focusInput.value = '';
+    const depthBtns = document.querySelectorAll('.depth-btn');
+    depthBtns.forEach(b => b.classList.remove('active'));
+    if (depthBtns[0]) depthBtns[0].classList.add('active');
+
+    // Reset clusters
+    showClusters = false;
+    activeClusterId = null;
+
+    // Reset hidden nodes/edges
+    removedNodes.clear();
+    removedEdges.clear();
+    const resetHiddenBtn = document.getElementById('btn-reset-hidden');
+    if (resetHiddenBtn) resetHiddenBtn.style.display = 'none';
+
+    // Update toolbar visibility and graph
+    const focusPanel = document.getElementById('focus-search-container');
+    if (focusPanel) focusPanel.style.display = 'none';
+    const groupingEl = document.getElementById('select-grouping-strategy');
+    if (groupingEl) (groupingEl as HTMLElement).style.display = 'inline-flex';
+    const clustersBtn = document.getElementById('btn-toggle-clusters');
+    if (clustersBtn) clustersBtn.style.display = 'none';
+    const breadcrumb = document.getElementById('cluster-breadcrumb');
+    if (breadcrumb) breadcrumb.style.display = 'none';
+
     updateGraphDisplay();
   });
 });
