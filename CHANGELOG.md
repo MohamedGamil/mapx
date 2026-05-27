@@ -8,6 +8,8 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ## [Unreleased]
 
+## [0.2.7] — 2026-05-28
+
 ### Added
 
 - **Proximity Clusters View Mode** — Added a new visualization mode designed specifically for large codebases (>1000 files). Files are grouped using community detection (LPA) into root-level cluster group nodes (styled as hexagons with wrapped labels showing file counts). Double-clicking or clicking root clusters zooms and expands them into focused drill-down views displaying cluster nodes and boundary nodes with dashed border formatting. Provides intuitive breadcrumb navigation to return to parent views.
@@ -73,12 +75,22 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 - **Duplicate Symbol Node Filtering** — Added a `seenNodeIds` lookup constraint during AST parse collection to prevent duplicate symbols from being extracted when matching multiple query patterns on the same node.
 - **TSX Import Path Resolution** — Updated the path resolution algorithm to recognize `/index.tsx` and `.tsx` candidate targets for relative and absolute imports.
 - **Exclusion Configuration Adjustments** — Extended JS/TS default ignore patterns in the configuration class to automatically exclude `**/*.test.tsx` and `**/*.spec.tsx` files.
-
----
-
-## [0.2.7] — 2026-05-24
+- **Layout Algorithm Shorthand Labels** — Each layout option in the dropdown now includes the algorithm shorthand after an em dash for quick identification (e.g., "Tidy — Cola", "Organic — fCoSE", "Layered — Dagre", "Tree — ELK", "Radial — Concentric", "Circular — Circle").
+- **Dedicated Layout Toolbar Group** — Separated the layout dropdown into its own `toolbar-group` with a "Layout" label, placed first in the toolbar for prominence.
+- **Focus Mode Controls Restoration** — Restored the Neighborhood Focus controls (file search autocomplete, clear button, depth segmented toggle) as the last toolbar group, with a "Focus" label. Controls appear only when focus mode is active.
+- **Breadcrumbs for Focus Mode** — Breadcrumbs now display in both Proximity Clusters drilldown (showing cluster name) and Neighborhood Focus mode (showing focused file name with "Focus →" prefix).
+- **HTTP Method Color Coding** — Route method badges are now color-coded by verb: GET (emerald), POST (blue), PUT (amber), PATCH (teal), DELETE (red), HEAD (indigo), OPTIONS (violet), ANY (purple), with a slate fallback for unknown methods.
+- **Hook Type Color Coding** — Hook type badges are now color-coded by keyword: middleware (indigo), event/listener (cyan), filter (amber), action (rose), lifecycle (teal), provider (violet), guard (red), pipe (cyan-light), interceptor (purple), resolver (blue), subscriber (pink).
+- **Metric Card Glassmorphism** — Metric cards now feature glassmorphism styling with `backdrop-filter: blur`, hover state with brighter border and shadow, uppercase small-caps headings with bottom dividers, and tighter typographic spacing.
+- **Global Monochromatic Scrollbars** — Replaced per-element scrollbar styles with a unified global `*` scrollbar using 5px monochromatic white-on-dark theme (`rgba(255,255,255, 0.12)` thumb, `rgba(255,255,255, 0.03)` track) applied consistently across all scrollable panels.
 
 ### Changed
+
+- **Grouping Strategy Enable/Disable** — Changed grouping strategy dropdown from show/hide to always-visible with enabled/disabled state. Enabled only in Proximity Clusters mode at root level (no active drilldown). Disabled with 35% opacity and `not-allowed` cursor in all other modes or when drilled into a cluster/directory.
+- **Toolbar Separator Visibility Centralized** — Separator visibility is now managed exclusively by `updateToolbarVisibility()`, shown when either breadcrumbs or focus search panel are visible. Removed 5 scattered separator manipulation points.
+- **Cola Layout Vertical Drift Fix** — Added `randomize: true` to Cola config, position scrambling before each Cola run in `runLayout()`, tighter convergence threshold (0.001), explicit constraint iterations (`unconstrIter: 10`, `userConstIter: 20`, `allConstIter: 20`), increased `nodeSpacing` to 40, and `ungrabifyWhileSimulating: true` to prevent progressive vertical drift after view/grouping changes.
+
+### Fixed
 
 - **Silence prebuild-install Deprecation Warning** — Resolved the NPM deprecation warning for `prebuild-install` (transitive dependency of `better-sqlite3`) by adding a package-level override pointing directly to the tagged GitHub repository release. This preserves SQLite query/transaction integrity and prevents terminal noise during installation.
 - **Fix Bun SQLite Require Compilation Warning** — Replaced direct Node-style `require('bun:sqlite')` with dynamically constructed `createRequire` in `src/core/store-bun.ts`. This silences the compiler warning during ESM builds while preserving native Bun SQLite loader capability.
@@ -345,7 +357,8 @@ _Changelog entries not yet backfilled. See git log for history._
 ---
 
 <!-- Links (keep at the bottom) -->
-[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/MohamedGamil/mapx/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/MohamedGamil/mapx/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/MohamedGamil/mapx/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/MohamedGamil/mapx/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/MohamedGamil/mapx/compare/v0.2.3...v0.2.4

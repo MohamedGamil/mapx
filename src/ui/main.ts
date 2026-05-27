@@ -238,6 +238,39 @@ function getAllUsedTags(): string[] {
   return Array.from(allTags).sort();
 }
 
+// Color mapping for HTTP route method badges
+function getRouteMethodColor(method: string): string {
+  switch ((method || '').toUpperCase()) {
+    case 'GET':     return '#10b981'; // emerald
+    case 'POST':    return '#3b82f6'; // blue
+    case 'PUT':     return '#f59e0b'; // amber
+    case 'PATCH':   return '#14b8a6'; // teal
+    case 'DELETE':  return '#ef4444'; // red
+    case 'HEAD':    return '#6366f1'; // indigo
+    case 'OPTIONS': return '#8b5cf6'; // violet
+    case 'ANY':     return '#a855f7'; // purple
+    case 'MATCH':   return '#ec4899'; // pink
+    default:        return '#64748b'; // slate
+  }
+}
+
+// Color mapping for hook type badges
+function getHookTypeColor(hookType: string): string {
+  const t = (hookType || '').toLowerCase();
+  if (t.includes('middleware'))         return '#6366f1'; // indigo
+  if (t.includes('event') || t.includes('listener')) return '#06b6d4'; // cyan
+  if (t.includes('filter'))            return '#f59e0b'; // amber
+  if (t.includes('action'))            return '#f43f5e'; // rose
+  if (t.includes('lifecycle') || t.includes('init') || t.includes('boot') || t.includes('destroy')) return '#14b8a6'; // teal
+  if (t.includes('service_provider') || t.includes('provider')) return '#8b5cf6'; // violet
+  if (t.includes('guard'))             return '#ef4444'; // red
+  if (t.includes('pipe'))              return '#22d3ee'; // cyan-light
+  if (t.includes('interceptor'))       return '#a855f7'; // purple
+  if (t.includes('resolver') || t.includes('query') || t.includes('mutation')) return '#3b82f6'; // blue
+  if (t.includes('subscriber') || t.includes('subscription')) return '#ec4899'; // pink
+  return '#64748b'; // slate fallback
+}
+
 // Centralized layout configuration resolver
 function getLayoutConfigForName(layoutName: string, elementCount?: number): any {
   const isLarge = (elementCount || 0) > 500;
@@ -1091,6 +1124,42 @@ function getLayoutOptions(useClusters: boolean, animate = true) {
   }
 }
 
+// Graph Mode selector event listener — manages contextual visibility
+function updateToolbarVisibility(mode: string) {
+  const focusSearchContainer = document.getElementById('focus-search-container');
+  if (focusSearchContainer) {
+    focusSearchContainer.style.display = mode === 'focus' ? 'inline-flex' : 'none';
+  }
+
+  const groupingSelect = document.getElementById('select-grouping-strategy') as HTMLSelectElement;
+  if (groupingSelect) {
+    // Enabled only in proximity mode at root level (no cluster/directory drilldown)
+    groupingSelect.disabled = !(mode === 'proximity' && !activeClusterId);
+  }
+
+  const clustersBtn = document.getElementById('btn-toggle-clusters');
+  if (clustersBtn) {
+    // Clusters toggle only relevant in full and focus modes
+    // (proximity has its own clustering, directory has its own)
+    clustersBtn.style.display = (mode === 'full' || mode === 'focus') ? 'inline-flex' : 'none';
+  }
+
+  const breadcrumb = document.getElementById('cluster-breadcrumb');
+  if (breadcrumb) {
+    // Breadcrumbs visible in proximity (drilldown) and focus modes
+    const showBreadcrumb = (mode === 'proximity' && activeClusterId) || mode === 'focus';
+    breadcrumb.style.display = showBreadcrumb ? 'inline-flex' : 'none';
+  }
+
+  // Separator visible when any of breadcrumb or focus panel are showing
+  const separator = document.getElementById('toolbar-separator');
+  if (separator) {
+    const breadcrumbVisible = breadcrumb?.style.display !== 'none';
+    const focusVisible = focusSearchContainer?.style.display !== 'none';
+    separator.style.display = (breadcrumbVisible || focusVisible) ? 'block' : 'none';
+  }
+}
+
 // Setup Cytoscape view and fetch graph
 async function loadGraph() {
   try {
@@ -1127,11 +1196,8 @@ async function loadGraph() {
     }
 
     const breadcrumb = document.getElementById('cluster-breadcrumb');
-    const separator = document.getElementById('toolbar-separator');
     const shouldDisplay = (currentGraphMode === 'proximity' && activeClusterId);
-
     if (breadcrumb) breadcrumb.style.display = shouldDisplay ? 'inline-flex' : 'none';
-    if (separator) separator.style.display = shouldDisplay ? 'inline-flex' : 'none';
 
     // Populate focus search autocompletion datalist
     const focusSearchList = document.getElementById('focus-search-list');
@@ -1525,37 +1591,6 @@ async function loadGraph() {
       });
     }
 
-    // Graph Mode selector event listener — manages contextual visibility
-    function updateToolbarVisibility(mode: string) {
-      const focusSearchContainer = document.getElementById('focus-search-container');
-      if (focusSearchContainer) {
-        focusSearchContainer.style.display = mode === 'focus' ? 'inline-flex' : 'none';
-      }
-
-      const groupingSelect = document.getElementById('select-grouping-strategy') as HTMLSelectElement;
-      if (groupingSelect) {
-        // Enabled only in proximity mode at root level (no cluster/directory drilldown)
-        groupingSelect.disabled = !(mode === 'proximity' && !activeClusterId);
-      }
-
-      const clustersBtn = document.getElementById('btn-toggle-clusters');
-      if (clustersBtn) {
-        // Clusters toggle only relevant in full and focus modes
-        // (proximity has its own clustering, directory has its own)
-        clustersBtn.style.display = (mode === 'full' || mode === 'focus') ? 'inline-flex' : 'none';
-      }
-
-      const breadcrumb = document.getElementById('cluster-breadcrumb'); 
-      const separator = document.getElementById('toolbar-separator');
-
-      if (breadcrumb && separator) {
-        // Breadcrumbs visible in proximity (drilldown) and focus modes
-        const showBreadcrumb = (mode === 'proximity' && activeClusterId) || mode === 'focus';
-        breadcrumb.style.display = showBreadcrumb ? 'inline-flex' : 'none';
-        separator.style.display = showBreadcrumb ? 'inline-flex' : 'none';
-      }
-    }
-
     updateToolbarVisibility(currentGraphMode);
 
     document.getElementById('select-graph-mode')?.addEventListener('change', (e) => {
@@ -1577,11 +1612,8 @@ async function loadGraph() {
       updateToolbarVisibility(currentGraphMode);
 
       const breadcrumb = document.getElementById('cluster-breadcrumb');
-      const separator = document.getElementById('toolbar-separator');
-
-      if (breadcrumb && separator) {
+      if (breadcrumb) {
         breadcrumb.style.display = 'none';
-        separator.style.display = 'none';
       }
 
       updateGraphDisplay();
@@ -1661,12 +1693,7 @@ async function loadGraph() {
       const activeLabel = document.getElementById('breadcrumb-active-cluster');
       if (activeLabel) activeLabel.textContent = fileId.split('/').pop() || fileId;
       const breadcrumb = document.getElementById('cluster-breadcrumb');
-      const separator = document.getElementById('toolbar-separator');
-
-      if (breadcrumb && separator) {
-        breadcrumb.style.display = 'inline-flex';
-        separator.style.display = 'inline-flex';
-      }
+      if (breadcrumb) breadcrumb.style.display = 'inline-flex';
 
       const rootBtn = document.getElementById('btn-breadcrumb-root');
       if (rootBtn) rootBtn.textContent = 'Focus';
@@ -1929,10 +1956,8 @@ async function loadGraph() {
         activeClusterId = data.id;
         updateToolbarVisibility(currentGraphMode);
         const breadcrumb = document.getElementById('cluster-breadcrumb');
-        const separator = document.getElementById('toolbar-separator');
-        if (breadcrumb && separator) {
+        if (breadcrumb) {
           breadcrumb.style.display = 'inline-flex';
-          separator.style.display = 'inline-flex';
         }
         const activeLabel = document.getElementById('breadcrumb-active-cluster');
         if (activeLabel) {
@@ -2349,9 +2374,10 @@ async function loadRoutes() {
       } else {
         data.routes.forEach((r: any) => {
           const tr = document.createElement('tr');
+          const methodColor = getRouteMethodColor(r.method);
           tr.innerHTML = `
             <td><strong>${r.framework}</strong></td>
-            <td><span style="background:#10b981; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${r.method}</span></td>
+            <td><span class="method-badge" style="background:${methodColor};">${r.method}</span></td>
             <td><code>${r.path}</code></td>
             <td style="color:#60a5fa;">${r.handlerSymbol || r.handlerFile}</td>
           `;
@@ -2374,9 +2400,10 @@ async function loadRoutes() {
       } else {
         data.hooks.forEach((h: any) => {
           const tr = document.createElement('tr');
+          const hookColor = getHookTypeColor(h.hookType);
           tr.innerHTML = `
             <td><strong>${h.framework}</strong></td>
-            <td><span style="background:#8b5cf6; padding:2px 6px; border-radius:4px; font-size:11px; color:#fff;">${h.hookType}</span></td>
+            <td><span class="hook-badge" style="background:${hookColor};">${h.hookType}</span></td>
             <td><code>${h.hookName}</code></td>
             <td style="color:#60a5fa;">${h.handlerSymbol || h.handlerFile}</td>
           `;
@@ -2868,8 +2895,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clustersBtn) clustersBtn.style.display = 'none';
     const breadcrumb = document.getElementById('cluster-breadcrumb');
     if (breadcrumb) breadcrumb.style.display = 'none';
-    const separator = document.getElementById('toolbar-separator');
-    if (separator) separator.style.display = 'none';
+    updateToolbarVisibility(currentGraphMode);
 
     updateGraphDisplay();
   });

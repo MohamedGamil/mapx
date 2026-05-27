@@ -383,40 +383,6 @@ body {
   color: var(--text-main);
 }
 
-/* Custom scrollbar for graph details panel */
-#graph-details {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.35) rgba(255, 255, 255, 0.04);
-}
-
-#graph-details::-webkit-scrollbar {
-  width: 5px;
-}
-
-#graph-details::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  margin: 8px 0;
-}
-
-#graph-details::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    rgba(139, 92, 246, 0.4) 0%,
-    rgba(99, 102, 241, 0.3) 100%
-  );
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-#graph-details::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(139, 92, 246, 0.6) 0%,
-    rgba(99, 102, 241, 0.5) 100%
-  );
-}
-
 .details-panel h3 {
   font-size: 16px;
   font-weight: 600;
@@ -523,34 +489,70 @@ body {
   display: block;
 }
 
+/* Route method & hook type badges */
+.method-badge,
+.hook-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 /* Grid Metrics */
 .grid-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
 .metric-card {
-  background: var(--bg-card);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
+  position: relative;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .metric-card h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
 }
 
-.metric-card ol {
-  padding-left: 20px;
-  color: var(--text-main);
+.metric-card strong {
+  color: var(--text-white);
 }
 
+.metric-card ul,
+.metric-card ol {
+  padding-left: 18px;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.metric-card ul li,
 .metric-card ol li {
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 /* Console Log for Tool Intercepts */
@@ -630,30 +632,39 @@ body {
   flex-direction: column;
 }
 
-/* Neat looking scrollbars for code */
-.neat-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* === Global Monochromatic Scrollbars === */
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-.neat-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
+*::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
 }
 
-.neat-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-  transition: background 0.2s ease;
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
 }
 
-.neat-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) rgba(255, 255, 255, 0.03);
+}
+
+/* Legacy class kept for backward compat */
 .neat-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.15);
+  scrollbar-color: rgba(255, 255, 255, 0.12) rgba(255, 255, 255, 0.03);
 }
 
 /* Related Flows in Selection Details Panel */
