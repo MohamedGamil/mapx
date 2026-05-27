@@ -133,6 +133,12 @@ export class GenericWasmParser implements LanguageParser {
             if (!targetText || typeof targetText !== 'string') continue;
             const targetName = this.cleanTarget(targetText, refType);
             if (!targetName || typeof targetName !== 'string') continue;
+
+            if (refType === 'render') {
+              const isReactComponent = /^[A-Z]/.test(targetName);
+              if (!isReactComponent) continue;
+            }
+
             const startLine = capture.node.startPosition.row + 1;
             const referenceType = this.mapRefType(refType);
 
@@ -214,6 +220,7 @@ export class GenericWasmParser implements LanguageParser {
       implements: 'implements',
       call: 'call',
       instantiation: 'instantiation',
+      render: 'render',
     };
     return map[refType] || 'call';
   }

@@ -11,6 +11,7 @@ const REF_TYPE_MAP: Record<string, string> = {
   implements: 'implements',
   call: 'call',
   instantiation: 'instantiation',
+  render: 'render',
 };
 
 interface ParseJob {

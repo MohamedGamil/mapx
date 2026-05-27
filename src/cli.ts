@@ -1142,7 +1142,7 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
         console.log(`\nTerminal consumers (data sinks) — ${sinks.length} found:`);
         for (const s of sinks) {
           const inEdges = store.getReverseEdges(s.file).filter(e => [
-            'call', 'instantiation', 'param_type', 'return_type', 'relation', 'dispatch', 'notify', 'route'
+            'call', 'instantiation', 'param_type', 'return_type', 'relation', 'dispatch', 'notify', 'route', 'render'
           ].includes(e.edge_type as string));
           let extra = `[terminal — no outgoing data edges]`;
           if (s.file.includes('DatabaseManager') || s.file.includes('database')) {

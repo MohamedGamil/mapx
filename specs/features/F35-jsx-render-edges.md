@@ -1,6 +1,6 @@
 # F35 — JSX Component Rendering Edges
 
-> **Iteration**: [I19](../iterations/I19.md) · **Status**: `planned` · **Priority**: 🔴 CRITICAL
+> **Iteration**: [I19](../iterations/I19.md) · **Status**: `done` · **Priority**: 🔴 CRITICAL
 > **Origin**: MCP Feedback Section 1.2 — React component JSX composition not tracked as edges
 
 ---
@@ -28,8 +28,8 @@ React component composition uses JSX syntax (e.g. `<LinksPage />` or `<Route ele
 
 ## Acceptance Criteria
 
-- [ ] JSX self-closing elements (`<Component />`) create reference edges
-- [ ] JSX opening/closing elements (`<Component>...</Component>`) create reference edges
-- [ ] Reference target names map correctly to the imported component name
-- [ ] Graph calls/callees tracing includes these rendering relationships
-- [ ] TypeScript compiles with 0 errors
+- [x] JSX self-closing elements (`<Component />`) create reference edges
+- [x] JSX opening/closing elements (`<Component>...</Component>`) create reference edges
+- [x] Reference target names map correctly to the imported component name
+- [x] Graph calls/callees tracing includes these rendering relationships
+- [x] TypeScript compiles with 0 errors

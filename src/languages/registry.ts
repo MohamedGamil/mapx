@@ -38,7 +38,7 @@ const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
   },
   javascript: {
     name: 'javascript',
-    extensions: ['.js', '.mjs', '.cjs'],
+    extensions: ['.js', '.mjs', '.cjs', '.jsx'],
     grammarWasm: 'wasm/tree-sitter-javascript.wasm',
     queries: {
       symbols: 'queries/javascript/symbols.scm',
@@ -84,7 +84,7 @@ const BUILTIN_LANGUAGES: Record<string, LanguageDefinition> = {
     grammarWasm: 'wasm/tree-sitter-tsx.wasm',
     queries: {
       symbols: 'queries/typescript/symbols.scm',
-      references: 'queries/typescript/references.scm',
+      references: 'queries/typescript/references-tsx.scm',
     },
     nodeMappings: {
       class: 'class_declaration',

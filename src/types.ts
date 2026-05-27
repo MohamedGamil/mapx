@@ -60,7 +60,8 @@ export type ReferenceType =
   | 'hook'
   | 'graphql_resolver'
   | 'message_handler'
-  | 'websocket_handler';
+  | 'websocket_handler'
+  | 'render';
 
 export interface ParseResult {
   symbols: ExtractedSymbol[];

@@ -505,9 +505,9 @@ Prerequisite for React graph analysis and JSX rendering dependencies.
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
-| Started | — |
-| Completed | — |
+| Status | done |
+| Started | 2026-05-27 |
+| Completed | 2026-05-27 |
 | Features | F35 |
 | Branch | feat/i19-jsx-render-edges |
 | PR | — |

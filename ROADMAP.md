@@ -187,7 +187,7 @@
 - [x] Fix file discovery/sync issue where `.tsx` files are silently omitted or missing from scans
 
 ### I19 · JSX Component rendering edges · F35 · Risk: Medium · Requires: I18
-- [ ] Extract JSX/TSX elements (e.g. `<LinksPage />`) to create `render` / `call` type edges from the rendering component/file to the target symbol
+- [x] Extract JSX/TSX elements (e.g. `<LinksPage />`) to create `render` / `call` type edges from the rendering component/file to the target symbol
 
 ### I20 · NestJS Routes, Hooks, & DI Parsing · F36 · Risk: Medium
 - [ ] Extract NestJS route decorators (`@Controller`, `@Get`, `@Post`, `@Patch`, `@Delete`)
