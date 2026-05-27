@@ -287,13 +287,18 @@ function getLayoutConfigForName(layoutName: string, elementCount?: number): any 
         animate: baseAnimate,
         fit: true,
         padding: 50,
+        randomize: true,
         nodeDimensionsIncludeLabels: true,
         maxSimulationTime: isLarge ? 2000 : 4000,
         avoidOverlap: true,
-        convergenceThreshold: 0.01,
-        nodeSpacing: () => 30,
+        convergenceThreshold: 0.001,
+        unconstrIter: 10,
+        userConstIter: 20,
+        allConstIter: 20,
+        nodeSpacing: () => 40,
         edgeLength: undefined,
         flow: undefined,
+        ungrabifyWhileSimulating: true,
       };
     case 'dagre':
       return {
@@ -824,6 +829,22 @@ function runLayout(layoutConfig: any) {
   const visibleCount = cyInstance.elements(':visible').length;
   if (visibleCount > 500) {
     layoutConfig = { ...layoutConfig, animate: false };
+  }
+
+  // For Cola: scramble positions so it starts fresh, preventing vertical drift
+  if (layoutConfig.name === 'cola' && layoutConfig.randomize) {
+    const bb = cyInstance.extent();
+    const w = Math.max(bb.w, 600);
+    const h = Math.max(bb.h, 400);
+    cyInstance.nodes(':visible').forEach((node: any) => {
+      node.position({
+        x: bb.x1 + Math.random() * w,
+        y: bb.y1 + Math.random() * h,
+      });
+    });
+  }
+
+  if (visibleCount > 500) {
     activeLayout = cyInstance.layout(layoutConfig);
     activeLayout.run();
     return;
