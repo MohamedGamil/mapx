@@ -9,6 +9,7 @@ import { MapxGraph } from './core/graph.js';
 import { Scanner, buildMatcher } from './core/scanner.js';
 import { Config } from './core/config.js';
 import { FlowTracer, TraceNode } from './core/flow-tracer.js';
+import { ContextBuilder } from './core/context-builder.js';
 import { AgentGenerator } from './agents/generator.js';
 import { WorkspaceManager } from './core/workspace-manager.js';
 import { LLMExporter } from './exporters/llm-exporter.js';
@@ -1310,6 +1311,133 @@ async function confirmLaravelExcludes(noSuggestions: boolean): Promise<boolean> 
       if (result.sinks.length > 0) {
         const sinkNames = result.sinks.map(s => s.symbol || s.file.split('/').pop() || s.file);
         console.log(`Sinks: ${sinkNames.join(', ')}`);
+      }
+    });
+
+  program
+    .command('sources')
+    .description('Find entry points (data sources) in the codebase')
+    .option('-d, --dir <path>', 'Target directory')
+    .action(async (opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { config, store } = await loadContext(dir);
+      checkAndPrintStaleness(store, dir);
+
+      const tracer = new FlowTracer(store);
+      const sources = tracer.findSources(config.repo.name);
+      console.log(`\nEntry points (data sources) — ${sources.length} found:`);
+      for (const s of sources) {
+        let extra = '[no incoming data edges]';
+        if (s.file.includes('routes/')) {
+          const routes = store.getEdgesForFile(s.file).filter(e => e.edge_type === 'route');
+          extra = `[route file — ${routes.length} controller endpoints]`;
+        } else if (s.file.includes('app/Jobs/')) {
+          extra = '[dispatched externally — queue worker]';
+        } else if (s.file.includes('app/Listeners/')) {
+          extra = '[event listener — external trigger]';
+        } else if (s.file.includes('app/Http/Middleware/')) {
+          extra = '[middleware — filter chain entry]';
+        }
+        console.log(`  ${s.file.padEnd(40)} ${extra}`);
+      }
+    });
+
+  program
+    .command('sinks')
+    .description('Find terminal consumers (data sinks) in the codebase')
+    .option('-d, --dir <path>', 'Target directory')
+    .action(async (opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { config, store } = await loadContext(dir);
+      checkAndPrintStaleness(store, dir);
+
+      const tracer = new FlowTracer(store);
+      const sinks = tracer.findSinks(config.repo.name);
+      console.log(`\nTerminal consumers (data sinks) — ${sinks.length} found:`);
+      for (const s of sinks) {
+        const inEdges = store.getReverseEdges(s.file).filter(e => [
+          'call', 'instantiation', 'param_type', 'return_type', 'relation', 'dispatch', 'notify', 'route', 'render'
+        ].includes(e.edge_type as string));
+        let extra = `[terminal — no outgoing data edges]`;
+        if (s.file.includes('DatabaseManager') || s.file.includes('database')) {
+          extra = `[DB facade → raw SQL — ${inEdges.length} in-edges]`;
+        } else if (s.file.includes('CacheManager') || s.file.includes('cache')) {
+          extra = `[Cache facade → Redis/Memcache — ${inEdges.length} in-edges]`;
+        } else if (s.file.includes('Mailer') || s.file.includes('mail')) {
+          extra = `[Mail facade → SMTP — ${inEdges.length} in-edges]`;
+        } else if (s.file.includes('QueueManager') || s.file.includes('queue')) {
+          extra = `[Queue::push — ${inEdges.length} in-edges]`;
+        }
+        console.log(`  ${s.file.padEnd(40)} ${extra}`);
+      }
+    });
+
+  program
+    .command('context <task>')
+    .description('Generate task-specific workspace context within a token budget')
+    .option('-d, --dir <path>', 'Target directory')
+    .option('--seeds <list>', 'Comma-separated list of seed symbols or file paths')
+    .option('--tokens <budget>', 'Maximum estimated token budget', '8192')
+    .option('--depth <n>', 'Graph traversal depth', '2')
+    .option('--format <format>', 'Output format: text | json', 'text')
+    .action(async (task: string, opts: Record<string, unknown>) => {
+      const dir = resolveDir(opts, program.opts());
+      const { config, store, graph } = await loadContext(dir);
+      checkAndPrintStaleness(store, dir);
+
+      const builder = new ContextBuilder(store, graph);
+      const parsedTokens = parseInt(opts.tokens as string, 10) || 8192;
+      const parsedDepth = parseInt(opts.depth as string, 10) || 2;
+      const format = opts.format as string;
+      const seeds = opts.seeds ? (opts.seeds as string).split(',').map(s => s.trim()) : undefined;
+
+      const result = await builder.buildContext({
+        task,
+        seeds,
+        tokens: parsedTokens,
+        depth: parsedDepth,
+      });
+
+      if (format === 'json') {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      console.log('# MapX Smart Context');
+      console.log(`*Estimated tokens:* ${result.estimatedTokens}\n`);
+      
+      console.log('## Included Files');
+      if (result.includedFiles.length === 0) {
+        console.log('None');
+      } else {
+        for (const f of result.includedFiles) {
+          console.log(`### [${f.path}](file://${resolve(dir, f.path)})`);
+          console.log(`- Language: ${f.language}`);
+          console.log(`- Lines: ${f.lineCount} | Size: ${f.sizeBytes} bytes`);
+          if (f.symbols.length > 0) {
+            console.log('- Symbols:');
+            for (const sym of f.symbols) {
+              const scopeStr = sym.scope ? `${sym.scope}::` : '';
+              console.log(`  - \`${sym.kind}\` \`${scopeStr}${sym.name}\` (lines ${sym.startLine}-${sym.endLine})`);
+            }
+          }
+        }
+      }
+
+      if (result.edges.length > 0) {
+        console.log('\n## Cross-File Dependencies');
+        for (const edge of result.edges) {
+          const srcSym = edge.sourceSymbol ? `#${edge.sourceSymbol}` : '';
+          const tgtSym = edge.targetSymbol ? `#${edge.targetSymbol}` : '';
+          console.log(`- \`${edge.sourceFile}${srcSym}\` → \`${edge.targetFile}${tgtSym}\` (${edge.edgeType})`);
+        }
+      }
+
+      if (result.excludedFiles.length > 0) {
+        console.log('\n## Excluded Files (Token budget exhausted)');
+        for (const f of result.excludedFiles) {
+          console.log(`- ${f}`);
+        }
       }
     });
 

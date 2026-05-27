@@ -1,4 +1,4 @@
-<!-- mapx v0.2.6 -->
+<!-- mapx v0.2.7 -->
 # MapxGraph - LLM Integration Guide
 
 This project uses **MapxGraph** — a local code graph memory system that provides persistent, structured understanding of the codebase across LLM sessions.
@@ -41,6 +41,9 @@ mapx -d /path/to/project scan
 - `mapx summary [path]` - Project summary
 - `mapx clusters [--dir path]` - List detected clusters/modules
 - `mapx trace <symbol> [--dir path]` - Trace data flow
+- `mapx sources [--dir path]` - Find entry points (data sources) in the codebase
+- `mapx sinks [--dir path]` - Find terminal consumers (data sinks) in the codebase
+- `mapx context <task> [--dir path] [--seeds seeds] [--tokens budget] [--depth n] [--format fmt]` - Generate task-specific workspace context
 - `mapx callers <symbol> [--dir path] [--depth depth]` - Trace callers of a symbol
 - `mapx callees <symbol> [--dir path] [--depth depth]` - Trace callees of a symbol
 - `mapx impact <symbol> [--dir path] [--depth depth]` - Perform change impact analysis
@@ -76,7 +79,7 @@ When running as an MCP server, MapxGraph exposes these tools:
 - `mapx_clusters` - List code clusters/modules
 - `mapx_status` - Check scan status, languages breakdown, top PageRank files/symbols, and index recommendations
 - `mapx_export` - Export compact graph summary (formats: llm, json, dot, svg, toon)
-- `mapx_context` - Intelligent, token-budgeted workspace context builder. Requires `task` (description of the task). Accepts optional `seeds` (symbols or file paths to anchor context), `tokens` (budget, defaults to 8192), and `depth` (traversal depth, defaults to 2).
+- `mapx_context` - Intelligent, token-budgeted workspace context builder
 - `mapx_workspaces` - Retrieve workspace configuration and repositories (list/discover)
 - `mapx_lang_list` - List supported languages and status
 - `mapx_lang_install` - Install dynamic language support
@@ -92,5 +95,5 @@ When running as an MCP server, MapxGraph exposes these tools:
 6. **Need a visual overview**: Run `mapx export --format=svg -o graph.svg`.
 7. **Trace data flow / call chains**: Run `mapx trace <symbol>`, `mapx callers`, or `mapx callees`.
 8. **Planning a modification**: Run `mapx impact` to determine the blast radius.
-9. **Building custom prompts / context**: Use the `mapx_context` MCP tool (passing the required `task` parameter and optional `seeds`, `tokens`, or `depth`) to generate optimal context within a token budget.
+9. **Building custom prompts / context**: Run `mapx context` to generate optimal context within a token budget.
 <!-- /mapx -->

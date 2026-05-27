@@ -182,6 +182,9 @@ mapx -d /path/to/project scan
 - \`mapx summary [path]\` - Project summary
 - \`mapx clusters [--dir path]\` - List detected clusters/modules
 - \`mapx trace <symbol> [--dir path]\` - Trace data flow
+- \`mapx sources [--dir path]\` - Find entry points (data sources) in the codebase
+- \`mapx sinks [--dir path]\` - Find terminal consumers (data sinks) in the codebase
+- \`mapx context <task> [--dir path] [--seeds seeds] [--tokens budget] [--depth n] [--format fmt]\` - Generate task-specific workspace context
 - \`mapx callers <symbol> [--dir path] [--depth depth]\` - Trace callers of a symbol
 - \`mapx callees <symbol> [--dir path] [--depth depth]\` - Trace callees of a symbol
 - \`mapx impact <symbol> [--dir path] [--depth depth]\` - Perform change impact analysis
@@ -327,6 +330,9 @@ This project uses MapxGraph (22 languages, 25 MCP tools). You can run the follow
 - \`mapx impact <symbol>\` - Change impact analysis
 - \`mapx clusters\` - View logical modules
 - \`mapx trace <symbol>\` - Trace data-flow paths
+- \`mapx sources\` - Find entry points
+- \`mapx sinks\` - Find terminal consumers
+- \`mapx context <task>\` - Generate task-specific context
 - \`mapx node <symbol> --source\` - Inspect symbol source code`
   },
   windsurf: {
@@ -346,6 +352,9 @@ Use the MapxGraph MCP tools or CLI commands to navigate:
 - \`mapx_callers\` / \`mapx callers\` to trace call chains.
 - \`mapx_impact\` / \`mapx impact\` before refactoring.
 - \`mapx_trace\` / \`mapx trace\` to analyze data flow.
+- \`mapx_sources\` / \`mapx sources\` to find entry points.
+- \`mapx_sinks\` / \`mapx sinks\` to find terminal consumers.
+- \`mapx_context\` / \`mapx context\` to generate task-specific context.
 - \`mapx_sync\` / \`mapx sync\` after edits.`
   },
   cline: {
@@ -360,7 +369,8 @@ Available tools:
 - \`mapx_query\` / \`mapx_search\` - Find files or symbols.
 - \`mapx_callers\` / \`mapx_callees\` - Trace call chains.
 - \`mapx_impact\` - Assess blast radius before changes.
-- \`mapx_trace\` - Trace data-flow callers and callees.
+- \`mapx_trace\` - Trace data-flow paths.
+- \`mapx_sources\` / \`mapx_sinks\` - Find entry points / terminal consumers.
 - \`mapx_context\` - Generate token-budgeted context.`
   },
   aider: {
@@ -381,6 +391,9 @@ Use MapxGraph commands in this repository to analyze code across **22 languages*
 - \`mapx callees <symbol>\`: Show what a symbol calls.
 - \`mapx impact <symbol>\`: Change impact analysis.
 - \`mapx trace <symbol>\`: Show data-flow traversal.
+- \`mapx sources\`: Find entry points.
+- \`mapx sinks\`: Find terminal consumers.
+- \`mapx context <task>\`: Generate task-specific context.
 - \`mapx node <symbol> --source\`: View symbol source code.
 - \`mapx sync\` (or \`mapx update\`): Run after edits.`
   },
@@ -399,6 +412,9 @@ Utilize MapxGraph to obtain codebase context for Gemini across **22 languages**.
 - Run \`mapx callers <symbol>\` / \`mapx callees <symbol>\` to trace call chains.
 - Run \`mapx impact <symbol>\` to assess change blast radius.
 - Run \`mapx trace <symbol>\` to analyze data flow.
+- Run \`mapx sources\` to find entry points.
+- Run \`mapx sinks\` to find terminal consumers.
+- Run \`mapx context <task>\` to generate task-specific context.
 - Run \`mapx node <symbol> --source\` to inspect a symbol's source code.
 - Run \`mapx sync\` after file edits to update the graph.`
   },
@@ -431,6 +447,9 @@ This project uses MapxGraph (22 languages, 25 MCP tools).
 - Run \`mapx callers <symbol>\` / \`mapx callees <symbol>\` to trace call chains.
 - Run \`mapx impact <symbol>\` to assess change risk before refactoring.
 - Run \`mapx trace <symbol>\` to trace data flow.
+- Run \`mapx sources\` to find entry points.
+- Run \`mapx sinks\` to find terminal consumers.
+- Run \`mapx context <task>\` to generate task-specific context.
 - Run \`mapx sync\` after file edits to update the graph.`
   },
   antigravity: {
