@@ -1127,9 +1127,11 @@ async function loadGraph() {
     }
 
     const breadcrumb = document.getElementById('cluster-breadcrumb');
-    if (breadcrumb) {
-      breadcrumb.style.display = (currentGraphMode === 'proximity' && activeClusterId) ? 'inline-flex' : 'none';
-    }
+    const separator = document.getElementById('toolbar-separator');
+    const shouldDisplay = (currentGraphMode === 'proximity' && activeClusterId);
+
+    if (breadcrumb) breadcrumb.style.display = shouldDisplay ? 'inline-flex' : 'none';
+    if (separator) separator.style.display = shouldDisplay ? 'inline-flex' : 'none';
 
     // Populate focus search autocompletion datalist
     const focusSearchList = document.getElementById('focus-search-list');
@@ -1155,7 +1157,7 @@ async function loadGraph() {
     cyInstance = cytoscape({
       container: container,
       elements: initialElements,
-      wheelSensitivity: 2.2,
+      wheelSensitivity: 1.5,
       style: [
         {
           selector: 'node',
@@ -1543,11 +1545,14 @@ async function loadGraph() {
         clustersBtn.style.display = (mode === 'full' || mode === 'focus') ? 'inline-flex' : 'none';
       }
 
-      const breadcrumb = document.getElementById('cluster-breadcrumb');
-      if (breadcrumb) {
+      const breadcrumb = document.getElementById('cluster-breadcrumb'); 
+      const separator = document.getElementById('toolbar-separator');
+
+      if (breadcrumb && separator) {
         // Breadcrumbs visible in proximity (drilldown) and focus modes
         const showBreadcrumb = (mode === 'proximity' && activeClusterId) || mode === 'focus';
         breadcrumb.style.display = showBreadcrumb ? 'inline-flex' : 'none';
+        separator.style.display = showBreadcrumb ? 'inline-flex' : 'none';
       }
     }
 
@@ -1570,10 +1575,15 @@ async function loadGraph() {
     document.getElementById('btn-breadcrumb-root')?.addEventListener('click', () => {
       activeClusterId = null;
       updateToolbarVisibility(currentGraphMode);
+
       const breadcrumb = document.getElementById('cluster-breadcrumb');
-      if (breadcrumb) {
+      const separator = document.getElementById('toolbar-separator');
+
+      if (breadcrumb && separator) {
         breadcrumb.style.display = 'none';
+        separator.style.display = 'none';
       }
+
       updateGraphDisplay();
     });
 
@@ -1651,9 +1661,16 @@ async function loadGraph() {
       const activeLabel = document.getElementById('breadcrumb-active-cluster');
       if (activeLabel) activeLabel.textContent = fileId.split('/').pop() || fileId;
       const breadcrumb = document.getElementById('cluster-breadcrumb');
-      if (breadcrumb) breadcrumb.style.display = 'inline-flex';
+      const separator = document.getElementById('toolbar-separator');
+
+      if (breadcrumb && separator) {
+        breadcrumb.style.display = 'inline-flex';
+        separator.style.display = 'inline-flex';
+      }
+
       const rootBtn = document.getElementById('btn-breadcrumb-root');
       if (rootBtn) rootBtn.textContent = 'Focus';
+
       updateGraphDisplay();
     }
 
@@ -1912,8 +1929,10 @@ async function loadGraph() {
         activeClusterId = data.id;
         updateToolbarVisibility(currentGraphMode);
         const breadcrumb = document.getElementById('cluster-breadcrumb');
-        if (breadcrumb) {
+        const separator = document.getElementById('toolbar-separator');
+        if (breadcrumb && separator) {
           breadcrumb.style.display = 'inline-flex';
+          separator.style.display = 'inline-flex';
         }
         const activeLabel = document.getElementById('breadcrumb-active-cluster');
         if (activeLabel) {
@@ -2849,6 +2868,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clustersBtn) clustersBtn.style.display = 'none';
     const breadcrumb = document.getElementById('cluster-breadcrumb');
     if (breadcrumb) breadcrumb.style.display = 'none';
+    const separator = document.getElementById('toolbar-separator');
+    if (separator) separator.style.display = 'none';
 
     updateGraphDisplay();
   });

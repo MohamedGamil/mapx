@@ -131,6 +131,7 @@ serve-sse: ## Start MCP server — SSE/HTTP (make serve-sse [PORT=3456] DIR=/pat
 	$(CLI) serve --sse --port $(or $(PORT),45123) --dir=$(DIR)
 
 ui: ## Open web dashboard (make ui [PORT=8080] DIR=/path)
+	npm run build:npm
 	$(CLI) ui $(if $(PORT),--port $(PORT),) --dir=$(DIR)
 
 workspaces-list: ## List registered repos
