@@ -10,6 +10,14 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+- **Expanded Core Test Coverage** — Expanded unit test coverage to 80%+ across five key core modules:
+  - `src/core/store-interface.ts` (100% line coverage)
+  - `src/agents/generator.ts` (96.62% line coverage)
+  - `src/core/scanner.ts` (86.35% line coverage)
+  - `src/mcp.ts` (81.75% line coverage)
+  - `src/cli.ts` (80.02% line coverage)
+- **Robust Unit Test Mocking** — Refactored and expanded test suites using `vi.hoisted()` for clean module-level mocking in `tests/cli.test.ts` (expanded to 159 tests) and `tests/mcp.test.ts` (expanded to 98 tests), covering complex edge cases, progress rendering, subcommands, and tool implementations.
+
 ### Changed
 
 ## [0.3.0] — 2026-05-29
