@@ -136,6 +136,9 @@ describe('Store core class', () => {
     const queried = store.queryEdges({ type: 'call' });
     expect(queried).toHaveLength(1);
 
+    const queried2 = store.queryEdges({ type: 'call', from: 'main', to: 'utils', repo: 'mapx' });
+    expect(queried2).toHaveLength(1);
+
     store.deleteEdgesForFile('src/main.ts');
     expect(store.getEdgesForFile('src/main.ts')).toHaveLength(0);
   });
@@ -752,6 +755,111 @@ describe('Store core class', () => {
       repo: 'mapx'
     });
     expect(files.length).toBeGreaterThan(0);
+  });
+
+  it('performs getSymbolByName with various combinations', () => {
+    store.insertSymbol({
+      filePath: 'src/main.ts',
+      repo: 'mapx',
+      name: 'MyClass',
+      kind: 'class',
+      scope: 'MyScope',
+      signature: '',
+      startLine: 1,
+      endLine: 10,
+      metadata: '{}'
+    });
+
+    // 1. scope and name with repo
+    const s1 = store.getSymbolByName('MyScope::MyClass', 'mapx');
+    expect(s1).toBeDefined();
+    expect(s1?.name).toBe('MyClass');
+
+    // 2. scope and name without repo
+    const s2 = store.getSymbolByName('MyScope::MyClass');
+    expect(s2).toBeDefined();
+    expect(s2?.name).toBe('MyClass');
+
+    // 3. name without repo
+    const s3 = store.getSymbolByName('MyClass');
+    expect(s3).toBeDefined();
+    expect(s3?.name).toBe('MyClass');
+  });
+
+  it('performs getFilesFiltered with sort lines', () => {
+    const files = store.getFilesFiltered({
+      sort: 'lines',
+      repo: 'mapx'
+    });
+    expect(files.length).toBeGreaterThan(0);
+  });
+
+  it('covers the remaining store methods to bridge coverage gaps', () => {
+    // 1. deleteFrameworkEdgesForRepo
+    store.insertEdge({
+      sourceFile: 'src/main.ts',
+      targetFile: 'src/utils.ts',
+      sourceSymbol: 'A',
+      targetSymbol: 'B',
+      edgeType: 'route',
+      repo: 'mapx',
+      weight: 1.0
+    });
+    expect(store.getAllEdges('mapx').length).toBeGreaterThan(0);
+    store.deleteFrameworkEdgesForRepo('mapx');
+    expect(store.getAllEdges('mapx').some(e => e.edge_type === 'route')).toBe(false);
+
+    // 2. getAllSymbols (repo and no-repo)
+    expect(store.getAllSymbols('mapx').length).toBeGreaterThan(0);
+    expect(store.getAllSymbols().length).toBeGreaterThan(0);
+
+    // 3. getAllEdges (repo and no-repo)
+    expect(store.getAllEdges('mapx').length).toBeGreaterThan(0);
+    expect(store.getAllEdges().length).toBeGreaterThan(0);
+
+    // 4. getFileCount, getSymbolCount, getEdgeCount (repo and no-repo)
+    expect(store.getFileCount('mapx')).toBeGreaterThan(0);
+    expect(store.getFileCount()).toBeGreaterThan(0);
+    expect(store.getSymbolCount('mapx')).toBeGreaterThan(0);
+    expect(store.getSymbolCount()).toBeGreaterThan(0);
+    expect(store.getEdgeCount('mapx')).toBeGreaterThan(0);
+    expect(store.getEdgeCount()).toBeGreaterThan(0);
+
+    // 5. getLanguageBreakdown (with repo)
+    const breakdown = store.getLanguageBreakdown('mapx');
+    expect(breakdown.typescript).toBeGreaterThan(0);
+
+    // 6. getClusters and getClusterMemberships without repo
+    expect(store.getClusters().length).toBeGreaterThan(0);
+    expect(store.getClusterMemberships().length).toBeGreaterThan(0);
+
+    // 7. searchSymbolsFiltered default substring match case
+    const filteredRes = store.searchSymbolsFiltered({
+      term: 'Class',
+      repo: 'mapx'
+    });
+    expect(filteredRes.length).toBeGreaterThan(0);
+
+    // 8. snapshots CRUD
+    store.upsertSnapshot({
+      commitSha: 'commit123',
+      parentSha: null,
+      timestamp: '2026-05-29T00:00:00Z',
+      filesAdded: '[]',
+      filesModified: '[]',
+      filesRemoved: '[]',
+      symbolsDelta: '{}'
+    });
+    const latest = store.getLatestSnapshot();
+    expect(latest).toBeDefined();
+    expect(latest?.commit_sha).toBe('commit123');
+
+    // 9. getAllFiles without repo
+    expect(store.getAllFiles().length).toBeGreaterThan(0);
+
+    // 10. searchSymbols substring match
+    const ssNoRepo = store.searchSymbols('MyClass');
+    expect(ssNoRepo.length).toBeGreaterThan(0);
   });
 
   it('handles columnExists catch block', () => {

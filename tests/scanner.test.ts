@@ -376,11 +376,64 @@ describe('Scanner module', () => {
     const reqRes = (scanner as any).resolveRequirePath('./utils', 'src/main.php', fileMap);
     expect(reqRes).toBe('src/utils.php');
 
+    const reqRes2 = (scanner as any).resolveRequirePath('./nonexistent', 'src/main.php', fileMap);
+    expect(reqRes2).toBeNull();
+
     const impRes = (scanner as any).resolveImportPath('@/components/button', 'src/main.vue', fileMap);
     expect(impRes).toBe('src/components/button.vue');
 
+    // Test resolveImportPath else branch and not found
+    const impRes2 = (scanner as any).resolveImportPath('./helper', 'src/main.ts', fileMap);
+    expect(impRes2).toBe('src/helper.ts');
+
+    const impRes3 = (scanner as any).resolveImportPath('./nonexistent', 'src/main.ts', fileMap);
+    expect(impRes3).toBeNull();
+
+    // 1. Symbol with '\\' and exact match
     const symRes = (scanner as any).resolveSymbolToFile('App\\Controller\\UserController', fileMap, 'src/main.php');
     expect(symRes).toBe('src/controllers/UserController.php');
+
+    // 2. Symbol with '\\' and non-exact match
+    const mockStore2 = createMockStore({
+      getAllFiles: () => [],
+      searchSymbols: (name: string) => {
+        if (name === 'UserController') {
+          return [{ name: 'User', file_path: 'src/controllers/UserController.php' }];
+        }
+        return [];
+      }
+    });
+    const scanner2 = new Scanner(mockStore2, mockConfig, graph);
+    const symRes2 = (scanner2 as any).resolveSymbolToFile('App\\Controller\\UserController', fileMap, 'src/main.php');
+    expect(symRes2).toBe('src/controllers/UserController.php');
+
+    // 3. Symbol without '\\' and exact match
+    const mockStore3 = createMockStore({
+      getAllFiles: () => [],
+      searchSymbols: (name: string) => {
+        if (name === 'UserController') {
+          return [{ name: 'UserController', file_path: 'src/controllers/UserController.php' }];
+        }
+        return [];
+      }
+    });
+    const scanner3 = new Scanner(mockStore3, mockConfig, graph);
+    const symRes3 = (scanner3 as any).resolveSymbolToFile('UserController', fileMap, 'src/main.php');
+    expect(symRes3).toBe('src/controllers/UserController.php');
+
+    // 4. Symbol without '\\' and non-exact match
+    const mockStore4 = createMockStore({
+      getAllFiles: () => [],
+      searchSymbols: (name: string) => {
+        if (name === 'UserController') {
+          return [{ name: 'User', file_path: 'src/controllers/UserController.php' }];
+        }
+        return [];
+      }
+    });
+    const scanner4 = new Scanner(mockStore4, mockConfig, graph);
+    const symRes4 = (scanner4 as any).resolveSymbolToFile('UserController', fileMap, 'src/main.php');
+    expect(symRes4).toBe('src/controllers/UserController.php');
   });
 
   it('handles route/hook confidence suppression and error handling', async () => {
@@ -480,7 +533,8 @@ describe('Scanner module', () => {
       getAllFiles: () => [
         { path: 'routes.ts', repo: 'repo1' },
         { path: 'bad-routes.ts', repo: 'repo1' }
-      ]
+      ],
+      searchSymbols: vi.fn().mockReturnValue([])
     });
 
     const mockConfig = {
@@ -514,5 +568,30 @@ describe('Scanner module', () => {
 
     const res2 = (scanner as any).shouldExcludeDir('dist', ['dist']);
     expect(res2).toBe(true);
+
+    const res3 = (scanner as any).shouldExcludeDir('src/components', ['src/components/**']);
+    expect(res3).toBe(true);
+
+    const res4 = (scanner as any).shouldExcludeDir('src/ignored_dir/sub', ['ignored_dir']);
+    expect(res4).toBe(true);
+
+    const res5 = (scanner as any).shouldExcludeDir('src/components', ['nonexistent']);
+    expect(res5).toBe(false);
+  });
+
+  it('handles getFileInfo error gracefully', async () => {
+    const mockStore = createMockStore();
+    const mockConfig = {
+      getWorkspaceRoot: () => '/workspace',
+      getResolvedUserLanguages: () => ({}),
+      repos: [{ name: 'repo1', path: '.' }],
+      settings: { excludePatterns: [], includePatterns: [] }
+    } as unknown as Config;
+    const graph = new MapxGraph('repo1');
+    const scanner = new Scanner(mockStore, mockConfig, graph);
+
+    // Call getFileInfo with a path that will fail stat or readFile
+    const result = await (scanner as any).getFileInfo('/workspace/unreadable.ts', 'unreadable.ts');
+    expect(result).toBeNull();
   });
 });
