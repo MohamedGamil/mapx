@@ -10,6 +10,14 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Added
 
+### Changed
+
+## [0.3.0] — 2026-05-29
+
+### Added
+
+- **Picomatch Glob Migration** — Migrated all glob pattern matching, testing, and filtering logic across the entire MapX codebase from `minimatch` to `picomatch`.
+- **Bundled Language & Dialect WASMs** — Bundled all 22 supported languages and dialect WASMs (including Svelte, Lua, Elixir, Zig, Bash, Pascal, and Dart) directly with the npm package under a `bundled` tier. This provides zero-install offline-first execution.
 - **Fuzzy Symbol Suggestions (CLI & MCP)** — When a symbol is not found, all symbol-accepting commands (`query`, `search`, `callers`, `callees`, `impact`, `node`) now use [Fuse.js](https://fusejs.io/) to suggest up to 5 similar symbol names ranked by edit distance. Created `src/core/fuzzy-matcher.ts` as a shared module for both CLI and MCP tools.
 - **`mapx_batch` MCP Tool** — New orchestration tool that executes multiple operations (`search`, `node`, `callers`, `callees`, `deps`) in a single round-trip call. Supports configurable `maxItems` limit (default: 10) with per-operation error isolation.
 - **JSON Output for `search` and `node` CLI Commands** — Added `--format json` option to `mapx search` and `mapx node` CLI commands, producing structured JSON output with symbol metadata, PageRank scores, and optional source code.
@@ -21,6 +29,9 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
 
 ### Changed
 
+- **Standalone Bun Binary Module Resolution Fix** — Refactored `store.ts` to statically import `store-bun.js` and `store-node.js` backends instead of using dynamic `createRequire`, resolving runtime `Cannot find module './store-bun.js'` crashes in compiled Bun standalone binaries.
+- **Standalone Bun Binary WASM Path Fix** — Patched `findAssetRoot()` in `wasm-parser.ts` and `parse-worker.ts` to filter out Bun virtual filesystem paths (`/$bunfs` and `bun:`) and added the `locateFile` option to `Parser.init` pointing to `web-tree-sitter.wasm` inside `PROJECT_ROOT/wasm/` directory to prevent runtime WebAssembly crashes.
+- **README Redesign** — Redesigned the main `README.md` with centered hero badges, a description tagline, an expandable Table of Contents, and structural parser tables matching the style of the picomatch README.
 - **Wildcard & Glob Pattern Support (CLI & MCP)** — `mapx query`, `mapx search`, `mapx_query`, and `mapx_search` now support wildcard (`*`, empty string) and glob patterns (`*Service`, `get?`, `*Controller*`). The original bug where `{ "term": "*", "kind": "enum" }` returned no results is fixed. Glob patterns are converted to SQL `LIKE` patterns (`*` → `%`, `?` → `_`).
 - **Case-Insensitive Symbol Search** — All symbol name matching across `searchSymbols()` and `searchSymbolsFiltered()` now uses `COLLATE NOCASE` for consistent case-insensitive behavior.
 - **Auto-Expand on Zero Results** — When a `--kind` filter yields zero results in `search`/`mapx_search`, the search automatically retries without the kind filter and notifies the user that results were broadened.
