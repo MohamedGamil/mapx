@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest';
-import { checkTryCatch } from '../src/core/impact-analyzer.js';
+import { describe, it, expect, vi } from 'vitest';
+import { checkTryCatch, ImpactAnalyzer } from '../src/core/impact-analyzer.js';
+import type { Store } from '../src/core/store.js';
+
+vi.mock('node:fs', async (importOriginal) => {
+  const original = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...original,
+    readFileSync: vi.fn().mockReturnValue('try {\n  call();\n} catch (e) {}')
+  };
+});
 
 /**
  * Tests for checkTryCatch — the pure function from ImpactAnalyzer
@@ -166,6 +175,82 @@ describe('checkTryCatch (impact-analyzer)', () => {
       const code = 'try {\n  call();\n} catch {}';
       // startLine=2, lineNum=2 — the loop won't execute since range is [1,0]
       expect(checkTryCatch(code, 2, 2, false)).toBe(false);
+    });
+  });
+
+  describe('ImpactAnalyzer.analyze', () => {
+    it('analyzes impact and calculates risk correctly', () => {
+      const mockStore = {
+        getCallersOfSymbol: (symName: string) => {
+          if (symName === 'target') {
+            return [
+              {
+                source_file: 'src/caller1.ts',
+                source_symbol: 'caller1',
+                edge_type: 'call',
+                metadata: JSON.stringify({ startLine: 2 })
+              },
+              {
+                source_file: 'tests/caller.test.ts',
+                source_symbol: 'caller_test',
+                edge_type: 'call',
+                metadata: JSON.stringify({ startLine: 1 })
+              }
+            ];
+          }
+          if (symName === 'caller1') {
+            return [
+              {
+                source_file: 'src/caller2.ts',
+                source_symbol: 'caller2',
+                edge_type: 'import',
+                metadata: null
+              }
+            ];
+          }
+          return [];
+        },
+        getSymbolByName: (name: string) => {
+          if (name === 'caller1') return { start_line: 1 };
+          if (name === 'caller2') return { start_line: 1 };
+          return null;
+        }
+      } as unknown as Store;
+
+      const analyzer = new ImpactAnalyzer(mockStore);
+      const result = analyzer.analyze('target', 3, '/dummy-dir');
+
+      expect(result.affected).toHaveLength(3);
+      
+      // caller1: depth 1, non-structural (call) -> HIGH risk.
+      // But it will call readFileSync and checkTryCatch.
+      // Our mocked readFileSync returns: "try {\n  call();\n} catch (e) {}"
+      // callLine is 2. callerStartLine is 1 (from getSymbolByName).
+      // So checkTryCatch(..., 2, 1, false) is true!
+      // Thus, risk is overridden to LOW!
+      const c1 = result.affected.find(x => x.symbol === 'caller1');
+      expect(c1?.risk).toBe('LOW');
+
+      // caller_test: in a test file, risk is LOW.
+      const ct = result.affected.find(x => x.symbol === 'caller_test');
+      expect(ct?.risk).toBe('LOW');
+
+      // caller2: depth 2, structural (import) -> LOW risk.
+      const c2 = result.affected.find(x => x.symbol === 'caller2');
+      expect(c2?.risk).toBe('LOW');
+
+      expect(result.summary.high).toBe(0);
+      expect(result.recommendation).toBe('Low blast radius — proceed with caution');
+    });
+
+    it('returns default safe recommendation when no callers exist', () => {
+      const mockStore = {
+        getCallersOfSymbol: () => []
+      } as unknown as Store;
+      const analyzer = new ImpactAnalyzer(mockStore);
+      const result = analyzer.analyze('safe_symbol', 3, '/dir');
+      expect(result.affected).toHaveLength(0);
+      expect(result.recommendation).toBe('No callers found — safe to change');
     });
   });
 });

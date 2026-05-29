@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { TEMPLATES, MCP_CONFIGS } from '../src/agents/templates.js';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /**
  * Validate all agent integration templates contain the correct
@@ -133,6 +136,41 @@ describe('Agent Templates', () => {
         const str = JSON.stringify(json);
         expect(str).toContain('serve');
         expect(str).toContain('/test/project');
+      }
+    });
+
+    it('each config should detect its presence correctly', () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'mapx-detect-test-'));
+
+      try {
+        const opencode = MCP_CONFIGS.find(c => c.name === 'opencode')!;
+        const gemini = MCP_CONFIGS.find(c => c.name === 'gemini-cli')!;
+        const cursor = MCP_CONFIGS.find(c => c.name === 'cursor-mcp')!;
+        const vscode = MCP_CONFIGS.find(c => c.name === 'vscode-mcp')!;
+        const antigravity = MCP_CONFIGS.find(c => c.name === 'antigravity')!;
+
+        // Initially false
+        expect(opencode.detect(tempDir)).toBe(false);
+        expect(gemini.detect(tempDir)).toBe(false);
+        expect(cursor.detect(tempDir)).toBe(false);
+        expect(vscode.detect(tempDir)).toBe(false);
+        expect(antigravity.detect(tempDir)).toBe(false);
+
+        // Create markers
+        writeFileSync(join(tempDir, 'opencode.json'), '{}');
+        mkdirSync(join(tempDir, '.gemini'));
+        mkdirSync(join(tempDir, '.cursor'));
+        mkdirSync(join(tempDir, '.vscode'));
+        mkdirSync(join(tempDir, '.agents'));
+
+        // Now true
+        expect(opencode.detect(tempDir)).toBe(true);
+        expect(gemini.detect(tempDir)).toBe(true);
+        expect(cursor.detect(tempDir)).toBe(true);
+        expect(vscode.detect(tempDir)).toBe(true);
+        expect(antigravity.detect(tempDir)).toBe(true);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
       }
     });
   });
