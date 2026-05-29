@@ -58,9 +58,8 @@
   - [Available MCP tools (26 total)](#available-mcp-tools-26-total)
 - [Programmatic Usage](#programmatic-usage)
 - [Supported Languages](#supported-languages)
-  - [Built-in (Tier 1) — Always available](#built-in-tier-1--always-available)
-  - [Bundled (Tier 2) — Ships with the tool](#bundled-tier-2--ships-with-the-tool)
-  - [Installable (Tier 3) — mapx lang install name](#installable-tier-3--mapx-lang-install-name)
+  - [Built-in (Tier 1) — Dedicated Parsers](#built-in-tier-1--dedicated-parsers)
+  - [Bundled (Tier 2) — Generic WASM Parsers (Always Available)](#bundled-tier-2--generic-wasm-parsers-always-available)
 - [Agentic Integration](#agentic-integration)
 - [Storage](#storage)
 - [Architecture](#architecture)
@@ -78,7 +77,7 @@
 
 ## Features
 
-- **22 languages** — 8 built-in (PHP, JS, TS, Python, Go, Rust, Java, C#), 7 bundled (Ruby, C, C++, Swift, Kotlin, Scala, Vue), 7 installable (Svelte, Lua, Elixir, Zig, Bash, Pascal, Dart)
+- **22 languages** — all built-in or bundled with the package out-of-the-box (PHP, JS, TS, Python, Go, Rust, Java, C#, Ruby, C, C++, Swift, Kotlin, Scala, Vue, Svelte, Lua, Elixir, Zig, Bash, Pascal, Dart)
 - **Deep symbol extraction** — classes, methods, functions, interfaces, traits, enums, structs, modules, constants, properties, namespaces — with full import/inheritance/instantiation reference tracking
 - **Incremental scans** — git-aware change detection; only re-parses files that changed
 - **Fast** — parallelised file reads, bounded WASM concurrency, batched SQLite writes
@@ -220,8 +219,8 @@ mapx -d /path/to/project export
 | `mapx export -o out.txt` | Write export to a file |
 | `mapx summary [path]` | One-line project summary |
 | `mapx lang list` | List supported languages and status |
-| `mapx lang install <name>` | Install an installable-tier language |
-| `mapx lang uninstall <name>` | Uninstall a language |
+| `mapx lang install <name>` | Install a custom user-defined language |
+| `mapx lang uninstall <name>` | Uninstall a custom language |
 | `mapx ui` | Open the web dashboard for interactive visualization |
 | `mapx workspaces list` | List registered repositories |
 | `mapx workspaces add <path>` | Register a new repository |
@@ -345,35 +344,30 @@ See [docs/getting-started.md](docs/getting-started.md#programmatic-usage) for a 
 
 ## Supported Languages
 
-### Built-in (Tier 1) — Always available
+### Built-in (Tier 1) — Dedicated Parsers
 
 | Language | Extensions | Key Symbols |
 |----------|-----------|-------------|
 | PHP | `.php`, `.phtml` | classes, methods, functions, interfaces, traits, enums, constants, properties, namespaces |
 | JavaScript | `.js`, `.mjs`, `.cjs` | classes, methods, functions, interfaces, enums, properties |
 | TypeScript | `.ts`, `.cts`, `.mts` | classes, methods, functions, interfaces, enums, properties, namespaces |
+| Vue | `.vue` | functions, classes, methods, properties (supports `@/` alias resolution) |
+
+### Bundled (Tier 2) — Generic WASM Parsers (Always Available)
+
+| Language | Extensions | Key Symbols |
+|----------|-----------|-------------|
 | Python | `.py` | classes, functions, constants |
 | Go | `.go` | structs, interfaces, functions, methods, constants, packages |
 | Rust | `.rs` | structs, traits, enums, functions, impl blocks, constants, modules, macros |
 | Java | `.java` | classes, interfaces, enums, methods, fields, constants, packages |
 | C# | `.cs` | classes, interfaces, enums, structs, methods, properties, namespaces, records |
-
-### Bundled (Tier 2) — Ships with the tool
-
-| Language | Extensions | Key Symbols |
-|----------|-----------|-------------|
 | Ruby | `.rb` | classes, modules, methods, constants, properties |
 | C | `.c`, `.h` | structs, functions, enums, typedefs, macros |
 | C++ | `.cpp`, `.hpp`, `.cc` | classes, structs, functions, namespaces, enums, templates |
 | Swift | `.swift` | classes, structs, protocols, enums, functions, properties |
 | Kotlin | `.kt`, `.kts` | classes, objects, functions, interfaces, properties |
 | Scala | `.scala`, `.sc` | classes, objects, traits, functions, vals |
-| Vue | `.vue` | functions, classes, methods, properties (supports `@/` alias resolution) |
-
-### Installable (Tier 3) — `mapx lang install <name>`
-
-| Language | Extensions | Key Symbols |
-|----------|-----------|-------------|
 | Svelte | `.svelte` | functions, classes, methods, props, constants |
 | Lua | `.lua` | functions, methods, variables |
 | Elixir | `.ex`, `.exs` | modules, functions, macros, structs, protocols |

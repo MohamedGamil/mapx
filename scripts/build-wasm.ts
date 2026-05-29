@@ -22,6 +22,12 @@ const GRAMMARS = [
   { name: 'tree-sitter-vue', files: ['tree-sitter-vue.wasm'] },
   { name: 'tree-sitter-dart', files: ['tree-sitter-dart.wasm'] },
   { name: 'tree-sitter-scala', files: ['tree-sitter-scala.wasm'] },
+  { name: 'tree-sitter-svelte', files: ['tree-sitter-svelte.wasm'] },
+  { name: 'tree-sitter-lua', files: ['tree-sitter-lua.wasm'] },
+  { name: 'tree-sitter-elixir', files: ['tree-sitter-elixir.wasm'] },
+  { name: 'tree-sitter-zig', files: ['tree-sitter-zig.wasm'] },
+  { name: 'tree-sitter-bash', files: ['tree-sitter-bash.wasm'] },
+  { name: 'tree-sitter-pascal', files: ['tree-sitter-pascal.wasm'] },
 ];
 
 async function downloadFile(url: string, destPath: string): Promise<boolean> {
