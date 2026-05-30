@@ -97,14 +97,19 @@
       <!-- Tab: Graph Explorer -->
       <section id="tab-graph" class="tab-pane active">
         <div class="graph-container">
-          <div id="cy"></div>
+          <div id="cy">
+            <div class="graph-loading-overlay" id="graph-loading-overlay">
+              <div class="graph-loading-spinner"></div>
+              <div class="graph-loading-label" id="graph-loading-label">Loading graph…</div>
+            </div>
+          </div>
           <div class="graph-toolbar">
             <!-- Group 1: Layout Algorithm (first for prominence) -->
             <div class="toolbar-group" id="toolbar-group-layout">
               <span class="toolbar-group-label">Layout</span>
               <select id="select-layout" class="form-select toolbar-select-accent">
-                <option value="cola" selected>Tidy — Cola</option>
-                <option value="fcose">Organic — fCoSE</option>
+                <option value="cola">Tidy — Cola</option>
+                <option value="fcose" selected>Organic — fCoSE</option>
                 <option value="cose">Springy — CoSE</option>
                 <option value="dagre">Layered — Dagre</option>
                 <option value="elk">Tree — ELK</option>

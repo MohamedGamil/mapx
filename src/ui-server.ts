@@ -156,7 +156,7 @@ export function startUiServer(opts: ServerOpts) {
             languages: store.getLanguageBreakdown()
           }));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -170,7 +170,7 @@ export function startUiServer(opts: ServerOpts) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ totalFiles, totalEdges, totalElements: totalFiles + totalEdges }));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -235,15 +235,38 @@ export function startUiServer(opts: ServerOpts) {
               }
             });
           }
+
+          // Deduplicate edges: many symbol-level edges share the same source/target file pair.
+          // Aggregate them into one weighted edge per unique file→file pair to keep the
+          // payload small and Cytoscape from receiving thousands of duplicate elements.
+          const edgeMap = new Map<string, { source: string; target: string; weight: number; count: number; type: string; verifiability: string }>();
           for (const e of edges) {
+            const key = `${e.source_file as string}->${e.target_file as string}`;
+            const existing = edgeMap.get(key);
+            if (existing) {
+              existing.weight = Math.max(existing.weight, e.weight as number);
+              existing.count++;
+            } else {
+              edgeMap.set(key, {
+                source: e.source_file as string,
+                target: e.target_file as string,
+                weight: e.weight as number,
+                count: 1,
+                type: e.edge_type as string,
+                verifiability: e.verifiability as string,
+              });
+            }
+          }
+          for (const e of edgeMap.values()) {
             elements.push({
               data: {
-                id: `edge-${e.source_file}-${e.target_file}`,
-                source: e.source_file,
-                target: e.target_file,
-                type: e.edge_type,
+                id: `edge-${e.source}-${e.target}`,
+                source: e.source,
+                target: e.target,
+                type: e.type,
                 verifiability: e.verifiability,
-                weight: e.weight
+                weight: e.weight,
+                count: e.count,
               }
             });
           }
@@ -289,7 +312,7 @@ export function startUiServer(opts: ServerOpts) {
             res.end(payload);
           }
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -305,7 +328,7 @@ export function startUiServer(opts: ServerOpts) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ clusters, memberships }));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -321,7 +344,7 @@ export function startUiServer(opts: ServerOpts) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(results));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -366,7 +389,7 @@ export function startUiServer(opts: ServerOpts) {
             sourceCode
           }));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -454,7 +477,7 @@ export function startUiServer(opts: ServerOpts) {
             topSymbols
           }));
         } finally {
-          store.close();
+          try { store.close(); } catch { /* ignore close errors */ }
         }
         return;
       }
@@ -507,11 +530,13 @@ export function startUiServer(opts: ServerOpts) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(context));
           } catch (err: any) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: err.message }));
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message }));
+            }
           } finally {
             if (store) {
-              store.close();
+              try { store.close(); } catch { /* ignore close errors */ }
             }
           }
         });
@@ -659,8 +684,10 @@ export function startUiServer(opts: ServerOpts) {
         res.end('Not Found');
       }
     } catch (err: any) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
     }
   });
 

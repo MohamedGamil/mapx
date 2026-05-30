@@ -191,7 +191,7 @@ let currentGraphMode: 'proximity' | 'directory' | 'focus' | 'full' = 'proximity'
 let focusSeedNode: string | null = null;
 let focusDepth = 1;
 let activeLayout: any = null;
-let activeLayoutName: 'fcose' | 'cose' | 'cola' | 'dagre' | 'elk' | 'concentric' | 'circle' | 'grid' = 'cola';
+let activeLayoutName: 'fcose' | 'cose' | 'cola' | 'dagre' | 'elk' | 'concentric' | 'circle' | 'grid' = 'fcose';
 
 // New states for Proximity Clusters Mode & Groupings & Modifications
 let rawClustersData: { clusters: any[], memberships: any[] } = { clusters: [], memberships: [] };
@@ -277,12 +277,19 @@ function getLayoutConfigForName(layoutName: string, elementCount?: number): any 
   const baseAnimate = !isLarge;
 
   switch (layoutName) {
-    case 'fcose':
+    case 'fcose': {
+      // Scale iterations and quality down for large graphs so layout finishes
+      // in a reasonable time. fCoSE complexity is roughly O(n·iter), so
+      // halving iterations on large graphs saves seconds.
+      const fcoseIter = (elementCount || 0) > 500 ? 300
+                      : (elementCount || 0) > 200 ? 700
+                      : 2500;
+      const fcoseQuality = (elementCount || 0) > 200 ? 'draft' : 'default';
       return {
         name: 'fcose',
         animate: baseAnimate,
         animationDuration: 500,
-        quality: 'default',
+        quality: fcoseQuality,
         randomize: true,
         fit: true,
         padding: 50,
@@ -292,12 +299,13 @@ function getLayoutConfigForName(layoutName: string, elementCount?: number): any 
         edgeElasticity: () => 0.45,
         gravity: 0.15,
         gravityRange: 3.8,
-        numIter: 2500,
+        numIter: fcoseIter,
         tile: true,
         tilingPaddingVertical: 20,
         tilingPaddingHorizontal: 20,
         nodeSeparation: 100,
       };
+    }
     case 'cose':
       return {
         name: 'cose',
@@ -860,7 +868,7 @@ function runLayout(layoutConfig: any) {
   }
 
   const visibleCount = cyInstance.elements(':visible').length;
-  if (visibleCount > 500) {
+  if (visibleCount > 200) {
     layoutConfig = { ...layoutConfig, animate: false };
   }
 
@@ -877,7 +885,7 @@ function runLayout(layoutConfig: any) {
     });
   }
 
-  if (visibleCount > 500) {
+  if (visibleCount > 200) {
     activeLayout = cyInstance.layout(layoutConfig);
     activeLayout.run();
     return;
@@ -1162,9 +1170,20 @@ function updateToolbarVisibility(mode: string) {
 
 // Setup Cytoscape view and fetch graph
 async function loadGraph() {
+  const overlay = document.getElementById('graph-loading-overlay');
+  const overlayLabel = document.getElementById('graph-loading-label');
+  const showOverlay = (msg: string) => {
+    if (overlay) overlay.classList.remove('hidden');
+    if (overlayLabel) overlayLabel.textContent = msg;
+  };
+  const hideOverlay = () => {
+    if (overlay) overlay.classList.add('hidden');
+  };
+
+  showOverlay('Fetching graph data…');
   try {
     const res = await fetch('/api/graph');
-    if (!res.ok) return;
+    if (!res.ok) { hideOverlay(); return; }
     rawGraphElements = await res.json();
 
     const container = document.getElementById('cy');
@@ -1173,9 +1192,11 @@ async function loadGraph() {
     // Load clusters mapping for Proximity Clusters Mode
     await loadClusters();
 
-    // Decide default mode based on file count
+    // Decide default mode based on file count and edge count.
+    // Proximity (cluster) mode is far cheaper to render for large graphs.
     const fileCount = rawGraphElements.filter(el => el.data && !el.data.source && !el.data.target && el.data.type === 'file').length;
-    if (fileCount > 1000) {
+    const edgeCount = rawGraphElements.filter(el => el.data && el.data.source && el.data.target).length;
+    if (fileCount > 200 || edgeCount > 500) {
       currentGraphMode = 'proximity';
       const modeSelect = document.getElementById('select-graph-mode') as HTMLSelectElement;
       if (modeSelect) modeSelect.value = 'proximity';
@@ -1214,9 +1235,15 @@ async function loadGraph() {
     const initialElements = buildGraphElementsForMode();
 
     if (initialElements.length === 0) {
+      hideOverlay();
       container.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; font-size: 15px; color: var(--text-muted); text-align: center; gap: 8px; padding: 20px;"><div style="font-size: 24px;">🕸️</div><div>No codebase graph elements found.</div><div style="font-size: 12px; opacity: 0.8;">Run a scan using the mapx CLI/MCP to index files and generate the graph.</div></div>';
       return;
     }
+
+    showOverlay('Building graph…');
+    // Yield to the browser so the overlay message renders before the heavy
+    // synchronous Cytoscape initialisation blocks the main thread.
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     container.innerHTML = '';
 
@@ -1579,6 +1606,13 @@ async function loadGraph() {
         idealEdgeLength: () => 180
       } : getLayoutOptions(showClusters, false)
     });
+
+    // Hide the loading overlay once the initial layout is done (or immediately
+    // if layout is not animated).
+    showOverlay('Running layout…');
+    cyInstance.one('layoutstop', () => hideOverlay());
+    // Safety net: always hide after 10 s even if the event never fires.
+    setTimeout(() => hideOverlay(), 10000);
 
     // Layout dropdown handler
     const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
@@ -2237,6 +2271,7 @@ async function loadGraph() {
     });
 
   } catch (err) {
+    hideOverlay();
     console.error('Failed to load graph:', err);
   }
 }
@@ -2854,9 +2889,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modeSelect) modeSelect.value = 'proximity';
 
     // Reset layout
-    activeLayoutName = 'cola';
+    activeLayoutName = 'fcose';
     const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
-    if (layoutSelect) layoutSelect.value = 'cola';
+    if (layoutSelect) layoutSelect.value = 'fcose';
 
     // Reset grouping
     groupingStrategy = 'community';
