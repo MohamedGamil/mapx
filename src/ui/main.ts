@@ -278,32 +278,38 @@ function getLayoutConfigForName(layoutName: string, elementCount?: number): any 
 
   switch (layoutName) {
     case 'fcose': {
-      // Scale iterations and quality down for large graphs so layout finishes
-      // in a reasonable time. fCoSE complexity is roughly O(n·iter), so
-      // halving iterations on large graphs saves seconds.
-      const fcoseIter = (elementCount || 0) > 500 ? 300
-                      : (elementCount || 0) > 200 ? 700
+      // Scale iterations to graph size. Using 'default' quality throughout —
+      // 'draft' skips fCoSE's overlap-removal pass which is the main cause of
+      // nodes stacking on top of each other.
+      const fcoseIter = (elementCount || 0) > 500 ? 500
+                      : (elementCount || 0) > 200 ? 1000
                       : 2500;
-      const fcoseQuality = (elementCount || 0) > 200 ? 'draft' : 'default';
+      // Node separation scales up for denser graphs so there is always enough
+      // space between nodes regardless of how many edges share a region.
+      const fcoseSep = (elementCount || 0) > 200 ? 160 : 120;
       return {
         name: 'fcose',
         animate: baseAnimate,
         animationDuration: 500,
-        quality: fcoseQuality,
+        quality: 'default',
         randomize: true,
         fit: true,
-        padding: 50,
+        padding: 60,
         nodeDimensionsIncludeLabels: true,
-        nodeRepulsion: () => 120000,
-        idealEdgeLength: () => 160,
-        edgeElasticity: () => 0.45,
-        gravity: 0.15,
-        gravityRange: 3.8,
+        uniformNodeDimensions: false,
+        nodeRepulsion: () => 250000,
+        idealEdgeLength: () => 180,
+        edgeElasticity: () => 0.35,
+        gravity: 0.08,
+        gravityRange: 2.5,
         numIter: fcoseIter,
         tile: true,
-        tilingPaddingVertical: 20,
-        tilingPaddingHorizontal: 20,
-        nodeSeparation: 100,
+        tilingPaddingVertical: 40,
+        tilingPaddingHorizontal: 40,
+        nodeSeparation: fcoseSep,
+        samplingType: true,
+        sampleSize: 25,
+        nestingFactor: 0.1,
       };
     }
     case 'cose':
@@ -359,13 +365,17 @@ function getLayoutConfigForName(layoutName: string, elementCount?: number): any 
         animate: baseAnimate,
         fit: true,
         padding: 50,
+        nodeDimensionsIncludeLabels: true,
         elk: {
           algorithm: 'mrtree',
+          'nodeDimensionsIncludeLabels': true,
           'elk.direction': 'DOWN',
-          'spacing.nodeNode': 40,
-          'spacing.edgeNode': 20,
+          'spacing.nodeNode': 50,
+          'spacing.edgeNode': 25,
+          'spacing.nodeNodeBetweenLayers': 60,
+          'layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+          'layered.crossingMinimization.strategy': 'LAYER_SWEEP',
         },
-        nodeDimensionsIncludeLabels: true,
       };
     case 'concentric':
       return {
@@ -834,22 +844,35 @@ function updateGraphDisplay() {
 
   const elementCount = newElements.length;
 
-  // Use the centralized layout resolver — always respect user's choice
-  // except for proximity top-level which defaults to fcose for physics clustering
+  // Resolve the layout config for this mode change.
+  // All paths go through getLayoutConfigForName so the pre-scatter in runLayout
+  // always fires and nodes never stack on top of each other after a mode switch.
+  let layoutConfig: any;
   if (currentGraphMode === 'proximity' && !activeClusterId) {
-    // Top-level proximity clusters: use fcose for best cluster separation
-    const config = getLayoutConfigForName('fcose', elementCount);
-    config.nodeRepulsion = () => 150000;
-    config.idealEdgeLength = () => 200;
-    config.gravity = 0.08;
-    runLayout(config);
+    // Top-level proximity clusters: use the active layout; boost physics
+    // options only when the chosen algorithm supports them.
+    layoutConfig = getLayoutConfigForName(activeLayoutName, elementCount);
+    if (layoutConfig.name === 'fcose' || layoutConfig.name === 'cose') {
+      layoutConfig.nodeRepulsion = () => 350000;
+      layoutConfig.idealEdgeLength = () => 220;
+      layoutConfig.gravity = 0.06;
+    }
+    if (layoutConfig.name === 'elk') {
+      layoutConfig.elk = { ...layoutConfig.elk, 'spacing.nodeNode': 80, 'spacing.nodeNodeBetweenLayers': 120 };
+    }
   } else if (currentGraphMode === 'full' && showClusters) {
-    // Full codebase with clusters uses preset layout
-    runLayout(getLayoutOptions(showClusters, true));
+    layoutConfig = getLayoutOptions(showClusters, true);
   } else {
-    // All other cases: use the user's selected layout
-    runLayout(getLayoutConfigForName(activeLayoutName, elementCount));
+    layoutConfig = getLayoutConfigForName(activeLayoutName, elementCount);
   }
+
+  // Always force randomize for fCoSE on a mode change so internal position
+  // seeding starts fresh rather than using the stale (0,0) coordinates.
+  if (layoutConfig.name === 'fcose') {
+    layoutConfig = { ...layoutConfig, randomize: true };
+  }
+
+  runLayout(layoutConfig);
 
   // Update layout dropdown UI
   const layoutSelect = document.getElementById('select-layout') as HTMLSelectElement;
@@ -872,15 +895,19 @@ function runLayout(layoutConfig: any) {
     layoutConfig = { ...layoutConfig, animate: false };
   }
 
-  // For Cola: scramble positions so it starts fresh, preventing vertical drift
-  if (layoutConfig.name === 'cola' && layoutConfig.randomize) {
-    const bb = cyInstance.extent();
-    const w = Math.max(bb.w, 600);
-    const h = Math.max(bb.h, 400);
+  // Pre-scatter nodes to random positions before any physics/force layout runs.
+  // When elements are replaced in updateGraphDisplay, new nodes land at (0,0) and
+  // stack on top of each other. Scattering them first gives the layout a clean
+  // starting state regardless of which algorithm is selected.
+  const isPhysicsLayout = ['fcose', 'cose', 'cola', 'concentric'].includes(layoutConfig.name);
+  if (isPhysicsLayout) {
+    const container = cyInstance.container();
+    const w = container ? container.clientWidth : 800;
+    const h = container ? container.clientHeight : 600;
     cyInstance.nodes(':visible').forEach((node: any) => {
       node.position({
-        x: bb.x1 + Math.random() * w,
-        y: bb.y1 + Math.random() * h,
+        x: (Math.random() - 0.5) * w * 1.5 + w / 2,
+        y: (Math.random() - 0.5) * h * 1.5 + h / 2,
       });
     });
   }
@@ -1104,31 +1131,10 @@ function getLayoutOptions(useClusters: boolean, animate = true) {
       padding: 50
     };
   } else {
-    return {
-      name: 'cose',
-      animate: animate,
-      nodeDimensionsIncludeLabels: true,
-      nodeRepulsion: (node: any) => {
-        const deg = node.degree ? node.degree() : 0;
-        return 75000 + (deg * 15000);
-      },
-      idealEdgeLength: (edge: any) => {
-        const source = edge.source();
-        const target = edge.target();
-        const srcDeg = source.degree ? source.degree() : 0;
-        const tgtDeg = target.degree ? target.degree() : 0;
-        const maxDeg = Math.max(srcDeg, tgtDeg);
-        return 120 + (maxDeg * 8);
-      },
-      gravity: 0.1,
-      nodeOverlap: 40,
-      nestingFactor: 1.2,
-      componentSpacing: 40,
-      refresh: 20,
-      fit: true,
-      padding: 30,
-      boundingBox: undefined
-    };
+    // Delegate to the centralized resolver so the initial load always honours
+    // the active layout (fCoSE by default) and the pre-scatter in runLayout fires.
+    const config = getLayoutConfigForName(activeLayoutName);
+    return { ...config, animate };
   }
 }
 
@@ -1250,7 +1256,7 @@ async function loadGraph() {
     cyInstance = cytoscape({
       container: container,
       elements: initialElements,
-      wheelSensitivity: 1.5,
+      wheelSensitivity: 1.33,
       style: [
         {
           selector: 'node',
@@ -1599,12 +1605,7 @@ async function loadGraph() {
           }
         }
       ],
-      layout: currentGraphMode === 'directory' ? {
-        name: 'cose',
-        animate: false,
-        nodeRepulsion: () => 90000,
-        idealEdgeLength: () => 180
-      } : getLayoutOptions(showClusters, false)
+      layout: getLayoutOptions(showClusters, false)
     });
 
     // Hide the loading overlay once the initial layout is done (or immediately

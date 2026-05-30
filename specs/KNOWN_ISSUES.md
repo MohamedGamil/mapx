@@ -11,9 +11,10 @@
 - [ ] Create MapX 3d graph mode
 - [x] Use fCoSE as default graph layout for performance
 - [x] Fix layout changing modes issue
+- [x] fCoSE layout nodes seem to stack on top of each other without proper spacing
 - [ ] Improve visualization of clusters in ui graph
 - [x] Issue with graph not loading or taking too long to load propably due to large number of symbols 1.5k+ and edges 5k+
-- [ ] No pagination support for Symbol Explorer
+- [ ] No pagination support for Symbol Explorer (loads limited number of items)
 - [ ] No infinite scroll (auto load more) for Tool Call Log
 - [ ] Issue with UI server
 ```bash
