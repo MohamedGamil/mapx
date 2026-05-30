@@ -17,8 +17,22 @@ Unreleased work is tracked under **[Unreleased]**. When a version is released, m
   - `src/mcp.ts` (81.75% line coverage)
   - `src/cli.ts` (80.02% line coverage)
 - **Robust Unit Test Mocking** — Refactored and expanded test suites using `vi.hoisted()` for clean module-level mocking in `tests/cli.test.ts` (expanded to 159 tests) and `tests/mcp.test.ts` (expanded to 98 tests), covering complex edge cases, progress rendering, subcommands, and tool implementations.
+- **Symbol Explorer Pagination** — Symbol Explorer now supports paginated browsing with 50 results per page. Pagination controls (Prev / page-info / Next) appear at both the top and bottom of the left panel for quick navigation without scrolling. `/api/symbols` returns `{ results, total, limit, offset }` and accepts `limit`/`offset` query params. `Store.searchSymbolsFiltered` accepts an `offset` param; a new `Store.countSymbolsFiltered` method returns the total match count using the same WHERE clause.
+- **Symbol Explorer Row Highlighting** — Clicking a row in the Symbol Explorer now highlights it with a blue-tinted background and outline via a `selected-symbol-row` CSS class, making it easy to track which symbol is currently selected while reading the detail panel.
+- **Graph Loading Overlay** — A spinner overlay with phase labels ("Fetching graph data…" → "Building graph…" → "Running layout…") is displayed inside the graph canvas while data is loading. The overlay auto-dismisses on `layoutstop` or after a 10-second safety timeout.
+- **fCoSE Default Graph Layout** — fCoSE (Force-directed Compound Spring Embedder) is now the default graph layout algorithm, replacing ELK. The layout selector defaults to "Organic — fCoSE" on page load and after Reset All.
 
 ### Changed
+
+- **Graph API Edge Deduplication** — `/api/graph` now deduplicates edges server-side using a `Map` keyed on `source_file→target_file`, aggregating weight and count. This eliminates thousands of redundant symbol-level edges from being sent to the browser for large codebases, significantly improving load time and Cytoscape rendering performance.
+- **Proximity Mode Threshold Lowered** — Auto-switching to Proximity Clusters mode now triggers when `fileCount > 200 || edgeCount > 500` (previously `fileCount > 1000`), catching medium-sized codebases that were silently overloading the force-directed layout.
+- **fCoSE Layout Tuning** — fCoSE config now always uses `quality: 'default'` (was `'draft'` for large graphs, which skipped overlap removal). `nodeRepulsion` increased to `250000`, `gravity` set to `0.08`, `edgeElasticity` to `0.35`, `tilingPadding` to `40`, and `nodeSeparation` adapts between `120`–`160` based on node count. `uniformNodeDimensions: false` preserves dynamic sizing.
+- **Pre-scatter Before Physics Layouts** — All physics-based layouts (fCoSE, cose, Cola, Concentric) now scatter nodes to randomized positions across the full container dimensions before running the layout. This prevents nodes from stacking at the origin `(0,0)` when switching modes or reloading the graph, and produces better-spread initial conditions for force simulation.
+- **Animation Threshold Reduced** — Graph element animations are disabled when `visibleCount > 200` (was `> 500`), avoiding sluggish transitions on mid-sized graphs.
+
+### Fixed
+
+- **ERR_HTTP_HEADERS_SENT Crash** — Fixed a crash in `ui-server.ts` where `store.close()` inside a `finally` block could throw after the response was already sent, causing the outer `catch` to attempt a second `res.writeHead()`. Both catch blocks now guard with `if (!res.headersSent)` and `store.close()` errors are silently swallowed in `finally`.
 
 ## [0.3.0] — 2026-05-29
 
